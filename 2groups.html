@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>双数字组合频率统计器 - 1至35选2共595组</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --primary: #4a6cf7;
+            --primary-hover: #3651d5;
+            --text: #2d3748;
+            --text-secondary: #5a6c7d;
+            --border: #e2e8f0;
+            --border-focus: #a0b4f7;
+            --success: #48bb78;
+            --warning: #ed8936;
+            --danger: #f56565;
+            --highlight-1: #fef3c7;
+            --highlight-2: #fde68a;
+            --highlight-3: #fcd34d;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.06);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --transition: 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding-top: 10px;
+            padding-bottom: 40px;
+        }
+
+        /* 卡片样式 */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .card-header {
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-header .icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .icon-input {
+            background: #ebf4ff;
+            color: #4a6cf7;
+        }
+        .icon-result {
+            background: #f0fff4;
+            color: #48bb78;
+        }
+        .icon-stats {
+            background: #fffaf0;
+            color: #ed8936;
+        }
+
+        .card-header .title {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+        .card-header .subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .card-body {
+            padding: 20px 24px;
+        }
+
+        .card-body.no-padding {
+            padding: 0;
+        }
+
+        /* 输入区域 */
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            font-size: 15px;
+            font-family: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', 'PingFang SC', monospace;
+            resize: vertical;
+            transition: all var(--transition);
+            background: #fafbfc;
+            color: var(--text);
+            line-height: 1.8;
+            letter-spacing: 0.02em;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+            background: #fff;
+        }
+
+        textarea::placeholder {
+            color: #b0bec5;
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            letter-spacing: 0;
+            font-size: 14px;
+        }
+
+        .hint-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .hint-text .dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #cbd5e0;
+            flex-shrink: 0;
+        }
+
+        /* 按钮 */
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 2px 4px rgba(74, 108, 247, 0.3);
+        }
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            box-shadow: 0 4px 8px rgba(74, 108, 247, 0.35);
+            transform: translateY(-1px);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(74, 108, 247, 0.3);
+        }
+
+        .btn-outline {
+            background: #fff;
+            color: var(--primary);
+            border: 2px solid #dce4f7;
+        }
+        .btn-outline:hover {
+            background: #f8faff;
+            border-color: var(--primary);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid transparent;
+        }
+        .btn-ghost:hover {
+            background: #f7f8fa;
+            border-color: var(--border);
+            color: var(--text);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: #fff;
+            box-shadow: 0 2px 4px rgba(72, 187, 120, 0.3);
+        }
+        .btn-success:hover {
+            background: #38a169;
+            box-shadow: 0 4px 8px rgba(72, 187, 120, 0.35);
+            transform: translateY(-1px);
+        }
+
+        .btn-sm {
+            padding: 6px 14px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+
+        /* 统计摘要 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+        }
+        .stat-item {
+            background: #f8fafc;
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            text-align: center;
+            border: 1px solid var(--border);
+            transition: var(--transition);
+        }
+        .stat-item .stat-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: -0.02em;
+            line-height: 1;
+        }
+        .stat-item .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            font-weight: 500;
+        }
+        .stat-item.warn .stat-value {
+            color: var(--warning);
+        }
+        .stat-item.success .stat-value {
+            color: var(--success);
+        }
+
+        /* 结果表格容器 */
+        .result-scroll {
+            max-height: 550px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            scroll-behavior: smooth;
+        }
+        .result-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .result-scroll::-webkit-scrollbar-track {
+            background: #f8fafc;
+            border-radius: 3px;
+        }
+        .result-scroll::-webkit-scrollbar-thumb {
+            background: #d1dbe6;
+            border-radius: 3px;
+        }
+        .result-scroll::-webkit-scrollbar-thumb:hover {
+            background: #b0c0d0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            table-layout: fixed;
+        }
+        table thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        table thead th {
+            background: #f1f5f9;
+            padding: 11px 12px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-secondary);
+            border-bottom: 2px solid #dde4ed;
+        }
+        table tbody td {
+            padding: 9px 12px;
+            text-align: center;
+            border-bottom: 1px solid #f2f5f8;
+            font-variant-numeric: tabular-nums;
+            font-family: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+            letter-spacing: 0.03em;
+        }
+        table tbody tr {
+            transition: background var(--transition);
+        }
+        table tbody tr:hover {
+            background: #f8faff;
+        }
+        table tbody tr.row-high {
+            background: #fffdf5;
+        }
+        table tbody tr.row-high:hover {
+            background: #fff9e0;
+        }
+        table tbody tr.row-mid {
+            background: #fdfcf9;
+        }
+        .col-rank {
+            width: 48px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 12px;
+        }
+        .col-combo {
+            width: 100px;
+            font-weight: 700;
+            color: var(--text);
+            font-size: 15px;
+            letter-spacing: 0.04em;
+        }
+        .col-count {
+            width: 60px;
+            font-weight: 700;
+            font-size: 15px;
+        }
+        .count-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 13px;
+            min-width: 28px;
+        }
+        .badge-high {
+            background: #fef3c7;
+            color: #b45309;
+        }
+        .badge-mid {
+            background: #e8f0fe;
+            color: #1e40af;
+        }
+        .badge-low {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+        .badge-zero {
+            background: #fafafa;
+            color: #cbd5e0;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+        .empty-state .empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2d3748;
+            color: #fff;
+            padding: 10px 22px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+            letter-spacing: 0.02em;
+        }
+        .toast.show {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(-50%) translateY(0);
+        }
+        .toast.success {
+            background: #48bb78;
+        }
+        .toast.error {
+            background: #f56565;
+        }
+
+        /* 响应式 */
+        @media (max-width: 640px) {
+            body {
+                padding: 10px;
+            }
+            .app-container {
+                gap: 14px;
+                padding-top: 4px;
+                padding-bottom: 20px;
+            }
+            .card-body {
+                padding: 14px 16px;
+            }
+            .card-header {
+                padding: 14px 16px 10px;
+            }
+            textarea {
+                min-height: 150px;
+                font-size: 13px;
+                padding: 10px 12px;
+            }
+            .btn {
+                padding: 8px 14px;
+                font-size: 13px;
+            }
+            table {
+                font-size: 12px;
+            }
+            table thead th,
+            table tbody td {
+                padding: 6px 8px;
+            }
+            .col-combo {
+                font-size: 13px;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+            .stat-item {
+                padding: 10px 8px;
+            }
+            .stat-item .stat-value {
+                font-size: 22px;
+            }
+            .result-scroll {
+                max-height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 标题 -->
+        <div style="text-align:center; padding: 8px 0 0;">
+            <h1 style="font-size: 24px; font-weight: 800; color: #1a202c; letter-spacing: -0.02em; margin: 0;">
+                🎯 双数字组合频率统计器
+            </h1>
+            <p style="font-size: 13px; color: #8899aa; margin: 4px 0 0; font-weight: 500;">
+                1—35任选2个 · 共595组 · 统计在输入组合中的出现频率
+            </p>
+        </div>
+
+        <!-- 输入卡片 -->
+        <div class="card" id="inputCard">
+            <div class="card-header">
+                <div class="icon icon-input">📝</div>
+                <div>
+                    <div class="title">输入6数字组合</div>
+                    <div class="subtitle">每行一个组合，数字用逗号分隔（1-35之间）</div>
+                </div>
+            </div>
+            <div class="card-body">
+                <textarea
+                id="inputArea"
+                placeholder="示例：&#10;1,2,3,4,5,6&#10;2,3,4,5,6,7&#10;3,4,5,6,7,8&#10;10,15,20,25,30,35&#10;01,07,13,19,25,31&#10;&#10;支持格式：&#10;• 英文逗号或中文逗号分隔&#10;• 1-9自动识别为01-09&#10;• 重复的6数组合自动去重"
+            ></textarea>
+            <div class="hint-text">
+                <span>💡</span>
+                <span>数字范围1-35</span>
+                <span class="dot"></span>
+                <span>每行6个不重复数字</span>
+                <span class="dot"></span>
+                <span>逗号分隔（中英文均可）</span>
+                <span class="dot"></span>
+                <span>1-9自动补零</span>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" id="btnCalculate" onclick="calculate()">
+                    🔍 开始统计
+                </button>
+                <button class="btn btn-outline" id="btnLoadExample" onclick="loadExample()">
+                    📋 加载示例
+                </button>
+                <button class="btn btn-ghost" id="btnClear" onclick="clearAll()">
+                    🗑 清空
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计摘要卡片 -->
+    <div class="card" id="statsCard" style="display:none;">
+        <div class="card-header">
+            <div class="icon icon-stats">📊</div>
+            <div>
+                <div class="title">统计摘要</div>
+                <div class="subtitle">输入数据分析结果</div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="stats-grid" id="statsGrid">
+                <!-- 动态填充 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 结果卡片 -->
+    <div class="card" id="resultCard" style="display:none;">
+        <div class="card-header">
+            <div class="icon icon-result">🏆</div>
+            <div>
+                <div class="title">统计结果 — 595组双数字组合频率排行</div>
+                <div class="subtitle" id="resultSubtitle">按出现次数从多到少排列</div>
+            </div>
+            <div style="margin-left:auto; display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-success btn-sm" id="btnCopyAll" onclick="copyResults('all')">
+                    📋 复制全部595组
+                </button>
+                <button class="btn btn-outline btn-sm" id="btnCopyNonZero" onclick="copyResults('nonzero')">
+                    ✂️ 仅复制有出现的
+                </button>
+            </div>
+        </div>
+        <div class="card-body no-padding">
+            <div class="result-scroll" id="resultScroll">
+                <div class="empty-state" id="emptyResult">
+                    <div class="empty-icon">📭</div>
+                    <p>暂无结果，请先输入数据并点击统计</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast提示 -->
+    <div class="toast" id="toast"></div>
+</div>
+
+<script>
+    (function() {
+        // ============ 常量 ============
+        const TOTAL_PAIRS = 595; // C(35,2)
+        const NUM_RANGE = 35; // 数字范围 1-35
+        const COMBO_SIZE = 6; // 每个组合6个数字
+
+        // ============ 预生成所有595组2数字组合 ============
+        // 所有2数字组合的列表（按字典序），格式：[[a,b], ...] 其中a<b
+        const ALL_PAIRS = [];
+        for (let a = 1; a <= NUM_RANGE; a++) {
+            for (let b = a + 1; b <= NUM_RANGE; b++) {
+                ALL_PAIRS.push([a, b]);
+            }
+        }
+        // ALL_PAIRS.length === 595
+
+        // 为快速查找，建立 (a,b) -> index 的映射（a<b）
+        const pairToIndex = new Map();
+        ALL_PAIRS.forEach((pair, idx) => {
+            const key = pair[0] + ',' + pair[1];
+            pairToIndex.set(key, idx);
+        });
+
+        // ============ DOM引用 ============
+        const inputArea = document.getElementById('inputArea');
+        const statsCard = document.getElementById('statsCard');
+        const statsGrid = document.getElementById('statsGrid');
+        const resultCard = document.getElementById('resultCard');
+        const resultScroll = document.getElementById('resultScroll');
+        const resultSubtitle = document.getElementById('resultSubtitle');
+        const emptyResult = document.getElementById('emptyResult');
+        const toast = document.getElementById('toast');
+
+        // 存储最后一次计算结果，供复制使用
+        let lastResults = null; // { pairs: [[a,b,count], ...], totalInput, uniqueInput, nonzeroCount }
+
+        // ============ Toast ============
+        let toastTimer = null;
+
+        function showToast(msg, type = '') {
+            if (toastTimer) clearTimeout(toastTimer);
+            toast.textContent = msg;
+            toast.className = 'toast ' + type + ' show';
+            toastTimer = setTimeout(() => {
+                toast.classList.remove('show');
+                toast.className = 'toast';
+            }, 2200);
+        }
+
+        // ============ 解析输入 ============
+        function parseInput(text) {
+            const lines = text.split(/\r?\n/);
+            const rawCombos = []; // 每个元素是数字数组（已排序）
+            const errors = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line === '') continue; // 跳过空行
+
+                // 将中文逗号替换为英文逗号
+                let processed = line.replace(/，/g, ',');
+                // 按英文逗号分割
+                let parts = processed.split(',');
+                // 清理每个部分
+                let nums = [];
+                for (let p of parts) {
+                    p = p.trim();
+                    if (p === '') continue;
+                    // 尝试解析为整数
+                    let num = parseInt(p, 10);
+                    if (!isNaN(num) && num >= 1 && num <= NUM_RANGE) {
+                        nums.push(num);
+                    } else if (p.match(/^\d+$/)) {
+                        // 是数字但超出范围
+                        let n = parseInt(p, 10);
+                        if (n < 1 || n > NUM_RANGE) {
+                            errors.push(`第${i+1}行：数字"${p}"不在1-35范围内，已忽略`);
+                        }
+                    } else {
+                        errors.push(`第${i+1}行："${p}"不是有效数字，已忽略`);
+                    }
+                }
+
+                // 去重（行内去重）
+                const uniqueNums = [...new Set(nums)];
+                if (uniqueNums.length < nums.length) {
+                    errors.push(`第${i+1}行：存在重复数字，已自动去重（原${nums.length}个→去重后${uniqueNums.length}个）`);
+                }
+
+                if (uniqueNums.length === COMBO_SIZE) {
+                    // 排序后存储
+                    uniqueNums.sort((a, b) => a - b);
+                    rawCombos.push(uniqueNums);
+                } else if (uniqueNums.length > 0 && uniqueNums.length < COMBO_SIZE) {
+                    errors.push(`第${i+1}行：仅有${uniqueNums.length}个有效数字，需要恰好${COMBO_SIZE}个，已跳过`);
+                } else if (uniqueNums.length > COMBO_SIZE) {
+                    errors.push(`第${i+1}行：有${uniqueNums.length}个有效数字（超过${COMBO_SIZE}个），需要恰好${COMBO_SIZE}个，已跳过`);
+                }
+                // 如果uniqueNums.length === 0，说明该行没有有效数字，静默跳过
+            }
+
+            return { rawCombos, errors };
+        }
+
+        // ============ 去重6数字组合 ============
+        function deduplicateCombos(rawCombos) {
+            const seen = new Set();
+            const unique = [];
+            for (const combo of rawCombos) {
+                const key = combo.join(',');
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    unique.push(combo);
+                }
+            }
+            return unique;
+        }
+
+        // ============ 统计2数字组合频率 ============
+        function countPairs(uniqueCombos) {
+            // 初始化595个计数器
+            const counts = new Array(TOTAL_PAIRS).fill(0);
+
+            for (const combo of uniqueCombos) {
+                // 生成该6数字组合中所有C(6,2)=15个2数字子组合
+                for (let i = 0; i < COMBO_SIZE; i++) {
+                    for (let j = i + 1; j < COMBO_SIZE; j++) {
+                        const a = combo[i];
+                        const b = combo[j];
+                        // a < b 因为combo已排序
+                        const key = a + ',' + b;
+                        const idx = pairToIndex.get(key);
+                        if (idx !== undefined) {
+                            counts[idx]++;
+                        }
+                    }
+                }
+            }
+            return counts;
+        }
+
+        // ============ 格式化数字为两位 ============
+        function fmtNum(n) {
+            return String(n).padStart(2, '0');
+        }
+
+        // ============ 格式化2数字组合 ============
+        function fmtPair(a, b) {
+            return fmtNum(a) + ',' + fmtNum(b);
+        }
+
+        // ============ 生成结果列表 ============
+        function buildResultList(counts) {
+            const results = [];
+            for (let idx = 0; idx < TOTAL_PAIRS; idx++) {
+                const [a, b] = ALL_PAIRS[idx];
+                results.push({
+                    a: a,
+                    b: b,
+                    count: counts[idx],
+                    display: fmtPair(a, b),
+                });
+            }
+            // 按出现次数从多到少排列，次数相同按(a,b)字典序
+            results.sort((r1, r2) => {
+                if (r2.count !== r1.count) return r2.count - r1.count;
+                if (r1.a !== r2.a) return r1.a - r2.a;
+                return r1.b - r2.b;
+            });
+            return results;
+        }
+
+        // ============ 渲染结果 ============
+        function renderResults(results, uniqueComboCount, totalInputCount) {
+            const nonzeroCount = results.filter(r => r.count > 0).length;
+            const maxCount = results.length > 0 ? results[0].count : 0;
+
+            // 存储供复制使用
+            lastResults = {
+                results: results,
+                totalInput: totalInputCount,
+                uniqueInput: uniqueComboCount,
+                nonzeroCount: nonzeroCount,
+                maxCount: maxCount,
+            };
+
+            // 更新统计摘要
+            statsCard.style.display = 'block';
+            statsGrid.innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-value">${totalInputCount}</div>
+                    <div class="stat-label">原始输入组合数</div>
+                </div>
+                <div class="stat-item warn">
+                    <div class="stat-value">${totalInputCount - uniqueComboCount}</div>
+                    <div class="stat-label">去重移除的重复组</div>
+                </div>
+                <div class="stat-item success">
+                    <div class="stat-value">${uniqueComboCount}</div>
+                    <div class="stat-label">有效参与统计的组合</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${uniqueComboCount * 15}</div>
+                    <div class="stat-label">产生的2数字子组合(次)</div>
+                </div>
+                <div class="stat-item success">
+                    <div class="stat-value">${nonzeroCount}</div>
+                    <div class="stat-label">出现≥1次的2数组合</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${TOTAL_PAIRS - nonzeroCount}</div>
+                    <div class="stat-label">未出现的2数组合</div>
+                </div>
+            `;
+
+            // 更新结果卡片
+            resultCard.style.display = 'block';
+            resultSubtitle.textContent =
+                `共${TOTAL_PAIRS}组 · 按出现次数从多到少排列 · ${nonzeroCount}组有出现 · 最多出现${maxCount}次`;
+
+            if (results.length === 0) {
+                resultScroll.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <p>暂无结果</p>
+                    </div>`;
+                return;
+            }
+
+            // 构建表格
+            let tableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="col-rank">排名</th>
+                            <th class="col-combo">双数字组合</th>
+                            <th class="col-count">出现次数</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+            for (let i = 0; i < results.length; i++) {
+                const r = results[i];
+                let rowClass = '';
+                let badgeClass = '';
+                if (r.count >= maxCount && r.count > 0 && maxCount > 0) {
+                    rowClass = 'row-high';
+                    badgeClass = 'badge-high';
+                } else if (r.count >= Math.ceil(maxCount / 2) && r.count > 0 && maxCount > 1) {
+                    rowClass = 'row-mid';
+                    badgeClass = 'badge-mid';
+                } else if (r.count > 0) {
+                    badgeClass = 'badge-low';
+                } else {
+                    badgeClass = 'badge-zero';
+                }
+
+                tableHTML += `
+                    <tr class="${rowClass}">
+                        <td class="col-rank">${i + 1}</td>
+                        <td class="col-combo">${r.display}</td>
+                        <td class="col-count"><span class="count-badge ${badgeClass}">${r.count}</span></td>
+                    </tr>`;
+            }
+
+            tableHTML += '</tbody></table>';
+            resultScroll.innerHTML = tableHTML;
+
+            // 滚动到顶部
+            resultScroll.scrollTop = 0;
+        }
+
+        // ============ 主计算函数 ============
+        function calculate() {
+            const text = inputArea.value.trim();
+
+            if (!text) {
+                showToast('⚠️ 请先在输入框中填写6数字组合', 'error');
+                statsCard.style.display = 'none';
+                resultCard.style.display = 'none';
+                lastResults = null;
+                return;
+            }
+
+            // 解析
+            const { rawCombos, errors } = parseInput(text);
+
+            if (rawCombos.length === 0) {
+                showToast('❌ 未识别到有效的6数字组合，请检查输入格式', 'error');
+                statsCard.style.display = 'none';
+                resultCard.style.display = 'none';
+                lastResults = null;
+                // 显示错误信息
+                if (errors.length > 0) {
+                    alert('解析错误：\n' + errors.join('\n'));
+                }
+                return;
+            }
+
+            // 去重
+            const totalInput = rawCombos.length;
+            const uniqueCombos = deduplicateCombos(rawCombos);
+            const uniqueCount = uniqueCombos.length;
+
+            // 统计
+            const counts = countPairs(uniqueCombos);
+
+            // 构建结果列表
+            const results = buildResultList(counts);
+
+            // 渲染
+            renderResults(results, uniqueCount, totalInput);
+
+            // 显示警告
+            if (errors.length > 0) {
+                console.warn('解析警告：', errors);
+                // 如果有少量错误，用toast提示
+                if (errors.length <= 3) {
+                    setTimeout(() => showToast('⚠️ ' + errors[0], 'error'), 500);
+                } else {
+                    setTimeout(() => showToast('⚠️ 共' + errors.length + '条解析警告，详见控制台', 'error'), 500);
+                }
+            }
+
+            // 成功提示
+            const nonzeroCount = results.filter(r => r.count > 0).length;
+            showToast('✅ 统计完成！' + uniqueCount + '组有效输入，' + nonzeroCount + '组2数组合有出现', 'success');
+
+            // 滚动到结果区域
+            setTimeout(() => {
+                resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 150);
+        }
+
+        // ============ 复制结果 ============
+        function copyResults(mode) {
+            if (!lastResults || !lastResults.results || lastResults.results.length === 0) {
+                showToast('⚠️ 暂无结果可复制，请先进行统计', 'error');
+                return;
+            }
+
+            let lines = [];
+            const results = lastResults.results;
+
+            if (mode === 'all') {
+                // 复制全部595组：格式 "01,02\t次数"
+                for (const r of results) {
+                    lines.push(r.display + '\t' + r.count);
+                }
+                showToast('📋 已复制全部595组数据（组合+次数，Tab分隔）', 'success');
+            } else if (mode === 'nonzero') {
+                // 仅复制出现次数>0的
+                for (const r of results) {
+                    if (r.count > 0) {
+                        lines.push(r.display + '\t' + r.count);
+                    }
+                }
+                const nz = lastResults.nonzeroCount;
+                showToast('📋 已复制' + nz + '组有出现的数据（组合+次数，Tab分隔）', 'success');
+            }
+
+            const textToCopy = lines.join('\n');
+
+            // 使用Clipboard API
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    // toast已显示
+                }).catch(() => {
+                    fallbackCopy(textToCopy);
+                });
+            } else {
+                fallbackCopy(textToCopy);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            textarea.style.top = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('📋 已复制到剪贴板', 'success');
+            } catch (e) {
+                showToast('❌ 复制失败，请手动选择结果复制', 'error');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        // ============ 加载示例 ============
+        function loadExample() {
+            inputArea.value =
+                '1,2,3,4,5,6\n2,3,4,5,6,7\n3,4,5,6,7,8\n10,15,20,25,30,35\n01,07,13,19,25,31\n5,10,15,20,25,30\n1,2,3,4,5,6';
+            showToast('📋 已加载示例数据（含一组重复用于演示去重）', 'success');
+            // 自动计算
+            setTimeout(() => calculate(), 200);
+        }
+
+        // ============ 清空 ============
+        function clearAll() {
+            inputArea.value = '';
+            statsCard.style.display = 'none';
+            resultCard.style.display = 'none';
+            resultScroll.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📭</div>
+                    <p>暂无结果，请先输入数据并点击统计</p>
+                </div>`;
+            lastResults = null;
+            showToast('🗑 已清空所有数据', '');
+        }
+
+        // ============ 键盘快捷键 ============
+        inputArea.addEventListener('keydown', function(e) {
+            // Ctrl+Enter 触发计算
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                calculate();
+            }
+        });
+
+        // ============ 页面加载时聚焦输入框 ============
+        window.addEventListener('DOMContentLoaded', () => {
+            inputArea.focus();
+        });
+
+        // ============ 暴露函数到全局 ============
+        window.calculate = calculate;
+        window.loadExample = loadExample;
+        window.clearAll = clearAll;
+        window.copyResults = copyResults;
+    })();
+</script>
+</body>
+</html>
