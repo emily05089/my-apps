@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>号码匹配分析工具 · 去重版</title>
+    <style>
+        /* 样式完全不变，为节省篇幅此处省略，与上一个版本完全相同 */
+        :root {
+            --primary: #4A6CF7;
+            --primary-dark: #3651d5;
+            --danger: #e74c3c;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-light: #5a6c7d;
+            --border: #dde4ed;
+            --shadow: 0 8px 32px rgba(0,0,0,0.12);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --transition: 0.25s cubic-bezier(0.4,0,0.2,1);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #e8edf5, Lightblue, #eef2f7, #e3e9f2);
+            min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+            color: var(--text); -webkit-font-smoothing: antialiased;
+        }
+        .app-container {
+            position: relative; z-index:1; width:100%; max-width: 760px; background: var(--card-bg);
+            border-radius: 20px; box-shadow: var(--shadow); padding: 36px 32px 32px;
+        }
+        .app-header { text-align: center; margin-bottom: 28px; }
+        .app-header .icon-circle {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 56px; height: 56px; border-radius: 50%;
+            background: linear-gradient(135deg, #4A6CF7, #6d8aff); margin-bottom: 14px;
+            box-shadow: 0 6px 20px rgba(74,108,247,0.3);
+        }
+        .app-header h1 { font-size: 1.6rem; font-weight: 700; }
+        .base-number-display { display:none; background:#f8fafd; border:2px dashed var(--border); border-radius:var(--radius-sm); padding:16px 20px; margin-bottom:20px; text-align:center; }
+        .base-number-display.visible { display:block; animation: fadeInDown 0.35s; }
+        .num-ball {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 42px; height: 42px; border-radius: 50%;
+            background: linear-gradient(135deg, #4A6CF7, #5d7ef9); color: #fff; font-weight: 700;
+            margin: 0 4px; box-shadow: 0 3px 10px rgba(74,108,247,0.35);
+        }
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px; padding: 13px 28px;
+            border: none; border-radius: 50px; font-size: 1rem; font-weight: 600; cursor: pointer;
+            transition: all var(--transition); white-space: nowrap;
+        }
+        .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 4px 16px rgba(74,108,247,0.35); }
+        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+        .btn-outline { background: #fff; color: var(--primary); border: 2px solid var(--primary); }
+        .btn-outline:hover { background: #f5f7ff; }
+        .btn-block { width: 100%; justify-content: center; }
+        .btn-lg { padding: 15px 36px; font-size: 1.1rem; }
+        .btn-sm { padding: 8px 18px; font-size: 0.85rem; border-radius: 30px; }
+        .btn-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+        .results-container { display: none; margin-top: 24px; animation: fadeInUp 0.4s; }
+        .results-container.visible { display: block; }
+        .summary-chip {
+            flex: 1 1 auto; min-width: 80px; text-align: center; background: #f8fafd;
+            border-radius: var(--radius-sm); padding: 12px 10px; font-size: 0.8rem; color: var(--text-light);
+            border: 1px solid var(--border); margin: 4px;
+        }
+        .summary-chip strong { display: block; font-size: 1.5rem; color: var(--text); }
+        .stats-table-wrap { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 20px; }
+        .stats-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 500px; }
+        .stats-table th { background: #f1f5fa; padding: 12px 14px; font-weight: 600; }
+        .stats-table td { padding: 12px 14px; text-align: center; border-bottom: 1px solid #eef2f7; }
+        .match-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: 700; }
+        .badge-6 { background: #ffeaa7; color: #c79100; } .badge-5 { background: #ffe0d9; color: #d63031; }
+        .badge-4 { background: #ffe8d6; color: #e17055; } .badge-3,.badge-2,.badge-1,.badge-0 { background: #dfe6e9; color: #636e72; }
+        .highlight-row { background: #fffdf5 !important; font-weight: 700; }
+        .hit-detail-block { background: #f9fbfd; border: 1px solid #e3eaf2; border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+        .hit-detail-header { display: flex; justify-content: space-between; padding: 12px 18px; background: #f0f5fb; }
+        .hit-detail-body { padding: 12px 18px; max-height: 260px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 8px; }
+        .combo-tag { background: #fff; border: 1px solid #e0e6ed; border-radius: 20px; padding: 5px 14px; font-family: monospace; font-size: 0.82rem; }
+        .copy-btn { background: #fff; border: 1px solid #d0dae6; border-radius: 20px; padding: 6px 16px; font-size: 0.8rem; color: #4A6CF7; cursor: pointer; }
+        .copy-btn.copied { background: #27ae60; color: #fff; }
+        .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.55); z-index:1000; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition: opacity var(--transition); }
+        .modal-overlay.active { opacity:1; pointer-events:auto; }
+        .modal { background:#fff; border-radius:18px; box-shadow:var(--shadow-lg); width:100%; max-width:620px; max-height:90vh; display:flex; flex-direction:column; transform: translateY(20px) scale(0.96); transition: transform var(--transition); }
+        .modal-overlay.active .modal { transform: translateY(0) scale(1); }
+        .modal-header { display:flex; justify-content:space-between; padding:18px 22px; border-bottom:1px solid #eef2f7; }
+        .modal-close { width:36px; height:36px; border-radius:50%; border:none; background:#f1f4f8; cursor:pointer; font-size:1.2rem; }
+        .modal-body { padding:20px 22px; overflow-y:auto; flex:1; }
+        .modal-footer { padding:14px 22px; border-top:1px solid #eef2f7; display:flex; gap:10px; justify-content:flex-end; }
+        .input-group { margin-bottom:14px; }
+        .input-text, .input-textarea { width:100%; padding:12px 16px; border:2px solid var(--border); border-radius:var(--radius-sm); font-family: monospace; background:#fafbfd; }
+        .toast { position:fixed; top:20px; left:50%; transform:translateX(-50%) translateY(-120px); background:#333; color:#fff; padding:12px 24px; border-radius:50px; z-index:2000; transition: transform 0.35s; }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        @keyframes fadeInUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes fadeInDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="app-container" id="appContainer">
+    <div class="app-header">
+        <div class="icon-circle">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="white"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l4.59-4.58L18 11l-6 6z"/></svg>
+        </div>
+        <h1>号码匹配分析 · 去重版</h1>
+        <p class="subtitle" style="color:var(--text-light);">重复组合自动合并，只计一次 | 可查看中4/5/6组合详情</p>
+    </div>
+
+    <div class="base-number-display" id="baseNumberDisplay">
+        <div style="font-size:0.8rem; color:var(--text-light);">📌 基准号码</div>
+        <div class="numbers" id="baseNumberBalls"></div>
+    </div>
+
+    <button class="btn btn-primary btn-block btn-lg" id="btnStart" onclick="openModal1()">
+        🔍 开始分析
+    </button>
+    <div class="btn-row">
+        <button class="btn btn-outline btn-sm" id="btnReset" style="display:none;" onclick="resetAll()">🔄 重新开始</button>
+    </div>
+
+    <div class="results-container" id="resultsContainer">
+        <div class="results-summary" id="resultsSummary" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;"></div>
+        <div class="stats-table-wrap">
+            <table class="stats-table">
+                <thead><tr><th>命中数</th><th>组数</th><th>占比</th><th>可视化</th></tr></thead>
+                <tbody id="statsTableBody"></tbody>
+            </table>
+        </div>
+        <div id="hitDetailsArea"></div>
+    </div>
+</div>
+
+<!-- 弹窗1：基准号码 -->
+<div class="modal-overlay" id="modalOverlay1">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>📋 第一步：基准号码</h2>
+            <button class="modal-close" onclick="closeModal1()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="input-group">
+                <label>输入6个数字（逗号分隔）</label>
+                <input type="text" class="input-text" id="baseInput" placeholder="01,02,03,04,05,06">
+                <div class="hint" style="font-size:0.75rem;color:#999;">支持中英文逗号，1-9自动补零</div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline btn-sm" onclick="closeModal1()">取消</button>
+            <button class="btn btn-primary" onclick="confirmBaseNumber()">确认，下一步</button>
+        </div>
+    </div>
+</div>
+
+<!-- 弹窗2：批量对比号码 -->
+<div class="modal-overlay" id="modalOverlay2">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>📝 第二步：批量对比号码</h2>
+            <button class="modal-close" onclick="closeModal2()">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="margin-bottom:10px;">基准号码：<strong id="modal2BaseRef" style="color:#4A6CF7;">--</strong></p>
+            <div class="input-group">
+                <label>每行一组，每组6个数字</label>
+                <textarea class="input-textarea" id="bulkInput" placeholder="01,02,03,04,05,07&#10;01，02，03，04，05，08&#10;1,2,3,4,5,6" style="min-height:260px;"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline btn-sm" onclick="closeModal2()">取消</button>
+            <button class="btn btn-primary" onclick="confirmBulkData()">🔍 开始分析（自动去重）</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    (function() {
+        let baseNumberSet = null;
+        let baseNumberDisplayArr = [];
+
+        // DOM元素
+        const $ = (id) => document.getElementById(id);
+        const modal1 = $('modalOverlay1');
+        const modal2 = $('modalOverlay2');
+        const baseInput = $('baseInput');
+        const bulkInput = $('bulkInput');
+        const baseDisplay = $('baseNumberDisplay');
+        const baseBalls = $('baseNumberBalls');
+        const resultsContainer = $('resultsContainer');
+        const resultsSummary = $('resultsSummary');
+        const statsBody = $('statsTableBody');
+        const btnReset = $('btnReset');
+        const modal2Ref = $('modal2BaseRef');
+        const toast = $('toast');
+        const hitArea = $('hitDetailsArea');
+
+        let toastTimer = null;
+        function showToast(msg, type='') {
+            if (toastTimer) clearTimeout(toastTimer);
+            toast.textContent = msg;
+            toast.className = 'toast ' + type + ' show';
+            toastTimer = setTimeout(() => { toast.classList.remove('show'); toast.className = 'toast'; }, 2200);
+        }
+
+        // 解析号码：返回 { numSet, displayArr (排序后的补零字符串数组), count, error }
+        function parseNumbers(raw) {
+            if (!raw || !raw.trim()) return { numSet: null, displayArr: [], count: 0, error: '输入为空' };
+            let cleaned = raw.replace(/，/g, ',');
+            let parts = cleaned.split(',');
+            let nums = [];
+            for (let p of parts) {
+                p = p.trim();
+                if (p === '') continue;
+                if (!/^\d{1,3}$/.test(p)) return { error: `无效内容: "${p}"` };
+                let num = parseInt(p, 10);
+                if (isNaN(num)) return { error: `无法解析: "${p}"` };
+                nums.push(num);
+            }
+            let unique = [...new Set(nums)];
+            let displayArr = unique.map(n => String(n).padStart(2, '0')).sort((a,b) => parseInt(a)-parseInt(b));
+            return { numSet: new Set(unique), displayArr, count: unique.length, error: null };
+        }
+
+        // 打开弹窗1
+        window.openModal1 = () => {
+            baseInput.value = '';
+            modal1.classList.add('active');
+            setTimeout(() => baseInput.focus(), 200);
+        };
+        window.closeModal1 = () => {
+            modal1.classList.remove('active');
+            baseInput.value = '';
+        };
+
+        window.confirmBaseNumber = () => {
+            const parsed = parseNumbers(baseInput.value);
+            if (parsed.error) { showToast('⚠️ ' + parsed.error, 'warning'); return; }
+            if (parsed.count !== 6) { showToast('⚠️ 必须正好6个不同数字', 'warning'); return; }
+            baseNumberSet = parsed.numSet;
+            baseNumberDisplayArr = parsed.displayArr;
+            baseBalls.innerHTML = baseNumberDisplayArr.map(n => `<span class="num-ball">${n}</span>`).join('');
+            baseDisplay.classList.add('visible');
+            modal2Ref.textContent = baseNumberDisplayArr.join(', ');
+            modal1.classList.remove('active');
+            setTimeout(() => openModal2(), 200);
+        };
+
+        function openModal2() {
+            if (!baseNumberSet) { openModal1(); return; }
+            bulkInput.value = '';
+            modal2Ref.textContent = baseNumberDisplayArr.join(', ');
+            modal2.classList.add('active');
+            setTimeout(() => bulkInput.focus(), 200);
+        }
+        window.closeModal2 = () => {
+            modal2.classList.remove('active');
+            bulkInput.value = '';
+        };
+
+        window.confirmBulkData = () => {
+            if (!baseNumberSet) { showToast('⚠️ 请先设置基准号码', 'warning'); closeModal2(); setTimeout(openModal1,300); return; }
+            const raw = bulkInput.value;
+            if (!raw.trim()) { showToast('⚠️ 请输入对比号码', 'warning'); return; }
+
+            const lines = raw.split(/\n|\r\n|\r/);
+            const matchCounts = {0:0,1:0,2:0,3:0,4:0,5:0,6:0};
+            let totalLines = 0, validUnique = 0, invalidLines = 0, duplicateLines = 0;
+            const invalidExamples = [];
+            const seenCombos = new Set(); // ★ 去重Set
+            const hit4 = [], hit5 = [], hit6 = [];
+
+            for (let line of lines) {
+                const trimmed = line.trim();
+                if (trimmed === '') continue;
+                totalLines++;
+
+                const parsed = parseNumbers(trimmed);
+                if (parsed.error || parsed.count !== 6) {
+                    invalidLines++;
+                    if (invalidExamples.length < 5) {
+                        invalidExamples.push({
+                            line: trimmed.length > 45 ? trimmed.substring(0,42)+'...' : trimmed,
+                            reason: parsed.error || `数字数量为${parsed.count}`
+                        });
+                    }
+                    continue;
+                }
+
+                // 生成标准化字符串用于去重
+                const comboStr = parsed.displayArr.join(',');
+                if (seenCombos.has(comboStr)) {
+                    duplicateLines++;
+                    continue; // ★ 重复组合直接跳过，不计数
+                }
+                seenCombos.add(comboStr);
+                validUnique++; // 唯一有效组数
+
+                // 计算命中数
+                let hit = 0;
+                for (let num of parsed.numSet) {
+                    if (baseNumberSet.has(num)) hit++;
+                }
+                matchCounts[hit]++;
+
+                if (hit === 4) hit4.push(comboStr);
+                else if (hit === 5) hit5.push(comboStr);
+                else if (hit === 6) hit6.push(comboStr);
+            }
+
+            modal2.classList.remove('active');
+            bulkInput.value = '';
+
+            displayResults(matchCounts, totalLines, validUnique, invalidLines, duplicateLines, invalidExamples, {hit4, hit5, hit6});
+            setTimeout(() => resultsContainer.scrollIntoView({behavior:'smooth', block:'center'}), 200);
+            showToast(`✅ 分析完成！唯一有效组数：${validUnique}`, 'success');
+        };
+
+        function displayResults(counts, total, valid, invalid, dup, invalidEx, combos) {
+            // 摘要
+            let summaryHtml = `
+                <div class="summary-chip"><strong>${total}</strong>总行数</div>
+                <div class="summary-chip" style="border-color:#27ae60;background:#f0faf5;"><strong style="color:#27ae60;">${valid}</strong>唯一有效组</div>
+                <div class="summary-chip" style="${dup>0?'border-color:#f39c12;background:#fffaf0;':''}"><strong style="color:${dup>0?'#f39c12':'inherit'};">${dup}</strong>重复行(已忽略)</div>
+                <div class="summary-chip" style="${invalid>0?'border-color:#e74c3c;background:#fef5f5;':''}"><strong style="color:${invalid>0?'#e74c3c':'inherit'};">${invalid}</strong>无效行</div>
+                <div class="summary-chip"><strong>${baseNumberDisplayArr.join(', ')}</strong>基准</div>
+            `;
+            resultsSummary.innerHTML = summaryHtml;
+
+            // 表格
+            let rows = '';
+            const maxCount = Math.max(1, ...Object.values(counts));
+            for (let m = 6; m >= 0; m--) {
+                const cnt = counts[m] || 0;
+                const pct = valid > 0 ? ((cnt/valid)*100).toFixed(2) : '0.00';
+                const bar = ((cnt/maxCount)*100).toFixed(1);
+                const label = m===6?'🎯全中': m===5?'🔥中5': m===4?'⭐中4': `中${m}`;
+                rows += `<tr class="${m>=5&&cnt>0?'highlight-row':''}">
+                    <td><span class="match-badge badge-${m}">${label}</span></td>
+                    <td><strong>${cnt}</strong> 组</td>
+                    <td>${pct}%</td>
+                    <td><div style="height:8px;width:${bar}%;background:${m>=5?'#f39c12':m>=3?'#4A6CF7':'#ccc'};border-radius:10px;"></div></td>
+                </tr>`;
+            }
+            statsBody.innerHTML = rows;
+
+            // 命中详情
+            let detailHtml = '';
+            const blocks = [
+                {label:'🎯 全中6个', list:combos.hit6, cls:'badge-6'},
+                {label:'🔥 命中5个', list:combos.hit5, cls:'badge-5'},
+                {label:'⭐ 命中4个', list:combos.hit4, cls:'badge-4'}
+            ];
+            blocks.forEach(b => {
+                if (b.list.length > 0) {
+                    const uid = 'list_' + b.label.replace(/\s/g,'');
+                    detailHtml += `
+                    <div class="hit-detail-block">
+                        <div class="hit-detail-header">
+                            <span><strong>${b.label}</strong> (${b.list.length}组)</span>
+                            <button class="copy-btn" onclick="copyList('${uid}')">📋 复制全部</button>
+                        </div>
+                        <div class="hit-detail-body" id="${uid}">
+                            ${b.list.map(c => `<span class="combo-tag">${c}</span>`).join('')}
+                        </div>
+                    </div>`;
+                }
+            });
+            hitArea.innerHTML = detailHtml;
+
+            if (invalid > 0 && invalidEx.length) {
+                const exText = invalidEx.map(e => `"${e.line}" → ${e.reason}`).join('<br>');
+                resultsSummary.insertAdjacentHTML('beforeend', 
+                    `<div style="width:100%;margin-top:10px;padding:10px;background:#fff8f8;border-radius:8px;font-size:0.78rem;color:#c0392b;">
+                        ⚠️ 无效行示例：<br>${exText}${invalid>invalidEx.length?`<br>...还有${invalid-invalidEx.length}行`:''}
+                    </div>`);
+            }
+
+            resultsContainer.classList.add('visible');
+            btnReset.style.display = 'inline-flex';
+        }
+
+        // 复制功能
+        window.copyList = (containerId) => {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const tags = container.querySelectorAll('.combo-tag');
+            const text = Array.from(tags).map(t => t.textContent).join('\n');
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('📋 已复制到剪贴板', 'success');
+            }).catch(() => {
+                const ta = document.createElement('textarea');
+                ta.value = text; document.body.appendChild(ta); ta.select();
+                document.execCommand('copy'); document.body.removeChild(ta);
+                showToast('📋 已复制', 'success');
+            });
+        };
+
+        window.resetAll = () => {
+            baseNumberSet = null; baseNumberDisplayArr = [];
+            baseDisplay.classList.remove('visible'); baseBalls.innerHTML = '';
+            resultsContainer.classList.remove('visible');
+            resultsSummary.innerHTML = ''; statsBody.innerHTML = ''; hitArea.innerHTML = '';
+            btnReset.style.display = 'none'; modal2Ref.textContent = '--';
+            window.scrollTo({top:0, behavior:'smooth'});
+            showToast('🔄 已重置');
+            setTimeout(openModal1, 400);
+        };
+
+        // 弹窗背景点击关闭
+        modal1.addEventListener('click', e => { if(e.target === modal1) closeModal1(); });
+        modal2.addEventListener('click', e => { if(e.target === modal2) closeModal2(); });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                if (modal2.classList.contains('active')) closeModal2();
+                else if (modal1.classList.contains('active')) closeModal1();
+            }
+            if (e.key === 'Enter' && modal1.classList.contains('active') && document.activeElement === baseInput) {
+                e.preventDefault(); confirmBaseNumber();
+            }
+        });
+    })();
+</script>
+</body>
+</html>
