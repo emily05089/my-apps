@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>双应用前区筛选 · 苹果兼容版</title>
+    <title>双应用前区筛选 · 苹果兼容增强版</title>
     <style>
         :root { --bg: #f5f6fa; --card-bg: #ffffff; --primary: #4a6cf7; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; --text: #2c3e50; --border: #e0e5ec; --radius: 14px; }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
@@ -65,6 +65,7 @@
 胆:04,07,16,27 拖:05,08,14"></textarea>
         <div class="chip-row">
             <label class="chip"><input type="checkbox" id="chk0">中0个</label>
+            <label class="chip"><input type="checkbox" id="chk3">中3个</label>
             <label class="chip"><input type="checkbox" id="chk4">中4个</label>
             <label class="chip"><input type="checkbox" id="chk5">中5个</label>
             <label class="chip"><input type="checkbox" id="chk6">中6个</label>
@@ -132,7 +133,6 @@
     </div>
 </div>
 
-<!-- 双数字组合输入弹窗 -->
 <div class="modal-overlay" id="pairModalOverlay">
     <div class="modal-box">
         <div class="modal-title">输入双数字组合（一行一组，如 01,02）</div>
@@ -148,7 +148,6 @@
 
 <script>
 (function() {
-    // 极简兼容版 - 保证iOS Safari可用
     var TOTAL = 1107568;
     var filteredAlive = new Uint8Array(TOTAL);
     var filteredCount = TOTAL;
@@ -160,7 +159,7 @@
     var historyCombos = [];
     var lastInputSnapshot = '';
 
-    // 历史组合列表（使用字符串拼接，避免长字符串解析问题）
+    // 历史组合列表（数组形式，兼容iOS）
     var HISTORY_LINES = [
         "01,03,11,22,26,31","09,14,15,16,29,30","06,09,25,27,28,30","03,04,14,15,18,20",
         "09,15,18,24,28,33","07,16,21,24,27,30","02,09,10,24,31,33","04,11,15,17,24,30",
@@ -186,7 +185,6 @@
         "06,09,23,26,28,32","01,10,11,16,24,26","06,08,17,20,25,33","02,04,08,24,28,31",
         "02,03,08,19,24,30","01,20,21,25,26,27","08,10,13,15,24,31","03,09,11,13,20,32"
     ];
-    // 将历史组合转换为Set
     var HISTORY_SET = new Set();
     for (var i = 0; i < HISTORY_LINES.length; i++) {
         var nums = HISTORY_LINES[i].split(',').map(function(s){ return parseInt(s,10); });
@@ -327,6 +325,7 @@
         step(0);
     }
 
+    // 生成中k组合（k=3,4,5,6）
     function genHit(cm, k) {
         var nums = unmask(cm.l, cm.h);
         if (k===6) return [cm];
@@ -349,6 +348,21 @@
                     }
                 }
             }
+        } else if (k===3) {
+            for (var i=0; i<6; i++) {
+                for (var j=i+1; j<6; j++) {
+                    for (var kk=j+1; kk<6; kk++) {
+                        var base = nums.filter(function(_,idx){ return idx!==i && idx!==j && idx!==kk; });
+                        for (var x=0; x<others.length; x++) {
+                            for (var y=x+1; y<others.length; y++) {
+                                for (var z=y+1; z<others.length; z++) {
+                                    res.push(maskFrom([].concat(base,[others[x],others[y],others[z]]).sort(function(a,b){ return a-b; })));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         return res;
     }
@@ -365,6 +379,7 @@
                     if (opts.six) { var idx = maskIndex.get(cm.l+'_'+cm.h); if (idx!==undefined) removeSet.add(idx); }
                     if (opts.five) { var hits5 = genHit(cm,5); for (var j=0; j<hits5.length; j++) { var idx = maskIndex.get(hits5[j].l+'_'+hits5[j].h); if (idx!==undefined) removeSet.add(idx); } }
                     if (opts.four) { var hits4 = genHit(cm,4); for (var j=0; j<hits4.length; j++) { var idx = maskIndex.get(hits4[j].l+'_'+hits4[j].h); if (idx!==undefined) removeSet.add(idx); } }
+                    if (opts.three) { var hits3 = genHit(cm,3); for (var j=0; j<hits3.length; j++) { var idx = maskIndex.get(hits3[j].l+'_'+hits3[j].h); if (idx!==undefined) removeSet.add(idx); } }
                 }
                 done=end;
                 showProgress(Math.round(done/total*100));
@@ -395,11 +410,12 @@
         if (busy) return alert('处理中');
         var opts = {
             zero: document.getElementById('chk0').checked,
+            three: document.getElementById('chk3').checked,
             four: document.getElementById('chk4').checked,
             five: document.getElementById('chk5').checked,
             six: document.getElementById('chk6').checked
         };
-        if (!opts.zero && !opts.four && !opts.five && !opts.six) return alert('请勾选排除条件');
+        if (!opts.zero && !opts.three && !opts.four && !opts.five && !opts.six) return alert('请勾选排除条件');
         addToHistory();
         var expanded = expandCurrent();
         if (!expanded.length) return alert('无有效组合');
@@ -514,6 +530,8 @@
         for (var i=0; i<sortedCounts.length; i++) {
             var count = sortedCounts[i];
             var combos = groups.get(count);
+            // 排序：按组合字符串排序（因为都是两位数字，字符串比较等价于数字顺序）
+            combos.sort();
             html += '<div class="group-box"><div class="group-header"><span>出现 '+count+' 次（共 '+combos.length+' 组）</span>';
             html += '<div><button class="copy-btn" data-count="'+count+'" data-type="plain">📋 复制号码</button> ';
             html += '<button class="copy-btn secondary" data-count="'+count+'" data-type="withcount">📋 复制含次数</button></div></div>';
@@ -665,7 +683,7 @@
         document.getElementById('btnApply').addEventListener('click', applyFilter);
         document.getElementById('btnClearInput').addEventListener('click', function(){
             document.getElementById('inputArea').value = '';
-            ['chk0','chk4','chk5','chk6'].forEach(function(id){ document.getElementById(id).checked = false; });
+            ['chk0','chk3','chk4','chk5','chk6'].forEach(function(id){ document.getElementById(id).checked = false; });
         });
         document.getElementById('btnStats').addEventListener('click', analyzeDuplicates);
         document.getElementById('btnResetAll').addEventListener('click', function(){
@@ -711,10 +729,10 @@
         document.getElementById('btnPairModalCancel').addEventListener('click', hidePairModal);
         document.getElementById('btnPairModalConfirm').addEventListener('click', confirmPairExclusion);
 
-        log('✅ 苹果兼容版就绪');
+        log('✅ 苹果兼容增强版就绪（支持中3个排除）');
     }
 
-    // 由于XLSX库需要联网加载，将其放在最后，确保不阻塞主脚本
+    // 异步加载XLSX库
     var script = document.createElement('script');
     script.src = 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
     script.onerror = function(){ log('⚠️ Excel库加载失败，导出功能不可用'); };
