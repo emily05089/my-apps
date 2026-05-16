@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>双应用前区筛选 · 苹果兼容增强版</title>
+    <title>双应用前区筛选 · 一键复制全部</title>
     <style>
         :root { --bg: #f5f6fa; --card-bg: #ffffff; --primary: #4a6cf7; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; --text: #2c3e50; --border: #e0e5ec; --radius: 14px; }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
@@ -39,7 +39,7 @@
         .group-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-weight: 600; flex-wrap: wrap; gap: 4px; }
         .group-list { font-family: monospace; font-size: 12px; max-height: 120px; overflow-y: auto; background: #f9fafb; border-radius: 6px; padding: 4px 8px; margin-bottom: 6px; line-height: 1.8; }
         .copy-btn { background: #27ae60; color: #fff; border: none; padding: 4px 10px; border-radius: 12px; font-size: 11px; cursor: pointer; white-space: nowrap; margin: 2px; }
-        .copy-btn.secondary { background: #2980b9; }
+        .copy-all-btn { background: #e67e22; color: #fff; border: none; padding: 4px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; white-space: nowrap; margin-left: 8px; }
         .note-box { font-size: 10px; color: #aaa; margin-top: 4px; line-height: 1.6; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; justify-content: center; align-items: center; }
         .modal-box { background: #fff; border-radius: 16px; padding: 20px; width: 90%; max-width: 500px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
@@ -77,7 +77,10 @@
             <button class="btn btn-outline btn-sm" id="btnResetAll">重置</button>
         </div>
         <div class="result-area" id="resultArea">
-            <b id="resultTitle" style="display:block;margin-bottom:8px;">统计（含出现1次）</b>
+            <div style="display:flex; align-items:center; margin-bottom:8px;">
+                <b id="resultTitle" style="flex:1;">统计（含出现1次）</b>
+                <button class="copy-all-btn" id="btnCopyAll">📋 一键复制全部</button>
+            </div>
             <div id="resultGroups"></div>
         </div>
         <div class="log" id="logArea"><div>系统就绪</div></div>
@@ -325,7 +328,6 @@
         step(0);
     }
 
-    // 生成中k组合（k=3,4,5,6）
     function genHit(cm, k) {
         var nums = unmask(cm.l, cm.h);
         if (k===6) return [cm];
@@ -515,9 +517,11 @@
             map.set(k, (map.get(k)||0)+1);
         }
         var groups = new Map();
+        var allCombosList = []; // 存储所有组合（用于一键复制）
         map.forEach(function(cnt, k){
             if (!groups.has(cnt)) groups.set(cnt, []);
             groups.get(cnt).push(k);
+            allCombosList.push(k);
         });
         var total = historyCombos.length;
         var unique = map.size;
@@ -530,16 +534,15 @@
         for (var i=0; i<sortedCounts.length; i++) {
             var count = sortedCounts[i];
             var combos = groups.get(count);
-            // 排序：按组合字符串排序（因为都是两位数字，字符串比较等价于数字顺序）
-            combos.sort();
+            combos.sort(); // 排序
             html += '<div class="group-box"><div class="group-header"><span>出现 '+count+' 次（共 '+combos.length+' 组）</span>';
-            html += '<div><button class="copy-btn" data-count="'+count+'" data-type="plain">📋 复制号码</button> ';
-            html += '<button class="copy-btn secondary" data-count="'+count+'" data-type="withcount">📋 复制含次数</button></div></div>';
+            html += '<div><button class="copy-btn" data-count="'+count+'" data-type="plain">📋 复制号码</button></div></div>';
             html += '<div class="group-list">';
             for (var j=0; j<combos.length; j++) html += '<div>'+combos[j]+'</div>';
             html += '</div></div>';
         }
         list.innerHTML = html;
+        // 绑定分组复制按钮
         var buttons = list.querySelectorAll('.copy-btn');
         for (var i=0; i<buttons.length; i++) {
             buttons[i].addEventListener('click', function(){
@@ -547,11 +550,20 @@
                 var type = this.dataset.type;
                 var combos = groups.get(cnt);
                 if (!combos) return;
-                var text = type==='plain' ? combos.join('\n') : combos.map(function(c){ return c+'（出现 '+cnt+' 次）'; }).join('\n');
+                var text = combos.join('\n');
                 copyText(text, combos.length);
             });
         }
         area.style.display = 'block';
+
+        // 一键复制全部按钮事件
+        document.getElementById('btnCopyAll').onclick = function() {
+            // 对所有组合排序
+            allCombosList.sort();
+            var text = allCombosList.join('\n');
+            copyText(text, allCombosList.length);
+        };
+
         log('📊 统计完成（历史 '+total+' 注）');
     }
 
@@ -729,7 +741,7 @@
         document.getElementById('btnPairModalCancel').addEventListener('click', hidePairModal);
         document.getElementById('btnPairModalConfirm').addEventListener('click', confirmPairExclusion);
 
-        log('✅ 苹果兼容增强版就绪（支持中3个排除）');
+        log('✅ 一键复制全部已就绪');
     }
 
     // 异步加载XLSX库
