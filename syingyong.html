@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>双应用前区筛选 · 一键复制全部</title>
+    <title>双应用前区筛选 · 修复卡死版</title>
     <style>
         :root { --bg: #f5f6fa; --card-bg: #ffffff; --primary: #4a6cf7; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; --text: #2c3e50; --border: #e0e5ec; --radius: 14px; }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
@@ -162,7 +162,7 @@
     var historyCombos = [];
     var lastInputSnapshot = '';
 
-    // 历史组合列表（数组形式，兼容iOS）
+    // 历史组合列表
     var HISTORY_LINES = [
         "01,03,11,22,26,31","09,14,15,16,29,30","06,09,25,27,28,30","03,04,14,15,18,20",
         "09,15,18,24,28,33","07,16,21,24,27,30","02,09,10,24,31,33","04,11,15,17,24,30",
@@ -517,7 +517,7 @@
             map.set(k, (map.get(k)||0)+1);
         }
         var groups = new Map();
-        var allCombosList = []; // 存储所有组合（用于一键复制）
+        var allCombosList = [];
         map.forEach(function(cnt, k){
             if (!groups.has(cnt)) groups.set(cnt, []);
             groups.get(cnt).push(k);
@@ -534,7 +534,7 @@
         for (var i=0; i<sortedCounts.length; i++) {
             var count = sortedCounts[i];
             var combos = groups.get(count);
-            combos.sort(); // 排序
+            combos.sort();
             html += '<div class="group-box"><div class="group-header"><span>出现 '+count+' 次（共 '+combos.length+' 组）</span>';
             html += '<div><button class="copy-btn" data-count="'+count+'" data-type="plain">📋 复制号码</button></div></div>';
             html += '<div class="group-list">';
@@ -542,12 +542,10 @@
             html += '</div></div>';
         }
         list.innerHTML = html;
-        // 绑定分组复制按钮
         var buttons = list.querySelectorAll('.copy-btn');
         for (var i=0; i<buttons.length; i++) {
             buttons[i].addEventListener('click', function(){
                 var cnt = parseInt(this.dataset.count);
-                var type = this.dataset.type;
                 var combos = groups.get(cnt);
                 if (!combos) return;
                 var text = combos.join('\n');
@@ -555,15 +553,11 @@
             });
         }
         area.style.display = 'block';
-
-        // 一键复制全部按钮事件
         document.getElementById('btnCopyAll').onclick = function() {
-            // 对所有组合排序
             allCombosList.sort();
             var text = allCombosList.join('\n');
             copyText(text, allCombosList.length);
         };
-
         log('📊 统计完成（历史 '+total+' 注）');
     }
 
@@ -583,10 +577,12 @@
         document.body.removeChild(ta);
     }
 
+    // 修复导出卡死问题
     function exportXLSX(){
         if (busy) return alert('处理中');
         if (filteredCount===0) return alert('无组合可导出');
         if (typeof XLSX === 'undefined') { alert('Excel库加载失败，请检查网络连接后刷新页面。'); return; }
+        busy = true;
         document.getElementById('btnExport').disabled=true;
         document.getElementById('btnExport').textContent='收集数据中...';
         setStatus('导出中...');
@@ -595,37 +591,49 @@
         var done = 0;
         var BATCH = 200000;
         function step(start){
-            var end = Math.min(start+BATCH, TOTAL);
-            for (var i=start; i<end; i++) {
-                if (filteredAlive[i]) result.push(unmask(masksLow[i],masksHigh[i]).map(function(n){ return String(n).padStart(2,'0'); }).join(','));
-            }
-            done = end;
-            showProgress(Math.round(done/TOTAL*100));
-            if (done<TOTAL) setTimeout(function(){ step(done); }, 5);
-            else setTimeout(function(){
-                try {
-                    var sheetData = [['前区号码']];
-                    var maxLen = 19;
-                    for (var i=0; i<result.length; i++) { var r = result[i]; if (r.length>maxLen) maxLen=r.length; sheetData.push([r]); }
-                    var wb = XLSX.utils.book_new();
-                    var ws1 = XLSX.utils.aoa_to_sheet(sheetData); ws1['!cols']=[{wch:maxLen+2}]; XLSX.utils.book_append_sheet(wb,ws1,'组合列表');
-                    var cnt = new Array(34).fill(0);
-                    for (var i=0; i<result.length; i++) { var nums = result[i].split(','); for (var j=0; j<nums.length; j++) cnt[+nums[j]]++; }
-                    var st = [];
-                    for (var i=1; i<=33; i++) st.push({n:i,c:cnt[i]});
-                    st.sort(function(a,b){ return b.c-a.c; });
-                    var statData = [['数字','次数','占比']];
-                    for (var i=0; i<st.length; i++) { var s = st[i]; statData.push([String(s.n).padStart(2,'0'),s.c,(s.c/(result.length*6)*100).toFixed(2)+'%']); }
-                    var ws2 = XLSX.utils.aoa_to_sheet(statData); ws2['!cols']=[{wch:8},{wch:12},{wch:10}]; XLSX.utils.book_append_sheet(wb,ws2,'统计');
-                    var now = new Date();
-                    XLSX.writeFile(wb,'双应用_'+result.length+'组_'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'.xlsx');
-                    log('📥 导出'+result.length.toLocaleString()+'组');
-                    document.getElementById('exportHint').textContent='✅ 已导出';
-                } catch(e) { alert('导出失败：'+e.message); log('❌ 导出失败：'+e.message); }
+            try {
+                var end = Math.min(start+BATCH, TOTAL);
+                for (var i=start; i<end; i++) {
+                    if (filteredAlive[i]) result.push(unmask(masksLow[i],masksHigh[i]).map(function(n){ return String(n).padStart(2,'0'); }).join(','));
+                }
+                done = end;
+                showProgress(Math.round(done/TOTAL*100));
+                if (done<TOTAL) setTimeout(function(){ step(done); }, 5);
+                else {
+                    setTimeout(function(){
+                        try {
+                            var sheetData = [['前区号码']];
+                            var maxLen = 19;
+                            for (var i=0; i<result.length; i++) { var r = result[i]; if (r.length>maxLen) maxLen=r.length; sheetData.push([r]); }
+                            var wb = XLSX.utils.book_new();
+                            var ws1 = XLSX.utils.aoa_to_sheet(sheetData); ws1['!cols']=[{wch:maxLen+2}]; XLSX.utils.book_append_sheet(wb,ws1,'组合列表');
+                            var cnt = new Array(34).fill(0);
+                            for (var i=0; i<result.length; i++) { var nums = result[i].split(','); for (var j=0; j<nums.length; j++) cnt[+nums[j]]++; }
+                            var st = [];
+                            for (var i=1; i<=33; i++) st.push({n:i,c:cnt[i]});
+                            st.sort(function(a,b){ return b.c-a.c; });
+                            var statData = [['数字','次数','占比']];
+                            for (var i=0; i<st.length; i++) { var s = st[i]; statData.push([String(s.n).padStart(2,'0'),s.c,(s.c/(result.length*6)*100).toFixed(2)+'%']); }
+                            var ws2 = XLSX.utils.aoa_to_sheet(statData); ws2['!cols']=[{wch:8},{wch:12},{wch:10}]; XLSX.utils.book_append_sheet(wb,ws2,'统计');
+                            var now = new Date();
+                            XLSX.writeFile(wb,'双应用_'+result.length+'组_'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'.xlsx');
+                            log('📥 导出'+result.length.toLocaleString()+'组');
+                            document.getElementById('exportHint').textContent='✅ 已导出';
+                        } catch(e) { alert('导出失败：'+e.message); log('❌ 导出失败：'+e.message); }
+                        // 无论成功或失败，都恢复状态
+                        hideProgress(); setStatus('就绪');
+                        document.getElementById('btnExport').disabled=false;
+                        document.getElementById('btnExport').textContent='📥 导出Excel（'+filteredCount.toLocaleString()+'组）';
+                        busy = false;
+                    }, 50);
+                }
+            } catch(e) {
+                alert('数据收集出错：'+e.message);
                 hideProgress(); setStatus('就绪');
                 document.getElementById('btnExport').disabled=false;
                 document.getElementById('btnExport').textContent='📥 导出Excel（'+filteredCount.toLocaleString()+'组）';
-            }, 50);
+                busy = false;
+            }
         }
         step(0);
     }
@@ -741,7 +749,7 @@
         document.getElementById('btnPairModalCancel').addEventListener('click', hidePairModal);
         document.getElementById('btnPairModalConfirm').addEventListener('click', confirmPairExclusion);
 
-        log('✅ 一键复制全部已就绪');
+        log('✅ 修复卡死版就绪');
     }
 
     // 异步加载XLSX库
@@ -752,6 +760,6 @@
 
     init();
 })();
-</script>
+</script>https://emily05089.github.io/my-apps/2groups.html
 </body>
 </html>
