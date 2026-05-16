@@ -206,11 +206,11 @@
 <div class="container">
   <h1>
     🎱 双分组
-    <span class="icon">6组分类</span>
+    <span class="icon">6组分类·自动去重</span>
   </h1>
 
   <div class="input-area">
-    <label>📋 输入组合（支持逗号、点号、空格分隔）</label>
+    <label>📋 输入组合（支持逗号、点号、空格分隔，重复组合自动去除）</label>
     <textarea id="comboInput" placeholder="单式/复式：1,2,3,4,5,6
 或用点号：5.15.20.25.29.30
 胆拖：胆:15,22,32 拖:01,05,07,10,18,26,27
@@ -222,6 +222,7 @@
       <span>✅ 分隔符：<code>,</code> <code>.</code> <code>空格</code> 均可</span>
       <span>✅ 胆拖：<code>胆:15,22,32 拖:01,05,07</code></span>
       <span>⚠️ 数字必须1-33，单式至少6个数字</span>
+      <span>🔄 每组内重复组合自动去重</span>
     </div>
   </div>
 
@@ -427,6 +428,19 @@
       }
     }
 
+    // ========== 每组去重 ==========
+    for (let g of groups) {
+      const uniqueItems = [];
+      const seen = new Set();
+      for (let item of g.items) {
+        if (!seen.has(item)) {
+          seen.add(item);
+          uniqueItems.push(item);
+        }
+      }
+      g.items = uniqueItems;
+    }
+
     render(groups, errors);
   }
 
@@ -537,7 +551,10 @@
       '胆:05,16,20,26,27',
       '拖:08,12,13,28,29,32',
       '胆:03,05,26',
-      '拖:08,16,19,20,21'
+      '拖:08,16,19,20,21',
+      // 添加重复行演示去重
+      '1,2,3,4,5,6',
+      '5.15.20.25.29.30'
     ];
     document.getElementById('comboInput').value = demo.join('\n');
     process();
