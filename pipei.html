@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>号码匹配分析工具 · 去重版</title>
+    <title>号码匹配分析工具 · 连续分析版</title>
     <style>
-        /* 样式完全不变，为节省篇幅此处省略，与上一个版本完全相同 */
         :root {
             --primary: #4A6CF7;
             --primary-dark: #3651d5;
@@ -25,7 +24,7 @@
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            background: linear-gradient(135deg, #e8edf5, Lightblue, #eef2f7, #e3e9f2);
+            background: linear-gradient(135deg, #e8edf5, #dce3ed, #eef2f7, #e3e9f2);
             min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
             color: var(--text); -webkit-font-smoothing: antialiased;
         }
@@ -107,20 +106,21 @@
         <div class="icon-circle">
             <svg viewBox="0 0 24 24" width="26" height="26" fill="white"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l4.59-4.58L18 11l-6 6z"/></svg>
         </div>
-        <h1>号码匹配分析 · 去重版</h1>
-        <p class="subtitle" style="color:var(--text-light);">重复组合自动合并，只计一次 | 可查看中4/5/6组合详情</p>
+        <h1>号码匹配分析 · 连续输入版</h1>
+        <p class="subtitle" style="color:var(--text-light);">一次设定基准号码，可反复粘贴批量数据进行分析</p>
     </div>
 
     <div class="base-number-display" id="baseNumberDisplay">
-        <div style="font-size:0.8rem; color:var(--text-light);">📌 基准号码</div>
+        <div style="font-size:0.8rem; color:var(--text-light);">📌 当前基准号码</div>
         <div class="numbers" id="baseNumberBalls"></div>
     </div>
 
-    <button class="btn btn-primary btn-block btn-lg" id="btnStart" onclick="openModal1()">
-        🔍 开始分析
+    <button class="btn btn-primary btn-block btn-lg" id="btnStart">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span id="btnStartText">开始分析</span>
     </button>
     <div class="btn-row">
-        <button class="btn btn-outline btn-sm" id="btnReset" style="display:none;" onclick="resetAll()">🔄 重新开始</button>
+        <button class="btn btn-outline btn-sm" id="btnReset" style="display:none;" onclick="resetAll()">🔄 重新开始（重置基准号码）</button>
     </div>
 
     <div class="results-container" id="resultsContainer">
@@ -139,19 +139,19 @@
 <div class="modal-overlay" id="modalOverlay1">
     <div class="modal">
         <div class="modal-header">
-            <h2>📋 第一步：基准号码</h2>
+            <h2>📋 第一步：输入基准号码</h2>
             <button class="modal-close" onclick="closeModal1()">✕</button>
         </div>
         <div class="modal-body">
             <div class="input-group">
-                <label>输入6个数字（逗号分隔）</label>
+                <label>请输入6个数字（逗号分隔）</label>
                 <input type="text" class="input-text" id="baseInput" placeholder="01,02,03,04,05,06">
                 <div class="hint" style="font-size:0.75rem;color:#999;">支持中英文逗号，1-9自动补零</div>
             </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-outline btn-sm" onclick="closeModal1()">取消</button>
-            <button class="btn btn-primary" onclick="confirmBaseNumber()">确认，下一步</button>
+            <button class="btn btn-primary" onclick="confirmBaseNumber()">✅ 确认，继续</button>
         </div>
     </div>
 </div>
@@ -160,14 +160,15 @@
 <div class="modal-overlay" id="modalOverlay2">
     <div class="modal">
         <div class="modal-header">
-            <h2>📝 第二步：批量对比号码</h2>
+            <h2>📝 批量输入对比号码</h2>
             <button class="modal-close" onclick="closeModal2()">✕</button>
         </div>
         <div class="modal-body">
             <p style="margin-bottom:10px;">基准号码：<strong id="modal2BaseRef" style="color:#4A6CF7;">--</strong></p>
             <div class="input-group">
-                <label>每行一组，每组6个数字</label>
+                <label>每行一组，每组6个数字（支持中英文逗号）</label>
                 <textarea class="input-textarea" id="bulkInput" placeholder="01,02,03,04,05,07&#10;01，02，03，04，05，08&#10;1,2,3,4,5,6" style="min-height:260px;"></textarea>
+                <div class="hint" style="font-size:0.75rem;color:#999;">重复组合自动去重，只计一次</div>
             </div>
         </div>
         <div class="modal-footer">
@@ -195,6 +196,8 @@
         const resultsContainer = $('resultsContainer');
         const resultsSummary = $('resultsSummary');
         const statsBody = $('statsTableBody');
+        const btnStart = $('btnStart');
+        const btnStartText = $('btnStartText');
         const btnReset = $('btnReset');
         const modal2Ref = $('modal2BaseRef');
         const toast = $('toast');
@@ -208,7 +211,7 @@
             toastTimer = setTimeout(() => { toast.classList.remove('show'); toast.className = 'toast'; }, 2200);
         }
 
-        // 解析号码：返回 { numSet, displayArr (排序后的补零字符串数组), count, error }
+        // 解析号码
         function parseNumbers(raw) {
             if (!raw || !raw.trim()) return { numSet: null, displayArr: [], count: 0, error: '输入为空' };
             let cleaned = raw.replace(/，/g, ',');
@@ -227,7 +230,31 @@
             return { numSet: new Set(unique), displayArr, count: unique.length, error: null };
         }
 
-        // 打开弹窗1
+        // 更新主按钮状态
+        function updateMainButton() {
+            if (baseNumberSet) {
+                btnStartText.textContent = '继续分析（输入新一批号码）';
+                btnReset.style.display = 'inline-flex';
+            } else {
+                btnStartText.textContent = '开始分析';
+                btnReset.style.display = 'none';
+            }
+        }
+
+        // 主按钮点击处理
+        function handleMainButtonClick() {
+            if (baseNumberSet) {
+                // 已有基准号码，直接打开批量输入框
+                openModal2();
+            } else {
+                // 没有基准号码，先打开基准号码输入框
+                openModal1();
+            }
+        }
+
+        btnStart.addEventListener('click', handleMainButtonClick);
+
+        // 弹窗1操作
         window.openModal1 = () => {
             baseInput.value = '';
             modal1.classList.add('active');
@@ -244,15 +271,23 @@
             if (parsed.count !== 6) { showToast('⚠️ 必须正好6个不同数字', 'warning'); return; }
             baseNumberSet = parsed.numSet;
             baseNumberDisplayArr = parsed.displayArr;
+            // 更新基准号码展示
             baseBalls.innerHTML = baseNumberDisplayArr.map(n => `<span class="num-ball">${n}</span>`).join('');
             baseDisplay.classList.add('visible');
             modal2Ref.textContent = baseNumberDisplayArr.join(', ');
             modal1.classList.remove('active');
-            setTimeout(() => openModal2(), 200);
+            updateMainButton(); // 按钮变为“继续分析”
+            // 自动弹出批量输入框
+            setTimeout(() => openModal2(), 300);
         };
 
+        // 弹窗2操作
         function openModal2() {
-            if (!baseNumberSet) { openModal1(); return; }
+            if (!baseNumberSet) {
+                // 理论上不会发生，但若基准号码丢失则回退
+                openModal1();
+                return;
+            }
             bulkInput.value = '';
             modal2Ref.textContent = baseNumberDisplayArr.join(', ');
             modal2.classList.add('active');
@@ -272,14 +307,13 @@
             const matchCounts = {0:0,1:0,2:0,3:0,4:0,5:0,6:0};
             let totalLines = 0, validUnique = 0, invalidLines = 0, duplicateLines = 0;
             const invalidExamples = [];
-            const seenCombos = new Set(); // ★ 去重Set
+            const seenCombos = new Set();
             const hit4 = [], hit5 = [], hit6 = [];
 
             for (let line of lines) {
                 const trimmed = line.trim();
                 if (trimmed === '') continue;
                 totalLines++;
-
                 const parsed = parseNumbers(trimmed);
                 if (parsed.error || parsed.count !== 6) {
                     invalidLines++;
@@ -291,23 +325,19 @@
                     }
                     continue;
                 }
-
-                // 生成标准化字符串用于去重
                 const comboStr = parsed.displayArr.join(',');
                 if (seenCombos.has(comboStr)) {
                     duplicateLines++;
-                    continue; // ★ 重复组合直接跳过，不计数
+                    continue;
                 }
                 seenCombos.add(comboStr);
-                validUnique++; // 唯一有效组数
+                validUnique++;
 
-                // 计算命中数
                 let hit = 0;
                 for (let num of parsed.numSet) {
                     if (baseNumberSet.has(num)) hit++;
                 }
                 matchCounts[hit]++;
-
                 if (hit === 4) hit4.push(comboStr);
                 else if (hit === 5) hit5.push(comboStr);
                 else if (hit === 6) hit6.push(comboStr);
@@ -322,7 +352,6 @@
         };
 
         function displayResults(counts, total, valid, invalid, dup, invalidEx, combos) {
-            // 摘要
             let summaryHtml = `
                 <div class="summary-chip"><strong>${total}</strong>总行数</div>
                 <div class="summary-chip" style="border-color:#27ae60;background:#f0faf5;"><strong style="color:#27ae60;">${valid}</strong>唯一有效组</div>
@@ -332,7 +361,6 @@
             `;
             resultsSummary.innerHTML = summaryHtml;
 
-            // 表格
             let rows = '';
             const maxCount = Math.max(1, ...Object.values(counts));
             for (let m = 6; m >= 0; m--) {
@@ -349,7 +377,6 @@
             }
             statsBody.innerHTML = rows;
 
-            // 命中详情
             let detailHtml = '';
             const blocks = [
                 {label:'🎯 全中6个', list:combos.hit6, cls:'badge-6'},
@@ -382,10 +409,9 @@
             }
 
             resultsContainer.classList.add('visible');
-            btnReset.style.display = 'inline-flex';
         }
 
-        // 复制功能
+        // 复制组合列表
         window.copyList = (containerId) => {
             const container = document.getElementById(containerId);
             if (!container) return;
@@ -401,14 +427,21 @@
             });
         };
 
+        // 重置：清空基准号码，恢复初始状态
         window.resetAll = () => {
-            baseNumberSet = null; baseNumberDisplayArr = [];
-            baseDisplay.classList.remove('visible'); baseBalls.innerHTML = '';
+            baseNumberSet = null;
+            baseNumberDisplayArr = [];
+            baseDisplay.classList.remove('visible');
+            baseBalls.innerHTML = '';
             resultsContainer.classList.remove('visible');
-            resultsSummary.innerHTML = ''; statsBody.innerHTML = ''; hitArea.innerHTML = '';
-            btnReset.style.display = 'none'; modal2Ref.textContent = '--';
+            resultsSummary.innerHTML = '';
+            statsBody.innerHTML = '';
+            hitArea.innerHTML = '';
+            modal2Ref.textContent = '--';
+            updateMainButton(); // 按钮变回“开始分析”
             window.scrollTo({top:0, behavior:'smooth'});
-            showToast('🔄 已重置');
+            showToast('🔄 已重置，请重新输入基准号码');
+            // 主动弹出基准号码输入框
             setTimeout(openModal1, 400);
         };
 
@@ -424,6 +457,9 @@
                 e.preventDefault(); confirmBaseNumber();
             }
         });
+
+        // 初始按钮状态
+        updateMainButton();
     })();
 </script>
 </body>
