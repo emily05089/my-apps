@@ -2,1103 +2,591 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>双色球号码组合筛选工具 - 33选6</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>双色球33选6 · 智能筛选工具</title>
     <style>
         :root {
             --bg: #f5f6fa;
             --card-bg: #ffffff;
             --text: #2d3436;
-            --text-secondary: #636e72;
             --border: #dfe6e9;
             --accent: #0984e3;
             --accent-hover: #0770c2;
-            --success: #00b894;
-            --warning: #fdcb6e;
-            --danger: #e17055;
             --radius: 10px;
-            --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-            --font-mono: 'SF Mono', 'Menlo', 'Consolas', 'Courier New', monospace;
-            --transition: 0.2s ease;
+            --shadow: 0 2px 12px rgba(0,0,0,0.06);
+            --font-mono: 'SF Mono', 'Menlo', 'Consolas', monospace;
         }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.6;
-            -webkit-text-size-adjust: 100%;
-            min-height: 100vh;
-            padding: 12px;
+            background: var(--bg); color: var(--text); line-height: 1.6;
+            min-height: 100vh; padding: 12px;
         }
-
-        .container {
-            max-width: 960px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-
+        .container { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
         .card {
-            background: var(--card-bg);
-            border-radius: var(--radius);
-            padding: 18px 20px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
+            background: var(--card-bg); border-radius: var(--radius); padding: 18px 20px;
+            box-shadow: var(--shadow); border: 1px solid var(--border);
         }
-
-        .card-header {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #1a1a2e;
-        }
-        .card-header .icon {
-            font-size: 1.3rem;
-        }
-        .card-subtitle {
-            font-size: 0.82rem;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-            line-height: 1.5;
-        }
-
         textarea {
-            width: 100%;
-            min-height: 160px;
-            border: 2px solid var(--border);
-            border-radius: 8px;
-            padding: 12px 14px;
-            font-family: var(--font-mono);
-            font-size: 0.9rem;
-            resize: vertical;
-            transition: var(--transition);
-            background: #fafbfc;
-            color: #2d3436;
-            line-height: 1.7;
+            width: 100%; min-height: 160px; border: 2px solid var(--border); border-radius: 8px;
+            padding: 12px 14px; font-family: var(--font-mono); font-size: 0.9rem;
+            resize: vertical; background: #fafbfc; color: #2d3436; line-height: 1.7;
         }
-        textarea:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(9, 132, 227, 0.08);
-            background: #fff;
-        }
-        textarea::placeholder {
-            color: #b2bec3;
-        }
-
-        .btn-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-        }
+        textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(9,132,227,0.08); background: #fff; }
+        .btn-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; }
         button {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 11px 22px;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: var(--transition);
-            white-space: nowrap;
-            letter-spacing: 0.3px;
-            -webkit-tap-highlight-color: transparent;
+            padding: 11px 22px; border-radius: 8px; font-size: 0.95rem; font-weight: 600;
+            cursor: pointer; border: none; transition: 0.2s; white-space: nowrap;
+            -webkit-tap-highlight-color: transparent; display: inline-flex; align-items: center; gap: 6px;
         }
-        .btn-primary {
-            background: var(--accent);
-            color: #fff;
-        }
-        .btn-primary:hover {
-            background: var(--accent-hover);
-            transform: translateY(-1px);
-        }
-        .btn-primary:active {
-            transform: scale(0.97);
-        }
-        .btn-secondary {
-            background: #fff;
-            color: var(--accent);
-            border: 2px solid var(--accent);
-        }
-        .btn-secondary:hover {
-            background: #f0f7ff;
-        }
-        .btn-clear {
-            background: #fff;
-            color: #636e72;
-            border: 2px solid #dfe6e9;
-        }
-        .btn-clear:hover {
-            background: #f5f6fa;
-        }
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            pointer-events: none;
-            filter: grayscale(20%);
-        }
-
-        .progress-wrap {
-            display: none;
-            margin-top: 10px;
-        }
-        .progress-wrap.active {
-            display: block;
-        }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: #fff; color: var(--accent); border: 2px solid var(--accent); }
+        .btn-clear { background: #fff; color: #636e72; border: 2px solid #dfe6e9; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+        .progress-wrap { display: none; margin-top: 10px; }
+        .progress-wrap.active { display: block; }
         .progress-bar-outer {
-            height: 22px;
-            background: #e9ecef;
-            border-radius: 11px;
-            overflow: hidden;
-            position: relative;
+            height: 22px; background: #e9ecef; border-radius: 11px; overflow: hidden;
         }
         .progress-bar-inner {
-            height: 100%;
-            background: linear-gradient(90deg, #0984e3, #00b894);
-            border-radius: 11px;
-            transition: width 0.3s ease;
-            width: 0%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            color: #fff;
-            font-weight: 700;
-            min-width: 40px;
+            height: 100%; background: linear-gradient(90deg, #0984e3, #00b894);
+            border-radius: 11px; transition: width 0.2s; width: 0%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem; color: #fff; font-weight: 700; min-width: 40px;
         }
-        .progress-text {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin-top: 6px;
-            text-align: center;
-        }
-
+        .progress-text { font-size: 0.8rem; color: #636e72; margin-top: 6px; text-align: center; }
         .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 10px;
-            margin-top: 8px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 8px; margin-top: 8px;
         }
-        .stat-item {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 12px 14px;
-            text-align: center;
-            border: 1px solid #eee;
-        }
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: #1a1a2e;
-            line-height: 1;
-        }
-        .stat-label {
-            font-size: 0.75rem;
-            color: #636e72;
-            margin-top: 4px;
-        }
-
+        .stat-item { background: #f8f9fa; border-radius: 8px; padding: 10px 12px; text-align: center; border: 1px solid #eee; }
+        .stat-value { font-size: 1.6rem; font-weight: 800; color: #1a1a2e; }
+        .stat-label { font-size: 0.72rem; color: #636e72; }
         .result-table-wrap {
-            max-height: 55vh;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            margin-top: 8px;
+            max-height: 55vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+            border: 1px solid var(--border); border-radius: 8px; margin-top: 8px;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.8rem;
-            font-family: var(--font-mono);
-        }
-        table thead {
-            position: sticky;
-            top: 0;
-            z-index: 2;
-        }
-        table th {
-            background: #1a1a2e;
-            color: #fff;
-            padding: 10px 6px;
-            font-weight: 600;
-            font-size: 0.75rem;
-            white-space: nowrap;
-            text-align: center;
-        }
-        table td {
-            padding: 7px 5px;
-            text-align: center;
-            border-bottom: 1px solid #f0f0f0;
-            white-space: nowrap;
-        }
-        table tbody tr:hover {
-            background: #f8f9ff;
-        }
-        table tbody tr:nth-child(even) {
-            background: #fafbfc;
-        }
-        table tbody tr:nth-child(even):hover {
-            background: #f0f3ff;
-        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.78rem; font-family: var(--font-mono); }
+        table thead { position: sticky; top: 0; z-index: 2; }
+        table th { background: #1a1a2e; color: #fff; padding: 10px 6px; font-weight: 600; font-size: 0.72rem; white-space: nowrap; }
+        table td { padding: 7px 5px; text-align: center; border-bottom: 1px solid #f0f0f0; white-space: nowrap; }
+        table tbody tr:nth-child(even) { background: #fafbfc; }
         .highlight-num {
-            display: inline-block;
-            background: #ffeaa7;
-            color: #d63031;
-            font-weight: 700;
-            padding: 2px 6px;
-            border-radius: 4px;
-            margin: 0 1px;
-            font-size: 0.82rem;
+            display: inline-block; background: #ffeaa7; color: #d63031;
+            font-weight: 700; padding: 2px 6px; border-radius: 4px; margin: 0 1px;
         }
-        .badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 0.7rem;
-        }
-        .badge-green {
-            background: #d4fceb;
-            color: #007a4d;
-        }
-        .badge-orange {
-            background: #fff3cd;
-            color: #856404;
-        }
-        .badge-red {
-            background: #ffe0e0;
-            color: #b71c1c;
-        }
-        .badge-blue {
-            background: #dceeff;
-            color: #004a8f;
-        }
-
-        .pagination {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            justify-content: center;
-            margin-top: 10px;
-            align-items: center;
-        }
-        .pagination button {
-            padding: 7px 14px;
-            font-size: 0.8rem;
-            border-radius: 6px;
-        }
-        .page-info {
-            font-size: 0.82rem;
-            color: var(--text-secondary);
-            font-weight: 600;
-        }
-
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-weight: 700; font-size: 0.7rem; }
+        .badge-green { background: #d4fceb; color: #007a4d; }
+        .badge-orange { background: #fff3cd; color: #856404; }
+        .badge-red { background: #ffe0e0; color: #b71c1c; }
+        .pagination { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; align-items: center; }
+        .pagination button { padding: 7px 14px; font-size: 0.8rem; border-radius: 6px; }
         .toast {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #2d3436;
-            color: #fff;
-            padding: 10px 22px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            z-index: 999;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: #2d3436; color: #fff; padding: 10px 22px; border-radius: 20px;
+            font-size: 0.85rem; z-index: 999; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
         }
-        .toast.show {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        .toast.warn {
-            background: #e17055;
-        }
-
+        .toast.show { opacity: 1; }
         .summary-box {
-            background: #f0f7ff;
-            border: 2px solid #0984e3;
-            border-radius: 10px;
-            padding: 14px 18px;
-            margin-top: 8px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            color: #004a8f;
-            text-align: center;
+            background: #f0f7ff; border: 2px solid #0984e3; border-radius: 10px;
+            padding: 14px 18px; margin-top: 8px; font-weight: 600; font-size: 0.9rem;
+            color: #004a8f; text-align: center;
         }
-
         @media (max-width: 600px) {
-            .card {
-                padding: 12px 14px;
-            }
-            table {
-                font-size: 0.68rem;
-            }
-            table th,
-            table td {
-                padding: 5px 2px;
-            }
-            button {
-                padding: 9px 14px;
-                font-size: 0.82rem;
-            }
-            .stat-value {
-                font-size: 1.3rem;
-            }
-            .stats-grid {
-                grid-template-columns: repeat(3, 1fr);
-                gap: 6px;
-            }
-            textarea {
-                min-height: 120px;
-                font-size: 0.8rem;
-            }
+            .card { padding: 12px 14px; }
+            table { font-size: 0.68rem; }
+            button { padding: 9px 14px; font-size: 0.82rem; }
+            .stat-value { font-size: 1.3rem; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- 标题 -->
-        <div class="card" style="text-align:center;padding:16px 20px;">
-            <h1 style="font-size:1.3rem;margin:0;color:#1a1a2e;">🎯 双色球33选6 · 组合筛选工具</h1>
-            <p style="font-size:0.78rem;color:#636e72;margin:4px 0 0;">从1,107,568组全组合中智能筛选符合条件的中奖号码</p>
-        </div>
-
-        <!-- 输入区 -->
-        <div class="card">
-            <div class="card-header"><span class="icon">📝</span> 请输入号码组合</div>
-            <div class="card-subtitle">
-                每行一组，每组6个号码，用<strong>英文逗号</strong>或<strong>中文逗号</strong>分隔。<br>
-                号码范围 <strong>1~33</strong>，单数字自动补零识别（如 1→01，9→09）。<br>
-                示例格式：<code>1,2,3,4,5,6</code> 或 <code>01,02,03,04,05,06</code>
-            </div>
-            <textarea id="inputArea" placeholder="在此粘贴号码组合，每行一组，例如：&#10;1,2,3,4,5,6&#10;7,8,9,10,11,12&#10;13,14,15,16,17,18&#10;..."></textarea>
-            <div class="btn-row" style="margin-top:10px;">
-                <button class="btn-primary" id="btnStart" onclick="startProcess()">🚀 开始智能筛选</button>
-                <button class="btn-secondary" id="btnLoadSample" onclick="loadSample()">📋 加载示例数据</button>
-                <button class="btn-clear" onclick="clearAll()">🗑 清空</button>
-            </div>
-            <div style="font-size:0.75rem;color:#636e72;margin-top:6px;" id="inputStats"></div>
-        </div>
-
-        <!-- 进度区 -->
-        <div class="card progress-wrap" id="progressCard">
-            <div class="card-header"><span class="icon">⏳</span> 处理进度</div>
-            <div class="progress-bar-outer">
-                <div class="progress-bar-inner" id="progressBar">0%</div>
-            </div>
-            <div class="progress-text" id="progressText">准备中...</div>
-        </div>
-
-        <!-- 结果摘要 -->
-        <div class="card" id="summaryCard" style="display:none;">
-            <div class="card-header"><span class="icon">📊</span> 筛选结果摘要</div>
-            <div class="summary-box" id="summaryBox"></div>
-            <div class="stats-grid" id="statsGrid"></div>
-        </div>
-
-        <!-- 结果列表 -->
-        <div class="card" id="resultCard" style="display:none;">
-            <div class="card-header"><span class="icon">📋</span> 符合条件的组合详情</div>
-            <div style="font-size:0.78rem;color:#636e72;margin-bottom:6px;" id="resultInfo"></div>
-            <div class="result-table-wrap" id="tableWrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>序号</th>
-                            <th>中奖号码</th>
-                            <th>中6个</th>
-                            <th>中5个</th>
-                            <th>中4个</th>
-                            <th>中3个</th>
-                            <th>中2个</th>
-                            <th>中1个</th>
-                            <th>中0个</th>
-                        </tr>
-                    </thead>
-                    <tbody id="resultBody"></tbody>
-                </table>
-            </div>
-            <div class="pagination" id="pagination"></div>
-        </div>
+<div class="container">
+    <div class="card" style="text-align:center">
+        <h1 style="font-size:1.3rem;color:#1a1a2e;">🎯 双色球33选6 · 组合筛选</h1>
+        <p style="font-size:0.78rem;color:#636e72;">从1,107,568组中智能找出「无6连中，且中5个≤10组」的号码</p>
     </div>
 
-    <div class="toast" id="toast"></div>
+    <div class="card">
+        <div style="font-weight:700; margin-bottom:6px;">📝 输入号码组合（每行一组，6个号码用逗号分隔）</div>
+        <div style="font-size:0.75rem;color:#636e72;margin-bottom:8px;">
+            支持中文逗号、英文逗号；1~9自动识别为01~09。每组6个不同号码，范围1-33。
+        </div>
+        <textarea id="inputArea" placeholder="示例：&#10;1,2,3,4,5,6&#10;7,8,9,10,11,12&#10;..."></textarea>
+        <div class="btn-row">
+            <button class="btn-primary" id="btnStart">🚀 开始筛选</button>
+            <button class="btn-secondary" id="btnSample">📋 加载示例</button>
+            <button class="btn-clear" id="btnClear">🗑 清空</button>
+        </div>
+        <div id="inputStats" style="font-size:0.75rem;color:#636e72;margin-top:6px;"></div>
+    </div>
 
-    <script>
-        (function() {
-            // ==================== 全局常量与状态 ====================
-            const TOTAL_N = 33;
-            const TOTAL_K = 6;
-            const TOTAL_COMBOS = 1107568; // C(33,6)
+    <div class="card progress-wrap" id="progressCard">
+        <div style="font-weight:700;margin-bottom:8px;">⏳ 处理进度</div>
+        <div class="progress-bar-outer">
+            <div class="progress-bar-inner" id="progressBar">0%</div>
+        </div>
+        <div class="progress-text" id="progressText">等待开始...</div>
+    </div>
 
-            // 预计算组合数表 C[n][k]，n从0到33，k从0到6
-            const C = (() => {
-                const maxN = TOTAL_N;
-                const maxK = TOTAL_K;
-                const tbl = new Array(maxN + 1);
-                for (let n = 0; n <= maxN; n++) {
-                    tbl[n] = new Float64Array(maxK + 1);
-                    tbl[n][0] = 1;
-                    for (let k = 1; k <= Math.min(n, maxK); k++) {
-                        tbl[n][k] = tbl[n - 1]?.[k] ?? 0 + (tbl[n - 1]?.[k - 1] ?? 0);
-                        // 安全计算
-                        let v = 0;
-                        if (n - 1 >= 0 && k <= maxK) v += tbl[n - 1][k];
-                        if (n - 1 >= 0 && k - 1 >= 0) v += tbl[n - 1][k - 1];
-                        tbl[n][k] = v;
+    <div class="card" id="summaryCard" style="display:none;">
+        <div style="font-weight:700;margin-bottom:8px;">📊 筛选结果</div>
+        <div class="summary-box" id="summaryBox"></div>
+        <div class="stats-grid" id="statsGrid"></div>
+    </div>
+
+    <div class="card" id="resultCard" style="display:none;">
+        <div style="font-weight:700;margin-bottom:6px;">📋 符合条件组合详情</div>
+        <div id="resultInfo" style="font-size:0.78rem;color:#636e72;margin-bottom:4px;"></div>
+        <div class="result-table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>序号</th><th>中奖号码</th><th>中6</th><th>中5</th><th>中4</th><th>中3</th><th>中2</th><th>中1</th><th>中0</th>
+                </tr>
+                </thead>
+                <tbody id="resultBody"></tbody>
+            </table>
+        </div>
+        <div class="pagination" id="pagination"></div>
+    </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+    (function() {
+        // ---------- 常量 ----------
+        const TOTAL_N = 33, TOTAL_K = 6, TOTAL_COMBOS = 1107568;
+
+        // 预计算组合数 C[n][k] (n:0~33, k:0~6)
+        const C = (() => {
+            const maxN = TOTAL_N, maxK = TOTAL_K;
+            const tbl = new Array(maxN + 1);
+            for (let n = 0; n <= maxN; n++) {
+                tbl[n] = new Float64Array(maxK + 1);
+                tbl[n][0] = 1;
+                for (let k = 1; k <= Math.min(n, maxK); k++) {
+                    // 安全计算 C(n,k)=C(n-1,k)+C(n-1,k-1)
+                    let v = 0;
+                    if (n-1 >= 0 && k <= maxK) v += tbl[n-1][k];
+                    if (n-1 >= 0 && k-1 >= 0) v += tbl[n-1][k-1];
+                    tbl[n][k] = v;
+                }
+            }
+            return tbl;
+        })();
+
+        // 编码：6个排序数字 -> 0-based rank
+        function encodeRank(nums) {
+            let rank = 0, prev = 0;
+            for (let i = 0; i < TOTAL_K; i++) {
+                const x = nums[i];
+                for (let j = prev+1; j < x; j++) {
+                    rank += C[TOTAL_N - j][TOTAL_K - i - 1];
+                }
+                prev = x;
+            }
+            return rank;
+        }
+
+        // 解码：rank -> 6个排序数字
+        function decodeRank(rank) {
+            const nums = new Array(TOTAL_K);
+            let current = 1, remaining = rank;
+            for (let i = 0; i < TOTAL_K; i++) {
+                for (let j = current; j <= TOTAL_N - TOTAL_K + i + 1; j++) {
+                    const comb = C[TOTAL_N - j][TOTAL_K - i - 1];
+                    if (remaining < comb) {
+                        nums[i] = j;
+                        current = j + 1;
+                        break;
                     }
+                    remaining -= comb;
                 }
-                // 确保C(33,6)正确
-                return tbl;
-            })();
+            }
+            return nums;
+        }
 
-            // 将6个排序数字(1-33)编码为排名(0 ~ 1107567)
-            function encodeRank(nums) {
-                let rank = 0;
-                let prev = 0;
-                for (let i = 0; i < TOTAL_K; i++) {
-                    const x = nums[i];
-                    for (let j = prev + 1; j < x; j++) {
-                        rank += C[TOTAL_N - j][TOTAL_K - i - 1];
-                    }
-                    prev = x;
-                }
-                return rank;
+        // 交集大小
+        function intersectionSize(a, b) {
+            let i=0,j=0,c=0;
+            while(i<a.length && j<b.length) {
+                if(a[i]===b[j]){c++;i++;j++;}
+                else if(a[i]<b[j]) i++; else j++;
+            }
+            return c;
+        }
+
+        // 标准化输入字符串
+        function normalizeLine(line) {
+            let s = line.replace(/，/g, ',').replace(/\s+/g, '');
+            const parts = s.split(',').filter(p=>p.length>0);
+            if(parts.length !== TOTAL_K) return null;
+            const nums = [];
+            for(let p of parts) {
+                let n = parseInt(p,10);
+                if(isNaN(n) || n<1 || n>33) return null;
+                nums.push(n);
+            }
+            if(new Set(nums).size !== TOTAL_K) return null;
+            nums.sort((a,b)=>a-b);
+            return nums;
+        }
+
+        function formatNums(nums) { return nums.join(','); }
+
+        // ---------- 状态 ----------
+        let userNums = [];           // 排序后的用户号码组
+        let userMarks = null;       // Uint8Array
+        let hit5Counts = null;      // Int32Array
+        let qualified = [];         // [{rank, hit5}]
+        let currentPage = 0;
+        const PAGE_SIZE = 50;
+        let isProcessing = false;
+
+        // DOM
+        const $input = document.getElementById('inputArea');
+        const $btnStart = document.getElementById('btnStart');
+        const $progressCard = document.getElementById('progressCard');
+        const $progressBar = document.getElementById('progressBar');
+        const $progressText = document.getElementById('progressText');
+        const $summaryCard = document.getElementById('summaryCard');
+        const $summaryBox = document.getElementById('summaryBox');
+        const $statsGrid = document.getElementById('statsGrid');
+        const $resultCard = document.getElementById('resultCard');
+        const $resultInfo = document.getElementById('resultInfo');
+        const $resultBody = document.getElementById('resultBody');
+        const $pagination = document.getElementById('pagination');
+        const $inputStats = document.getElementById('inputStats');
+        const $toast = document.getElementById('toast');
+
+        function toast(msg, isWarn=false) {
+            $toast.textContent = msg;
+            $toast.className = 'toast show' + (isWarn ? ' warn' : '');
+            clearTimeout($toast._t);
+            $toast._t = setTimeout(()=>{ $toast.className = 'toast'; }, 2500);
+        }
+
+        function setProgress(pct, text) {
+            $progressCard.classList.add('active');
+            $progressBar.style.width = Math.round(pct) + '%';
+            $progressBar.textContent = Math.round(pct) + '%';
+            if(text) $progressText.textContent = text;
+        }
+
+        function resetUI() {
+            $progressCard.classList.remove('active');
+            $progressBar.style.width = '0%'; $progressBar.textContent = '0%';
+            $progressText.textContent = '';
+            $summaryCard.style.display = 'none';
+            $resultCard.style.display = 'none';
+            qualified = []; currentPage = 0;
+        }
+
+        // ---------- 异步分片构建 hit5Counts ----------
+        async function buildHit5CountsAsync(userNumsArr) {
+            const total = userNumsArr.length;
+            const counts = new Int32Array(TOTAL_COMBOS);
+            const marks = new Uint8Array(TOTAL_COMBOS);
+
+            // 先标记用户输入
+            for (let i=0; i<total; i++) {
+                const r = encodeRank(userNumsArr[i]);
+                marks[r] = 1;
             }
 
-            // 将排名(0 ~ 1107567)解码为6个排序数字(1-33)
-            function decodeRank(rank) {
-                const nums = new Array(TOTAL_K);
-                let current = 1;
-                let remaining = rank;
-                for (let i = 0; i < TOTAL_K; i++) {
-                    for (let j = current; j <= TOTAL_N - TOTAL_K + i + 1; j++) {
-                        const comb = C[TOTAL_N - j][TOTAL_K - i - 1];
-                        if (remaining < comb) {
-                            nums[i] = j;
-                            current = j + 1;
-                            break;
-                        }
-                        remaining -= comb;
-                    }
-                }
-                return nums;
-            }
+            // 生成所有候选数字1~33
+            const allNumbers = [];
+            for (let i=1; i<=TOTAL_N; i++) allNumbers.push(i);
 
-            // 计算两个排序数组的交集大小
-            function intersectionSize(a, b) {
-                let i = 0,
-                    j = 0,
-                    count = 0;
-                while (i < a.length && j < b.length) {
-                    if (a[i] === b[j]) { count++;
-                        i++;
-                        j++; } else if (a[i] < b[j]) { i++; } else { j++; }
-                }
-                return count;
-            }
-
-            // 标准化号码字符串：中文逗号→英文逗号，去空格，单数字补零
-            function normalizeNumStr(str) {
-                let s = str.replace(/，/g, ',').replace(/\s+/g, '');
-                const parts = s.split(',').filter(p => p.length > 0);
-                return parts.map(p => {
-                    let n = parseInt(p, 10);
-                    if (isNaN(n) || n < 1 || n > 33) return null;
-                    return n;
-                });
-            }
-
-            // 将数字数组格式化为显示字符串（不带前导零）
-            function formatNums(nums) {
-                return nums.join(',');
-            }
-
-            // 将数字数组格式化为标准key（带前导零，用于内部）
-            function formatKey(nums) {
-                return nums.map(n => String(n).padStart(2, '0')).join(',');
-            }
-
-            // ==================== 应用状态 ====================
-            let userInputNums = []; // 用户输入的号码组（排序后的数字数组，去重）
-            let userInputSet = null; // Uint8Array，标记用户输入占用的排名
-            let hit5Counts = null; // Int32Array，中5个计数
-            let qualifiedRanks = []; // 符合条件的排名列表 [{rank, hit5Count}]
-            let currentPage = 0;
-            const PAGE_SIZE = 50;
-            let isProcessing = false;
-
-            // ==================== DOM引用 ====================
-            const $inputArea = document.getElementById('inputArea');
-            const $btnStart = document.getElementById('btnStart');
-            const $progressCard = document.getElementById('progressCard');
-            const $progressBar = document.getElementById('progressBar');
-            const $progressText = document.getElementById('progressText');
-            const $summaryCard = document.getElementById('summaryCard');
-            const $summaryBox = document.getElementById('summaryBox');
-            const $statsGrid = document.getElementById('statsGrid');
-            const $resultCard = document.getElementById('resultCard');
-            const $resultInfo = document.getElementById('resultInfo');
-            const $resultBody = document.getElementById('resultBody');
-            const $pagination = document.getElementById('pagination');
-            const $inputStats = document.getElementById('inputStats');
-            const $toast = document.getElementById('toast');
-            const $tableWrap = document.getElementById('tableWrap');
-
-            function showToast(msg, type = '') {
-                $toast.textContent = msg;
-                $toast.className = 'toast ' + type + ' show';
-                clearTimeout($toast._timeout);
-                $toast._timeout = setTimeout(() => {
-                    $toast.className = 'toast';
-                }, 2000);
-            }
-
-            function setProgress(percent, text) {
-                $progressCard.classList.add('active');
-                $progressBar.style.width = Math.min(100, Math.round(percent)) + '%';
-                $progressBar.textContent = Math.round(percent) + '%';
-                if (text) $progressText.textContent = text;
-            }
-
-            function resetUI() {
-                $progressCard.classList.remove('active');
-                $progressBar.style.width = '0%';
-                $progressBar.textContent = '0%';
-                $progressText.textContent = '';
-                $summaryCard.style.display = 'none';
-                $resultCard.style.display = 'none';
-                $summaryBox.textContent = '';
-                $statsGrid.innerHTML = '';
-                $resultBody.innerHTML = '';
-                $pagination.innerHTML = '';
-                $resultInfo.textContent = '';
-                qualifiedRanks = [];
-                currentPage = 0;
-            }
-
-            // ==================== 解析用户输入 ====================
-            function parseUserInput() {
-                const raw = $inputArea.value.trim();
-                if (!raw) {
-                    showToast('请先输入号码组合', 'warn');
-                    return null;
-                }
-                const lines = raw.split(/[\n\r]+/).filter(l => l.trim().length > 0);
-                const numSets = new Map(); // key -> sortedNums[]
-                const errors = [];
-                let totalParsed = 0;
-
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    const nums = normalizeNumStr(line);
-                    if (nums === null || nums.length !== TOTAL_K || nums.some(n => n === null)) {
-                        const validNums = nums ? nums.filter(n => n !== null) : [];
-                        if (validNums.length !== TOTAL_K || new Set(validNums).size !== TOTAL_K) {
-                            errors.push(`第${i+1}行: "${line.substring(0,30)}..." 格式有误，已跳过`);
-                            continue;
-                        }
-                    }
-                    const filtered = nums.filter(n => n !== null);
-                    if (filtered.length !== TOTAL_K) {
-                        errors.push(`第${i+1}行: 号码数量不是6个，已跳过`);
-                        continue;
-                    }
-                    const uniqueSet = new Set(filtered);
-                    if (uniqueSet.size !== TOTAL_K) {
-                        errors.push(`第${i+1}行: 号码有重复，已跳过`);
-                        continue;
-                    }
-                    if (filtered.some(n => n < 1 || n > 33)) {
-                        errors.push(`第${i+1}行: 号码超出1-33范围，已跳过`);
-                        continue;
-                    }
-                    const sorted = [...filtered].sort((a, b) => a - b);
-                    const key = formatKey(sorted);
-                    if (!numSets.has(key)) {
-                        numSets.set(key, sorted);
-                    }
-                    totalParsed++;
-                }
-
-                if (errors.length > 0 && errors.length <= 10) {
-                    showToast(errors.join('\n'), 'warn');
-                } else if (errors.length > 10) {
-                    showToast(`共${errors.length}行格式有误（已跳过），成功解析${numSets.size}组唯一号码`, 'warn');
-                }
-
-                if (numSets.size === 0) {
-                    showToast('没有有效的号码组合，请检查输入格式', 'warn');
-                    return null;
-                }
-                if (numSets.size < 100 && totalParsed > 0) {
-                    showToast(`仅解析到${numSets.size}组号码，数量较少，筛选结果可能很多`);
-                }
-                if (numSets.size > 80000) {
-                    showToast(`输入${numSets.size}组号码，数量较多，处理可能需要更长时间`, 'warn');
-                }
-
-                const result = Array.from(numSets.values());
-                $inputStats.textContent =
-                    `✅ 成功解析 ${totalParsed} 行，去重后 ${result.length} 组唯一号码（号码范围1-33，每组6个不重复）`;
-                return result;
-            }
-
-            // ==================== 生成中5个候选 ====================
-            function buildHit5Counts(userNums) {
-                // 初始化数组
-                const counts = new Int32Array(TOTAL_COMBOS);
-                const userMarks = new Uint8Array(TOTAL_COMBOS);
-
-                // 标记用户输入
-                for (const nums of userNums) {
-                    const rank = encodeRank(nums);
-                    userMarks[rank] = 1;
-                }
-
-                // 生成中5个候选
-                const allNumbers = [];
-                for (let i = 1; i <= TOTAL_N; i++) allNumbers.push(i);
-
-                for (const nums of userNums) {
+            // 分片处理用户号码，每批 CHUNK 组
+            const CHUNK = 200;
+            for (let start=0; start<total; start+=CHUNK) {
+                const end = Math.min(start+CHUNK, total);
+                for (let idx=start; idx<end; idx++) {
+                    const nums = userNumsArr[idx];
                     const numSet = new Set(nums);
-                    const candidates = new Set(); // 用Set去重（同一组用户输入生成的162个候选不会重复，但不同用户输入可能重复）
-                    for (let pos = 0; pos < TOTAL_K; pos++) {
-                        const originalNum = nums[pos];
-                        for (const newNum of allNumbers) {
+                    const candidates = new Set(); // 每组最多162个，去重用set
+
+                    for (let pos=0; pos<TOTAL_K; pos++) {
+                        const orig = nums[pos];
+                        for (let newNum of allNumbers) {
                             if (numSet.has(newNum)) continue;
-                            // 构建新组合
                             const newNums = [...nums];
                             newNums[pos] = newNum;
-                            newNums.sort((a, b) => a - b);
-                            const rank = encodeRank(newNums);
-                            candidates.add(rank);
+                            newNums.sort((a,b)=>a-b);
+                            candidates.add(encodeRank(newNums));
                         }
                     }
-                    // 对每个候选累加计数（排除在用户输入中的）
-                    for (const rank of candidates) {
-                        if (userMarks[rank] === 0) {
+                    for (let rank of candidates) {
+                        if (marks[rank] === 0) {
                             counts[rank]++;
                         }
                     }
                 }
-
-                return { counts, userMarks };
+                // 更新进度：8% ~ 18%
+                const progress = 8 + Math.round((end/total) * 10);
+                setProgress(progress, `构建中5索引 ${end}/${total} 组...`);
+                // 让出主线程
+                await new Promise(r => setTimeout(r, 0));
             }
 
-            // ==================== 主处理流程 ====================
-            async function startProcess() {
-                if (isProcessing) {
-                    showToast('正在处理中，请稍候...', 'warn');
-                    return;
-                }
-                resetUI();
-                isProcessing = true;
-                $btnStart.disabled = true;
-                $btnStart.textContent = '⏳ 处理中...';
+            return { counts, marks };
+        }
 
-                try {
-                    // 步骤1：解析用户输入
-                    setProgress(2, '正在解析输入数据...');
-                    await sleep(30);
-                    const userNums = parseUserInput();
-                    if (!userNums) {
-                        isProcessing = false;
-                        $btnStart.disabled = false;
-                        $btnStart.textContent = '🚀 开始智能筛选';
-                        return;
-                    }
-                    const inputCount = userNums.length;
-                    setProgress(5, `解析完成：${inputCount}组唯一号码`);
+        // ---------- 异步遍历全组合 ----------
+        async function scanAllCombos(marks, counts) {
+            const qualifiedList = [];
+            let checked = 0;
+            let lastYield = performance.now();
 
-                    // 步骤2：构建中5个计数数组
-                    setProgress(8, '正在构建中5个命中索引...');
-                    await sleep(30);
-                    const { counts, userMarks } = buildHit5Counts(userNums);
-                    userInputSet = userMarks;
-                    hit5Counts = counts;
-                    userInputNums = userNums;
-                    setProgress(18, '索引构建完成，开始遍历全组合...');
+            // 6层循环
+            for (let i1=1; i1<=28; i1++) {
+                for (let i2=i1+1; i2<=29; i2++) {
+                    for (let i3=i2+1; i3<=30; i3++) {
+                        for (let i4=i3+1; i4<=31; i4++) {
+                            for (let i5=i4+1; i5<=32; i5++) {
+                                for (let i6=i5+1; i6<=33; i6++) {
+                                    const nums = [i1,i2,i3,i4,i5,i6];
+                                    const rank = encodeRank(nums);
+                                    checked++;
 
-                    // 步骤3：遍历所有110万组合，筛选符合条件的
-                    await sleep(30);
-                    const qualifiedList = []; // [{rank, hit5Count}]
-                    let totalChecked = 0;
-                    let batchStart = performance.now();
+                                    // 中6个跳过
+                                    if (marks[rank] === 1) continue;
 
-                    // 使用6层循环遍历所有组合
-                    for (let i1 = 1; i1 <= 28; i1++) {
-                        for (let i2 = i1 + 1; i2 <= 29; i2++) {
-                            for (let i3 = i2 + 1; i3 <= 30; i3++) {
-                                for (let i4 = i3 + 1; i4 <= 31; i4++) {
-                                    for (let i5 = i4 + 1; i5 <= 32; i5++) {
-                                        for (let i6 = i5 + 1; i6 <= 33; i6++) {
-                                            const nums = [i1, i2, i3, i4, i5, i6];
-                                            const rank = encodeRank(nums);
-                                            totalChecked++;
+                                    const h5 = counts[rank];
+                                    if (h5 <= 10) {
+                                        qualifiedList.push({ rank, hit5: h5 });
+                                    }
 
-                                            // 检查是否在用户输入中（中6个）
-                                            if (userMarks[rank] === 1) continue;
-
-                                            // 检查中5个计数
-                                            const h5 = counts[rank];
-                                            if (h5 <= 10) {
-                                                qualifiedList.push({ rank, hit5Count: h5 });
-                                            }
-
-                                            // 每50万次检查一次是否需yield
-                                            if (totalChecked % 500000 === 0) {
-                                                const elapsed = performance.now() - batchStart;
-                                                if (elapsed > 40) {
-                                                    // 让出主线程
-                                                    const progress = 18 + Math.round((totalChecked / TOTAL_COMBOS) * 55);
-                                                    setProgress(progress,
-                                                        `遍历组合中... ${(totalChecked/10000).toFixed(0)}万/${(TOTAL_COMBOS/10000).toFixed(1)}万`);
-                                                    await sleep(1);
-                                                    batchStart = performance.now();
-                                                }
-                                            }
+                                    // 每50万次检查是否要让出
+                                    if (checked % 500000 === 0) {
+                                        const now = performance.now();
+                                        if (now - lastYield > 35) {
+                                            const pct = 20 + Math.round((checked / TOTAL_COMBOS) * 58);
+                                            setProgress(pct, `遍历组合 ${(checked/10000).toFixed(0)}万 / 110.8万`);
+                                            await new Promise(r => setTimeout(r, 0));
+                                            lastYield = performance.now();
                                         }
                                     }
                                 }
                             }
                         }
                     }
-
-                    setProgress(75, `遍历完成，找到 ${qualifiedList.length.toLocaleString()} 个符合条件的组合`);
-
-                    // 步骤4：排序（按中5个计数升序，相同按排名升序）
-                    qualifiedList.sort((a, b) => {
-                        if (a.hit5Count !== b.hit5Count) return a.hit5Count - b.hit5Count;
-                        return a.rank - b.rank;
-                    });
-                    qualifiedRanks = qualifiedList;
-                    setProgress(80, '排序完成');
-
-                    // 步骤5：显示摘要
-                    displaySummary(qualifiedList, inputCount);
-                    setProgress(85, '摘要已生成');
-
-                    // 步骤6：计算第一页的详细统计
-                    await sleep(20);
-                    currentPage = 0;
-                    await loadPageDetails(0);
-                    setProgress(100, '处理完成！');
-                    await sleep(400);
-                    $progressCard.classList.remove('active');
-
-                } catch (err) {
-                    console.error(err);
-                    showToast('处理出错：' + err.message, 'warn');
-                    $progressCard.classList.remove('active');
-                } finally {
-                    isProcessing = false;
-                    $btnStart.disabled = false;
-                    $btnStart.textContent = '🚀 开始智能筛选';
                 }
             }
+            return qualifiedList;
+        }
 
-            function displaySummary(qualifiedList, inputCount) {
+        // ---------- 分页显示 ----------
+        function renderPage(page) {
+            if (qualified.length === 0) {
+                $resultCard.style.display = 'none';
+                return;
+            }
+            $resultCard.style.display = 'block';
+            const start = page * PAGE_SIZE;
+            const end = Math.min(start + PAGE_SIZE, qualified.length);
+            const pageItems = qualified.slice(start, end);
+
+            $resultInfo.textContent = `第 ${start+1}~${end} 组 （共 ${qualified.length.toLocaleString()} 组符合）`;
+
+            const rows = [];
+            for (let i=0; i<pageItems.length; i++) {
+                const {rank, hit5} = pageItems[i];
+                const nums = decodeRank(rank);
+                const stats = {6:0,5:0,4:0,3:0,2:0,1:0,0:0};
+                for (let un of userNums) {
+                    const isect = intersectionSize(nums, un);
+                    stats[isect]++;
+                }
+                const idx = start + i + 1;
+                const numsHtml = nums.map(n=>`<span class="highlight-num">${n}</span>`).join(' ');
+                let hit5Badge = '';
+                if (hit5===0) hit5Badge = '<span class="badge badge-green">0</span>';
+                else if (hit5<=3) hit5Badge = `<span class="badge badge-green">${hit5}</span>`;
+                else if (hit5<=7) hit5Badge = `<span class="badge badge-orange">${hit5}</span>`;
+                else hit5Badge = `<span class="badge badge-red">${hit5}</span>`;
+                rows.push(`
+                    <tr>
+                        <td>${idx}</td>
+                        <td style="text-align:left">${numsHtml}</td>
+                        <td>${stats[6]}</td>
+                        <td>${stats[5]} ${hit5Badge}</td>
+                        <td>${stats[4]}</td>
+                        <td>${stats[3]}</td>
+                        <td>${stats[2]}</td>
+                        <td>${stats[1]}</td>
+                        <td>${stats[0]}</td>
+                    </tr>`);
+            }
+            $resultBody.innerHTML = rows.join('');
+            document.querySelector('.result-table-wrap').scrollTop = 0;
+            updatePagination(page);
+        }
+
+        function updatePagination(page) {
+            const totalPages = Math.ceil(qualified.length / PAGE_SIZE);
+            $pagination.innerHTML = '';
+            if (totalPages <= 1) {
+                $pagination.innerHTML = '<span style="font-size:0.8rem;">共1页</span>';
+                return;
+            }
+            const frag = document.createDocumentFragment();
+            const addBtn = (text, cls, onClick) => {
+                const b = document.createElement('button');
+                b.textContent = text; b.className = cls; b.onclick = onClick;
+                frag.appendChild(b);
+            };
+            if (page > 0) addBtn('‹ 上页', 'btn-secondary', ()=>goToPage(page-1));
+            const maxShow = 8;
+            let startP = Math.max(0, page - Math.floor(maxShow/2));
+            let endP = Math.min(totalPages, startP + maxShow);
+            if (endP - startP < maxShow) startP = Math.max(0, endP - maxShow);
+            if (startP > 0) {
+                addBtn('1', 'btn-secondary', ()=>goToPage(0));
+                if (startP > 1) frag.appendChild(document.createTextNode('...'));
+            }
+            for (let p=startP; p<endP; p++) {
+                addBtn(p+1, p===page ? 'btn-primary' : 'btn-secondary', ()=>goToPage(p));
+            }
+            if (endP < totalPages) {
+                if (endP < totalPages-1) frag.appendChild(document.createTextNode('...'));
+                addBtn(totalPages, 'btn-secondary', ()=>goToPage(totalPages-1));
+            }
+            if (page < totalPages-1) addBtn('下页 ›', 'btn-secondary', ()=>goToPage(page+1));
+            $pagination.appendChild(frag);
+        }
+
+        function goToPage(p) {
+            currentPage = p;
+            renderPage(p);
+        }
+
+        // ---------- 主流程 ----------
+        async function startProcess() {
+            if (isProcessing) {
+                toast('正在处理中，请稍候...', true);
+                return;
+            }
+            resetUI();
+            isProcessing = true;
+            $btnStart.disabled = true;
+            $btnStart.textContent = '⏳ 处理中...';
+
+            try {
+                // 1. 解析输入
+                setProgress(2, '正在解析输入数据...');
+                const raw = $input.value.trim();
+                if (!raw) { toast('请先输入号码组合', true); throw new Error('empty'); }
+                const lines = raw.split(/[\n\r]+/).filter(l=>l.trim());
+                const numMap = new Map();
+                let errCount = 0;
+                for (let line of lines) {
+                    const nums = normalizeLine(line.trim());
+                    if (!nums) { errCount++; continue; }
+                    const key = nums.join(',');
+                    if (!numMap.has(key)) numMap.set(key, nums);
+                }
+                if (numMap.size === 0) {
+                    toast('没有有效的号码组合（需6个1-33不重复数字）', true);
+                    throw new Error('no valid');
+                }
+                userNums = Array.from(numMap.values());
+                $inputStats.textContent = `✅ 解析成功：${userNums.length} 组唯一号码`;
+                if (errCount > 0) toast(`跳过了 ${errCount} 行格式不正确的数据`, true);
+
+                // 2. 异步构建中5索引
+                setProgress(5, '开始构建中5命中索引...');
+                const { counts, marks } = await buildHit5CountsAsync(userNums);
+                userMarks = marks;
+                hit5Counts = counts;
+                setProgress(18, '索引构建完成');
+
+                // 3. 遍历全组合筛选
+                const list = await scanAllCombos(marks, counts);
+                qualified = list;
+                setProgress(80, `筛选完成，共 ${list.length} 组符合条件`);
+
+                // 4. 排序：按中5个数升序，相同按rank升序
+                qualified.sort((a,b)=> a.hit5 - b.hit5 || a.rank - b.rank);
+                setProgress(85, '排序完成');
+
+                // 5. 摘要
                 $summaryCard.style.display = 'block';
-                const totalQualified = qualifiedList.length;
-                const pct = ((totalQualified / TOTAL_COMBOS) * 100).toFixed(2);
-
-                $summaryBox.innerHTML = `
-                    全组合总数：<strong>${TOTAL_COMBOS.toLocaleString()}</strong> 组 &nbsp;|&nbsp;
-                    用户输入（去重）：<strong>${inputCount.toLocaleString()}</strong> 组 &nbsp;|&nbsp;
-                    符合条件：<strong style="color:#0984e3;font-size:1.1em;">${totalQualified.toLocaleString()}</strong> 组
-                    <span style="font-size:0.78rem;color:#636e72;">（占比 ${pct}%）</span>
-                `;
-
-                // 中5个计数分布统计
-                const distMap = new Map();
-                for (const item of qualifiedList) {
-                    const c = item.hit5Count;
-                    distMap.set(c, (distMap.get(c) || 0) + 1);
+                $summaryBox.innerHTML = `全组合 1,107,568 组 | 用户输入 ${userNums.length} 组 | <strong style="color:#0984e3;">符合条件 ${qualified.length.toLocaleString()} 组</strong>`;
+                const dist = new Map();
+                for (let q of qualified) dist.set(q.hit5, (dist.get(q.hit5)||0)+1);
+                let statsHtml = '';
+                for (let [h5,cnt] of [...dist.entries()].sort((a,b)=>a[0]-b[0])) {
+                    statsHtml += `<div class="stat-item"><div class="stat-value">${cnt}</div><div class="stat-label">中5个=${h5}次</div></div>`;
                 }
-                const distEntries = [...distMap.entries()].sort((a, b) => a[0] - b[0]);
+                $statsGrid.innerHTML = statsHtml;
 
-                let statsHTML = '';
-                const maxShow = Math.min(distEntries.length, 12);
-                for (let i = 0; i < maxShow; i++) {
-                    const [h5, cnt] = distEntries[i];
-                    statsHTML += `
-                        <div class="stat-item">
-                            <div class="stat-value">${cnt.toLocaleString()}</div>
-                            <div class="stat-label">中5个=${h5}次</div>
-                        </div>`;
+                // 6. 显示第一页
+                currentPage = 0;
+                renderPage(0);
+                setProgress(100, '完成！');
+
+            } catch(e) {
+                if (e.message !== 'empty' && e.message !== 'no valid') {
+                    console.error(e);
+                    toast('处理出错：' + e.message, true);
                 }
-                if (distEntries.length > maxShow) {
-                    statsHTML +=
-                        `<div class="stat-item"><div class="stat-value">...</div><div class="stat-label">更多分布</div></div>`;
-                }
-                $statsGrid.innerHTML = statsHTML;
+                $progressCard.classList.remove('active');
+            } finally {
+                isProcessing = false;
+                $btnStart.disabled = false;
+                $btnStart.textContent = '🚀 开始筛选';
             }
+        }
 
-            // ==================== 详细统计与分页 ====================
-            async function loadPageDetails(page) {
-                if (qualifiedRanks.length === 0) {
-                    $resultCard.style.display = 'none';
-                    return;
+        // ---------- 按钮事件 ----------
+        document.getElementById('btnStart').addEventListener('click', startProcess);
+        document.getElementById('btnClear').addEventListener('click', ()=>{
+            if (isProcessing) { toast('请等待处理完成', true); return; }
+            $input.value = '';
+            resetUI();
+            $inputStats.textContent = '';
+            userNums = [];
+            toast('已清空');
+        });
+        document.getElementById('btnSample').addEventListener('click', ()=>{
+            if (isProcessing) { toast('请等待处理完成', true); return; }
+            // 生成300组示例（偏向常见号码）
+            const samples = [];
+            const hot = [1,3,5,7,8,11,13,15,17,19,21,23,25,27,29,31,33];
+            const cold = [2,4,6,9,10,12,14,16,18,20,22,24,26,28,30,32];
+            const all = [...hot, ...cold];
+            const used = new Set();
+            let attempts = 0;
+            while(samples.length < 300 && attempts < 1000) {
+                const shuffled = all.sort(()=>Math.random()-0.5);
+                const six = shuffled.slice(0,6).sort((a,b)=>a-b);
+                const key = six.join(',');
+                if(!used.has(key)) {
+                    used.add(key);
+                    samples.push(formatNums(six));
                 }
-                $resultCard.style.display = 'block';
-                const start = page * PAGE_SIZE;
-                const end = Math.min(start + PAGE_SIZE, qualifiedRanks.length);
-                const pageItems = qualifiedRanks.slice(start, end);
-
-                $resultInfo.textContent =
-                    `显示第 ${start+1}~${end} 组（共 ${qualifiedRanks.length.toLocaleString()} 组符合条件），按中5个计数升序排列`;
-
-                // 计算详细统计
-                setProgress(86 + Math.round((page / Math.ceil(qualifiedRanks.length / PAGE_SIZE)) * 12),
-                    `正在计算第${page+1}页详细统计...`);
-                await sleep(10);
-
-                const userNums = userInputNums;
-                const rowsHTML = [];
-
-                for (let i = 0; i < pageItems.length; i++) {
-                    const { rank, hit5Count } = pageItems[i];
-                    const nums = decodeRank(rank);
-                    const stats = { 6: 0, 5: 0, 4: 0, 3: 0, 2: 0, 1: 0, 0: 0 };
-
-                    for (const userNum of userNums) {
-                        const isect = intersectionSize(nums, userNum);
-                        stats[isect]++;
-                    }
-
-                    const globalIdx = start + i + 1;
-                    const numsDisplay = formatNums(nums);
-                    const numsHighlighted = nums.map(n => `<span class="highlight-num">${n}</span>`).join(' ');
-
-                    let h5Badge = '';
-                    if (hit5Count === 0) h5Badge = '<span class="badge badge-green">✓ 0</span>';
-                    else if (hit5Count <= 3) h5Badge = `<span class="badge badge-blue">${hit5Count}</span>`;
-                    else if (hit5Count <= 7) h5Badge = `<span class="badge badge-orange">${hit5Count}</span>`;
-                    else h5Badge = `<span class="badge badge-red">${hit5Count}</span>`;
-
-                    rowsHTML.push(`
-                        <tr>
-                            <td>${globalIdx}</td>
-                            <td style="text-align:left;padding-left:8px;">${numsHighlighted}</td>
-                            <td>${stats[6]}</td>
-                            <td>${stats[5]} ${h5Badge}</td>
-                            <td>${stats[4].toLocaleString()}</td>
-                            <td>${stats[3].toLocaleString()}</td>
-                            <td>${stats[2].toLocaleString()}</td>
-                            <td>${stats[1].toLocaleString()}</td>
-                            <td>${stats[0].toLocaleString()}</td>
-                        </tr>
-                    `);
-
-                    // 每10个yield一次
-                    if (i % 15 === 0 && i > 0) {
-                        await sleep(1);
-                    }
-                }
-
-                $resultBody.innerHTML = rowsHTML.join('');
-                $tableWrap.scrollTop = 0;
-
-                // 更新分页
-                updatePagination(page);
+                attempts++;
             }
+            $input.value = samples.join('\n');
+            $inputStats.textContent = `已加载 ${samples.length} 组示例号码`;
+            toast('已加载示例数据');
+        });
 
-            function updatePagination(page) {
-                const totalPages = Math.ceil(qualifiedRanks.length / PAGE_SIZE);
-                $pagination.innerHTML = '';
-
-                if (totalPages <= 1) {
-                    $pagination.innerHTML = '<span class="page-info">共1页</span>';
-                    return;
-                }
-
-                const maxButtons = 8;
-                let startPage = Math.max(0, page - Math.floor(maxButtons / 2));
-                let endPage = Math.min(totalPages, startPage + maxButtons);
-                if (endPage - startPage < maxButtons) {
-                    startPage = Math.max(0, endPage - maxButtons);
-                }
-
-                const frag = document.createDocumentFragment();
-
-                // 首页
-                if (startPage > 0) {
-                    const btn = document.createElement('button');
-                    btn.className = 'btn-secondary';
-                    btn.textContent = '« 首页';
-                    btn.onclick = () => { currentPage = 0;
-                        loadPageDetails(0); };
-                    frag.appendChild(btn);
-                }
-
-                // 上一页
-                if (page > 0) {
-                    const btn = document.createElement('button');
-                    btn.className = 'btn-secondary';
-                    btn.textContent = '‹ 上页';
-                    btn.onclick = () => { currentPage = page - 1;
-                        loadPageDetails(page - 1); };
-                    frag.appendChild(btn);
-                }
-
-                // 页码
-                for (let p = startPage; p < endPage; p++) {
-                    const btn = document.createElement('button');
-                    btn.textContent = String(p + 1);
-                    if (p === page) {
-                        btn.className = 'btn-primary';
-                        btn.style.padding = '7px 16px';
-                    } else {
-                        btn.className = 'btn-secondary';
-                    }
-                    btn.onclick = (() => { const pg = p; return () => { currentPage = pg;
-                            loadPageDetails(pg); }; })();
-                    frag.appendChild(btn);
-                }
-
-                // 下一页
-                if (page < totalPages - 1) {
-                    const btn = document.createElement('button');
-                    btn.className = 'btn-secondary';
-                    btn.textContent = '下页 ›';
-                    btn.onclick = () => { currentPage = page + 1;
-                        loadPageDetails(page + 1); };
-                    frag.appendChild(btn);
-                }
-
-                // 末页
-                if (endPage < totalPages) {
-                    const btn = document.createElement('button');
-                    btn.className = 'btn-secondary';
-                    btn.textContent = '末页 »';
-                    btn.onclick = () => { currentPage = totalPages - 1;
-                        loadPageDetails(totalPages - 1); };
-                    frag.appendChild(btn);
-                }
-
-                const info = document.createElement('span');
-                info.className = 'page-info';
-                info.textContent = `共${totalPages}页`;
-                frag.appendChild(info);
-
-                $pagination.appendChild(frag);
+        // Ctrl+Enter 快捷启动
+        $input.addEventListener('keydown', (e)=>{
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                startProcess();
             }
-
-            // ==================== 辅助函数 ====================
-            function sleep(ms) {
-                return new Promise(resolve => setTimeout(resolve, ms));
-            }
-
-            function clearAll() {
-                if (isProcessing) {
-                    showToast('正在处理中，请稍候...', 'warn');
-                    return;
-                }
-                $inputArea.value = '';
-                resetUI();
-                $inputStats.textContent = '';
-                userInputNums = [];
-                userInputSet = null;
-                hit5Counts = null;
-                qualifiedRanks = [];
-                showToast('已清空');
-            }
-
-            function loadSample() {
-                if (isProcessing) {
-                    showToast('正在处理中，请稍候...', 'warn');
-                    return;
-                }
-                // 生成300组示例号码（模拟用户输入）
-                const samples = [];
-                const usedKeys = new Set();
-                // 生成一些聚集的号码（模拟真实投注模式）
-                const rng = seedRandom(42);
-                for (let i = 0; i < 300; i++) {
-                    let nums;
-                    let key;
-                    let attempts = 0;
-                    do {
-                        // 偏向某些"热门"号码
-                        const pool = [];
-                        const hotNumbers = [1, 3, 5, 7, 8, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33];
-                        const coldNumbers = [2, 4, 6, 9, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32];
-                        // 70%概率从热门选，30%从冷门选
-                        const allCandidates = [...hotNumbers, ...coldNumbers];
-                        const shuffled = shuffleArray([...allCandidates], rng);
-                        nums = shuffled.slice(0, 6).sort((a, b) => a - b);
-                        key = formatKey(nums);
-                        attempts++;
-                    } while (usedKeys.has(key) && attempts < 100);
-                    if (attempts >= 100) continue;
-                    usedKeys.add(key);
-                    samples.push(formatNums(nums));
-                }
-                $inputArea.value = samples.join('\n');
-                $inputStats.textContent = `已加载 ${samples.length} 组示例号码`;
-                showToast(`已加载${samples.length}组示例号码`);
-            }
-
-            function seedRandom(seed) {
-                let s = seed;
-                return function() {
-                    s = (s * 16807 + 0) % 2147483647;
-                    return (s - 1) / 2147483646;
-                };
-            }
-
-            function shuffleArray(arr, rng) {
-                for (let i = arr.length - 1; i > 0; i--) {
-                    const j = Math.floor(rng() * (i + 1));
-                    [arr[i], arr[j]] = [arr[j], arr[i]];
-                }
-                return arr;
-            }
-
-            // ==================== 初始化 ====================
-            // 确保组合数表正确
-            if (C[TOTAL_N][TOTAL_K] !== TOTAL_COMBOS) {
-                console.warn('组合数表可能需要修正，C(33,6)=', C[TOTAL_N][TOTAL_K]);
-                // 手动修正
-                C[TOTAL_N][TOTAL_K] = TOTAL_COMBOS;
-            }
-
-            // 绑定回车键（Ctrl+Enter触发处理）
-            $inputArea.addEventListener('keydown', function(e) {
-                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                    e.preventDefault();
-                    startProcess();
-                }
-            });
-
-            console.log('✅ 双色球33选6组合筛选工具已就绪');
-            console.log('   - 全组合总数：1,107,568 组');
-            console.log('   - 支持中文/英文逗号分隔');
-            console.log('   - 单数字自动补零识别');
-            console.log('   - 使用Int32Array高效索引，内存友好');
-            console.log('   - 异步分片处理，避免卡顿');
-            console.log('   💡 提示：Ctrl+Enter 可快速开始筛选');
-        })();
-    </script>
+        });
+https://emily05089.github.io/my-apps/pipei.html
+        console.log('✅ 双色球筛选工具已就绪（异步优化版）');
+    })();
+</script>
 </body>
 </html>
