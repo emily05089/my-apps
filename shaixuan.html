@@ -2,591 +2,790 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>双色球33选6 · 智能筛选工具</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>双应用前区筛选 · 最终修复版</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
-        :root {
-            --bg: #f5f6fa;
-            --card-bg: #ffffff;
-            --text: #2d3436;
-            --border: #dfe6e9;
-            --accent: #0984e3;
-            --accent-hover: #0770c2;
-            --radius: 10px;
-            --shadow: 0 2px 12px rgba(0,0,0,0.06);
-            --font-mono: 'SF Mono', 'Menlo', 'Consolas', monospace;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            background: var(--bg); color: var(--text); line-height: 1.6;
-            min-height: 100vh; padding: 12px;
-        }
-        .container { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
-        .card {
-            background: var(--card-bg); border-radius: var(--radius); padding: 18px 20px;
-            box-shadow: var(--shadow); border: 1px solid var(--border);
-        }
-        textarea {
-            width: 100%; min-height: 160px; border: 2px solid var(--border); border-radius: 8px;
-            padding: 12px 14px; font-family: var(--font-mono); font-size: 0.9rem;
-            resize: vertical; background: #fafbfc; color: #2d3436; line-height: 1.7;
-        }
-        textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(9,132,227,0.08); background: #fff; }
-        .btn-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; }
-        button {
-            padding: 11px 22px; border-radius: 8px; font-size: 0.95rem; font-weight: 600;
-            cursor: pointer; border: none; transition: 0.2s; white-space: nowrap;
-            -webkit-tap-highlight-color: transparent; display: inline-flex; align-items: center; gap: 6px;
-        }
-        .btn-primary { background: var(--accent); color: #fff; }
-        .btn-primary:hover { background: var(--accent-hover); }
-        .btn-secondary { background: #fff; color: var(--accent); border: 2px solid var(--accent); }
-        .btn-clear { background: #fff; color: #636e72; border: 2px solid #dfe6e9; }
-        button:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
-        .progress-wrap { display: none; margin-top: 10px; }
-        .progress-wrap.active { display: block; }
-        .progress-bar-outer {
-            height: 22px; background: #e9ecef; border-radius: 11px; overflow: hidden;
-        }
-        .progress-bar-inner {
-            height: 100%; background: linear-gradient(90deg, #0984e3, #00b894);
-            border-radius: 11px; transition: width 0.2s; width: 0%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.75rem; color: #fff; font-weight: 700; min-width: 40px;
-        }
-        .progress-text { font-size: 0.8rem; color: #636e72; margin-top: 6px; text-align: center; }
-        .stats-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-            gap: 8px; margin-top: 8px;
-        }
-        .stat-item { background: #f8f9fa; border-radius: 8px; padding: 10px 12px; text-align: center; border: 1px solid #eee; }
-        .stat-value { font-size: 1.6rem; font-weight: 800; color: #1a1a2e; }
-        .stat-label { font-size: 0.72rem; color: #636e72; }
-        .result-table-wrap {
-            max-height: 55vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
-            border: 1px solid var(--border); border-radius: 8px; margin-top: 8px;
-        }
-        table { width: 100%; border-collapse: collapse; font-size: 0.78rem; font-family: var(--font-mono); }
-        table thead { position: sticky; top: 0; z-index: 2; }
-        table th { background: #1a1a2e; color: #fff; padding: 10px 6px; font-weight: 600; font-size: 0.72rem; white-space: nowrap; }
-        table td { padding: 7px 5px; text-align: center; border-bottom: 1px solid #f0f0f0; white-space: nowrap; }
-        table tbody tr:nth-child(even) { background: #fafbfc; }
-        .highlight-num {
-            display: inline-block; background: #ffeaa7; color: #d63031;
-            font-weight: 700; padding: 2px 6px; border-radius: 4px; margin: 0 1px;
-        }
-        .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-weight: 700; font-size: 0.7rem; }
-        .badge-green { background: #d4fceb; color: #007a4d; }
-        .badge-orange { background: #fff3cd; color: #856404; }
-        .badge-red { background: #ffe0e0; color: #b71c1c; }
-        .pagination { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; align-items: center; }
-        .pagination button { padding: 7px 14px; font-size: 0.8rem; border-radius: 6px; }
-        .toast {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            background: #2d3436; color: #fff; padding: 10px 22px; border-radius: 20px;
-            font-size: 0.85rem; z-index: 999; opacity: 0; pointer-events: none;
-            transition: opacity 0.3s; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-        }
-        .toast.show { opacity: 1; }
-        .summary-box {
-            background: #f0f7ff; border: 2px solid #0984e3; border-radius: 10px;
-            padding: 14px 18px; margin-top: 8px; font-weight: 600; font-size: 0.9rem;
-            color: #004a8f; text-align: center;
-        }
-        @media (max-width: 600px) {
-            .card { padding: 12px 14px; }
-            table { font-size: 0.68rem; }
-            button { padding: 9px 14px; font-size: 0.82rem; }
-            .stat-value { font-size: 1.3rem; }
-        }
+        :root { --bg: #f5f6fa; --card-bg: #ffffff; --primary: #4a6cf7; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; --text: #2c3e50; --border: #e0e5ec; --radius: 14px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif; background: var(--bg); color: var(--text); padding: 12px; font-size: 14px; }
+        .container { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+        .card { background: var(--card-bg); border-radius: var(--radius); padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .badge { display: inline-block; padding: 6px 12px; border-radius: 16px; font-weight: 700; font-size: 15px; background: #e8f5e9; color: #27ae60; }
+        textarea { width: 100%; height: 110px; border: 1.5px solid var(--border); border-radius: 12px; padding: 10px; font-size: 14px; font-family: monospace; resize: vertical; background: #fafbfc; }
+        textarea:focus { outline: none; border-color: var(--primary); background: #fff; }
+        .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; }
+        .chip { display: flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 18px; background: #f2f3f7; font-size: 13px; cursor: pointer; }
+        .chip input { width: 16px; height: 16px; accent-color: var(--primary); }
+        .btn { padding: 10px 18px; border-radius: 20px; font-weight: 600; font-size: 14px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; background: var(--primary); color: #fff; }
+        .btn:active { opacity: 0.8; transform: scale(0.97); }
+        .btn:disabled { opacity: 0.5; pointer-events: none; }
+        .btn-outline { background: #fff; color: var(--primary); border: 1.5px solid var(--primary); }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        .btn-warn { background: var(--warning); color: #fff; }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .number-grid { display: flex; flex-wrap: wrap; gap: 3px; margin: 6px 0; }
+        .n-cell { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; cursor: pointer; background: #fff; transition: 0.1s; color: #333; }
+        .n-cell:active { transform: scale(0.9); }
+        .n-cell.on-or { background: #ffe0e0; border-color: #e74c3c; }
+        .n-cell.on-and { background: #d5e8ff; border-color: #2980b9; }
+        .log { max-height: 100px; overflow-y: auto; font-size: 11px; color: #555; background: #f9fafb; border-radius: 10px; padding: 6px 10px; margin-top: 4px; }
+        .progress-wrap { height: 5px; background: #eee; border-radius: 3px; margin: 4px 0; overflow: hidden; display: none; }
+        .progress-bar { height: 100%; background: var(--primary); width: 0%; }
+        .flex-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .tag { font-size: 11px; color: #999; }
+        hr { margin: 10px 0; border-color: #eee; }
+        .result-area { max-height: 400px; overflow-y: auto; margin-top: 8px; display: none; }
+        .group-box { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; }
+        .group-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-weight: 600; flex-wrap: wrap; gap: 4px; }
+        .group-list { font-family: monospace; font-size: 12px; max-height: 120px; overflow-y: auto; background: #f9fafb; border-radius: 6px; padding: 4px 8px; margin-bottom: 6px; line-height: 1.8; }
+        .copy-btn { background: #27ae60; color: #fff; border: none; padding: 4px 10px; border-radius: 12px; font-size: 11px; cursor: pointer; white-space: nowrap; margin: 2px; }
+        .copy-all-btn { background: #e67e22; color: #fff; border: none; padding: 4px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; white-space: nowrap; margin-left: 8px; }
+        .note-box { font-size: 10px; color: #aaa; margin-top: 4px; line-height: 1.6; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; justify-content: center; align-items: center; }
+        .modal-box { background: #fff; border-radius: 16px; padding: 20px; width: 90%; max-width: 500px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
+        .modal-title { font-weight: 700; font-size: 16px; margin-bottom: 12px; }
+        .modal-textarea { width: 100%; height: 150px; border: 1.5px solid var(--border); border-radius: 12px; padding: 10px; font-size: 14px; font-family: monospace; resize: vertical; background: #fafbfc; }
+        .modal-textarea:focus { outline: none; border-color: var(--primary); background: #fff; }
+        .modal-buttons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
     </style>
 </head>
 <body>
 <div class="container">
-    <div class="card" style="text-align:center">
-        <h1 style="font-size:1.3rem;color:#1a1a2e;">🎯 双色球33选6 · 组合筛选</h1>
-        <p style="font-size:0.78rem;color:#636e72;">从1,107,568组中智能找出「无6连中，且中5个≤10组」的号码</p>
+    <div style="text-align:center;">
+        <h2 style="font-size:18px;margin:0;">双应用前区筛选</h2>
+        <div style="margin-top:6px;"><span>当前剩余组合：<span class="badge" id="filteredBadge">1,107,568</span></span></div>
+        <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+        <div id="statusText" style="font-size:11px;color:#999;margin-top:2px;">就绪</div>
     </div>
 
     <div class="card">
-        <div style="font-weight:700; margin-bottom:6px;">📝 输入号码组合（每行一组，6个号码用逗号分隔）</div>
-        <div style="font-size:0.75rem;color:#636e72;margin-bottom:8px;">
-            支持中文逗号、英文逗号；1~9自动识别为01~09。每组6个不同号码，范围1-33。
+        <b>📝 输入号码（每次筛选自动记录历史）</b>
+        <textarea id="inputArea" placeholder="每行一组，支持复式/单式/胆拖
+例: 1,2,3,4,5,6,7,8,9
+胆:04,07,16,27 拖:05,08,14"></textarea>
+        <div class="chip-row">
+            <label class="chip"><input type="checkbox" id="chk0">中0个</label>
+            <label class="chip"><input type="checkbox" id="chk3">中3个</label>
+            <label class="chip"><input type="checkbox" id="chk4">中4个</label>
+            <label class="chip"><input type="checkbox" id="chk5">中5个</label>
+            <label class="chip"><input type="checkbox" id="chk6">中6个</label>
         </div>
-        <textarea id="inputArea" placeholder="示例：&#10;1,2,3,4,5,6&#10;7,8,9,10,11,12&#10;..."></textarea>
-        <div class="btn-row">
-            <button class="btn-primary" id="btnStart">🚀 开始筛选</button>
-            <button class="btn-secondary" id="btnSample">📋 加载示例</button>
-            <button class="btn-clear" id="btnClear">🗑 清空</button>
+        <div class="flex-row">
+            <button class="btn" id="btnApply">⚡应用筛选</button>
+            <button class="btn btn-outline btn-sm" id="btnClearInput">清空</button>
+            <button class="btn btn-warn btn-sm" id="btnStats">📊 统计全部历史</button>
+            <button class="btn btn-outline btn-sm" id="btnResetAll">重置</button>
         </div>
-        <div id="inputStats" style="font-size:0.75rem;color:#636e72;margin-top:6px;"></div>
+        <div class="result-area" id="resultArea">
+            <div style="display:flex; align-items:center; margin-bottom:8px;">
+                <b id="resultTitle" style="flex:1;">统计（含出现1次）</b>
+                <button class="copy-all-btn" id="btnCopyAll">📋 一键复制全部</button>
+            </div>
+            <div id="resultGroups"></div>
+        </div>
+        <div class="log" id="logArea"><div>系统就绪</div></div>
     </div>
 
-    <div class="card progress-wrap" id="progressCard">
-        <div style="font-weight:700;margin-bottom:8px;">⏳ 处理进度</div>
-        <div class="progress-bar-outer">
-            <div class="progress-bar-inner" id="progressBar">0%</div>
-        </div>
-        <div class="progress-text" id="progressText">等待开始...</div>
+    <div class="card">
+        <b>数字过滤（累积生效）</b>
+        <div style="margin-top:8px;"><span style="color:#e74c3c;">● OR排除</span> <span class="tag">包含任一即删</span></div>
+        <div class="number-grid" id="orGrid"></div>
+        <button class="btn btn-outline btn-sm" id="btnApplyOR">✅ 应用OR过滤</button>
+        <button class="btn btn-outline btn-sm" id="btnClearOR">清除OR选择</button>
+        <div class="tag">已选 <span id="orCount">0</span> 个</div>
+        <div style="margin-top:12px;"><span style="color:#2980b9;">● AND排除</span> <span class="tag">包含全部才删</span></div>
+        <div class="number-grid" id="andGrid"></div>
+        <button class="btn btn-outline btn-sm" id="btnApplyAND">✅ 应用AND过滤</button>
+        <button class="btn btn-outline btn-sm" id="btnClearAND">清除AND选择</button>
+        <div class="tag">已选 <span id="andCount">0</span> 个</div>
     </div>
 
-    <div class="card" id="summaryCard" style="display:none;">
-        <div style="font-weight:700;margin-bottom:8px;">📊 筛选结果</div>
-        <div class="summary-box" id="summaryBox"></div>
-        <div class="stats-grid" id="statsGrid"></div>
+    <div class="card">
+        <b>特殊条件 / 尾数 / 区间 / 历史排除</b>
+        <div class="flex-row" style="margin-top:6px;">
+            <button class="btn btn-danger btn-sm" id="btnAllOdd">全奇数</button>
+            <button class="btn btn-danger btn-sm" id="btnAllEven">全偶数</button>
+            <button class="btn btn-danger btn-sm" id="btn3Seq">3连号</button>
+            <button class="btn btn-danger btn-sm" id="btn3Gap">3隔号</button>
+            <button class="btn btn-danger btn-sm" id="btn4Seq">4连号</button>
+            <button class="btn btn-danger btn-sm" id="btn4Gap">4隔号</button>
+            <button class="btn btn-danger btn-sm" id="btn5Seq">5连号</button>
+            <button class="btn btn-danger btn-sm" id="btn5Gap">5隔号</button>
+            <button class="btn btn-danger btn-sm" id="btn6Seq">6连号</button>
+            <button class="btn btn-danger btn-sm" id="btn6Gap">6隔号</button>
+            <button class="btn btn-danger btn-sm" id="btnTail3">同尾数≥3个</button>
+            <button class="btn btn-danger btn-sm" id="btnTail2Group">同尾数组数≥2组</button>
+            <button class="btn btn-danger btn-sm" id="btnRatio600">6:0:0型</button>
+            <button class="btn btn-danger btn-sm" id="btnRatio510">5:1:0型</button>
+            <button class="btn btn-danger btn-sm" id="btnRatio420">4:2:0型</button>
+            <button class="btn btn-danger btn-sm" id="btnRatio411">4:1:1型</button>
+            <button class="btn btn-danger btn-sm" id="btnRatio330">3:3:0型</button>
+            <button class="btn btn-danger btn-sm" id="btnRatio321">3:2:1型</button>
+            <button class="btn btn-danger btn-sm" id="btnRatio222">2:2:2型</button>
+            <button class="btn btn-danger btn-sm" id="btnExcludeHistory">排除历史组合</button>
+        </div>
+        <div class="flex-row" style="margin-top:6px;">
+            <button class="btn btn-danger btn-sm" id="btnExcludePairs">排除双数字组合</button>
+        </div>
+        <div class="note-box">※ 以上功能累积生效，点击后从当前剩余组合中删除符合条件的组合。</div>
     </div>
 
-    <div class="card" id="resultCard" style="display:none;">
-        <div style="font-weight:700;margin-bottom:6px;">📋 符合条件组合详情</div>
-        <div id="resultInfo" style="font-size:0.78rem;color:#636e72;margin-bottom:4px;"></div>
-        <div class="result-table-wrap">
-            <table>
-                <thead>
-                <tr>
-                    <th>序号</th><th>中奖号码</th><th>中6</th><th>中5</th><th>中4</th><th>中3</th><th>中2</th><th>中1</th><th>中0</th>
-                </tr>
-                </thead>
-                <tbody id="resultBody"></tbody>
-            </table>
-        </div>
-        <div class="pagination" id="pagination"></div>
+    <div class="card">
+        <button class="btn" id="btnExport" style="width:100%;">📥 导出Excel（<span id="exportCount">1,107,568</span>组）</button>
+        <div id="exportHint" style="font-size:11px;color:#888;margin-top:4px;"></div>
     </div>
 </div>
-<div class="toast" id="toast"></div>
+
+<!-- 双数字组合弹窗 -->
+<div class="modal-overlay" id="pairModalOverlay">
+    <div class="modal-box">
+        <div class="modal-title">输入双数字组合（一行一组，如 01,02）</div>
+        <textarea class="modal-textarea" id="pairModalTextarea" placeholder="01,02
+18,29
+03,15"></textarea>
+        <div class="modal-buttons">
+            <button class="btn btn-outline btn-sm" id="btnPairModalCancel">取消</button>
+            <button class="btn btn-sm" id="btnPairModalConfirm">确认排除</button>
+        </div>
+    </div>
+</div>
 
 <script>
-    (function() {
-        // ---------- 常量 ----------
-        const TOTAL_N = 33, TOTAL_K = 6, TOTAL_COMBOS = 1107568;
+(function() {
+    var TOTAL = 1107568;
+    var filteredAlive = new Uint8Array(TOTAL);
+    var filteredCount = TOTAL;
+    var masksLow, masksHigh;
+    var maskIndex = new Map();
+    var busy = false;
+    var orSel = new Set();
+    var andSel = new Set();
+    var historyCombos = [];
+    var lastInputSnapshot = '';
 
-        // 预计算组合数 C[n][k] (n:0~33, k:0~6)
-        const C = (() => {
-            const maxN = TOTAL_N, maxK = TOTAL_K;
-            const tbl = new Array(maxN + 1);
-            for (let n = 0; n <= maxN; n++) {
-                tbl[n] = new Float64Array(maxK + 1);
-                tbl[n][0] = 1;
-                for (let k = 1; k <= Math.min(n, maxK); k++) {
-                    // 安全计算 C(n,k)=C(n-1,k)+C(n-1,k-1)
-                    let v = 0;
-                    if (n-1 >= 0 && k <= maxK) v += tbl[n-1][k];
-                    if (n-1 >= 0 && k-1 >= 0) v += tbl[n-1][k-1];
-                    tbl[n][k] = v;
+    // 历史组合列表
+    var HISTORY_LINES = [
+        "01,03,11,22,26,31","09,14,15,16,29,30","06,09,25,27,28,30","03,04,14,15,18,20",
+        "09,15,18,24,28,33","07,16,21,24,27,30","02,09,10,24,31,33","04,11,15,17,24,30",
+        "02,14,17,18,22,30","06,09,14,16,25,32","02,07,12,19,24,31","02,08,10,17,19,24",
+        "03,04,14,22,23,33","08,17,18,21,25,30","01,02,13,23,25,27","11,22,27,29,31,33",
+        "06,10,12,15,22,28","02,06,12,24,25,32","01,03,07,13,22,23","03,06,13,21,28,29",
+        "01,03,11,18,31,33","03,10,12,13,18,33","10,11,14,19,22,24","06,19,22,23,28,31",
+        "02,06,09,17,25,28","02,13,17,18,25,26","02,09,16,22,25,29","02,03,15,20,23,24",
+        "01,02,13,21,23,29","01,03,08,10,23,29","15,18,23,25,28,32","03,13,25,26,30,31",
+        "01,13,14,21,24,30","07,08,16,17,18,30","11,15,17,22,25,30","01,03,05,18,29,32",
+        "04,05,09,10,27,30","07,10,13,22,27,31","07,13,19,22,26,32","04,09,12,13,16,20",
+        "03,05,07,16,20,24","02,03,04,20,31,32","04,09,10,15,19,26","03,06,13,19,23,25",
+        "06,09,16,27,31,33","09,13,19,27,29,30","02,06,22,23,24,28","01,20,22,27,30,33",
+        "03,07,08,09,18,32","05,06,09,21,28,30","01,05,07,18,30,32","02,06,11,12,13,33",
+        "08,09,14,22,28,30","06,13,17,19,24,31","01,02,04,06,22,30","03,04,09,10,15,22",
+        "01,03,05,08,22,33","05,07,12,24,26,28","11,12,15,18,25,32","01,08,15,20,26,33",
+        "02,09,12,13,15,24","02,13,15,23,27,31","02,04,05,10,12,13","01,03,04,12,18,24",
+        "02,05,17,22,30,33","10,13,14,23,24,27","02,08,11,23,27,29","08,10,14,23,28,32",
+        "01,02,05,09,25,32","03,05,09,13,26,29","05,14,17,19,20,33","04,08,10,21,23,32",
+        "03,13,14,18,24,31","01,05,08,14,19,23","03,04,07,13,20,30","02,10,18,19,24,27",
+        "03,09,15,17,19,28","02,12,13,16,19,25","03,09,12,13,26,32","01,02,18,19,21,33",
+        "07,09,23,24,25,26","16,18,19,20,25,31","06,08,10,25,29,30","01,02,04,07,13,32",
+        "06,09,23,26,28,32","01,10,11,16,24,26","06,08,17,20,25,33","02,04,08,24,28,31",
+        "02,03,08,19,24,30","01,20,21,25,26,27","08,10,13,15,24,31","03,09,11,13,20,32"
+    ];
+    var HISTORY_SET = new Set();
+    for (var i = 0; i < HISTORY_LINES.length; i++) {
+        var nums = HISTORY_LINES[i].split(',').map(function(s){ return parseInt(s,10); });
+        if (nums.length === 6) {
+            var key = nums.map(function(n){ return String(n).padStart(2,'0'); }).sort().join(',');
+            HISTORY_SET.add(key);
+        }
+    }
+
+    function buildAll() {
+        masksLow = new Uint32Array(TOTAL);
+        masksHigh = new Uint32Array(TOTAL);
+        var idx = 0;
+        for (var a=1;a<=28;a++) for (var b=a+1;b<=29;b++) for (var c=b+1;c<=30;c++) for (var d=c+1;d<=31;d++) for (var e=d+1;e<=32;e++) for (var f=e+1;f<=33;f++) {
+            var m = maskFrom([a,b,c,d,e,f]);
+            masksLow[idx] = m.l; masksHigh[idx] = m.h;
+            maskIndex.set(m.l+'_'+m.h, idx);
+            idx++;
+        }
+        filteredAlive.fill(1);
+        filteredCount = TOTAL;
+        updateDisplay();
+        log('✅ 全集已加载');
+    }
+
+    function maskFrom(arr) { var l=0,h=0; for (var i=0;i<arr.length;i++) { if (arr[i]<=32) l |= (1 << (arr[i]-1)); else if (arr[i]===33) h |= 1; } return {l:l,h:h}; }
+    function unmask(l,h) { var r=[]; for (var i=0;i<32;i++) if (l & (1<<i)) r.push(i+1); if (h & 1) r.push(33); return r; }
+
+    function updateDisplay() {
+        document.getElementById('filteredBadge').textContent = filteredCount.toLocaleString();
+        document.getElementById('exportCount').textContent = filteredCount.toLocaleString();
+        document.getElementById('orCount').textContent = orSel.size;
+        document.getElementById('andCount').textContent = andSel.size;
+    }
+
+    function log(s) {
+        var el = document.getElementById('logArea');
+        var d = document.createElement('div');
+        d.textContent = s;
+        el.appendChild(d);
+        el.scrollTop = el.scrollHeight;
+        while (el.children.length > 25) el.removeChild(el.firstChild);
+    }
+
+    function setStatus(s) { document.getElementById('statusText').textContent = s; }
+    function showProgress(pct) { document.getElementById('progressWrap').style.display = 'block'; document.getElementById('progressBar').style.width = pct+'%'; }
+    function hideProgress() { document.getElementById('progressWrap').style.display = 'none'; }
+
+    function isAllOdd(arr) { return arr.every(function(n){ return n%2===1; }); }
+    function isAllEven(arr) { return arr.every(function(n){ return n%2===0; }); }
+    function hasConsecutive(arr, len, gap) {
+        if (len > arr.length) return false;
+        for (var i=0; i <= arr.length-len; i++) {
+            var ok = true;
+            for (var j=1; j<len; j++) { if (arr[i+j] - arr[i+j-1] !== gap) { ok = false; break; } }
+            if (ok) return true;
+        }
+        return false;
+    }
+    function hasSeq(arr, len) { return hasConsecutive(arr, len, 1); }
+    function hasGap(arr, len) {
+        var odds = arr.filter(function(n){ return n%2===1; });
+        var evens = arr.filter(function(n){ return n%2===0; });
+        return hasConsecutive(odds, len, 2) || hasConsecutive(evens, len, 2);
+    }
+    function hasSameTail3(arr) {
+        var t = [0,0,0,0,0,0,0,0,0,0];
+        for (var i=0; i<arr.length; i++) { t[arr[i]%10]++; if (t[arr[i]%10]>=3) return true; }
+        return false;
+    }
+    function hasSameTail2Groups(arr) {
+        var t = [0,0,0,0,0,0,0,0,0,0];
+        for (var i=0; i<arr.length; i++) t[arr[i]%10]++;
+        var g = 0;
+        for (var i=0; i<10; i++) { if (t[i]>=2) g++; if (g>=2) return true; }
+        return false;
+    }
+    function getZonePattern(arr) {
+        var a=0,b=0,c=0;
+        for (var i=0; i<arr.length; i++) {
+            if (arr[i]>=1 && arr[i]<=11) a++;
+            else if (arr[i]>=12 && arr[i]<=22) b++;
+            else c++;
+        }
+        var parts = [a,b,c].sort(function(x,y){ return x-y; });
+        return parts.join('');
+    }
+
+    // 通用状态重置
+    function finishOperation() {
+        busy = false;
+        hideProgress();
+        setStatus('就绪');
+        document.getElementById('btnApply').disabled = false;
+        document.getElementById('btnApply').textContent = '⚡应用筛选';
+        document.getElementById('btnExport').disabled = false;
+        document.getElementById('btnExport').textContent = '📥 导出Excel（' + filteredCount.toLocaleString() + '组）';
+    }
+
+    function applyCustomFilter(name, filterFn) {
+        if (busy) return alert('处理中');
+        if (filteredCount===0) return alert('无剩余');
+        if (!confirm('确认排除 ['+name+']？')) return;
+        busy=true; setStatus(name+' 过滤中...'); showProgress(0);
+        var removed=0, done=0;
+        var BATCH=60000;
+        function step(start) {
+            try {
+                var end=Math.min(start+BATCH, TOTAL);
+                for (var i=start; i<end; i++) {
+                    if (!filteredAlive[i]) continue;
+                    if (filterFn(unmask(masksLow[i],masksHigh[i]))) { filteredAlive[i]=0; removed++; }
                 }
-            }
-            return tbl;
-        })();
-
-        // 编码：6个排序数字 -> 0-based rank
-        function encodeRank(nums) {
-            let rank = 0, prev = 0;
-            for (let i = 0; i < TOTAL_K; i++) {
-                const x = nums[i];
-                for (let j = prev+1; j < x; j++) {
-                    rank += C[TOTAL_N - j][TOTAL_K - i - 1];
+                done=end;
+                showProgress(Math.round(done/TOTAL*100));
+                if (done<TOTAL) setTimeout(function(){ step(done); }, 10);
+                else {
+                    filteredCount-=removed; updateDisplay();
+                    log('✅ '+name+'：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组');
+                    finishOperation();
                 }
-                prev = x;
-            }
-            return rank;
+            } catch(e) { log('❌ 过滤出错：'+e.message); finishOperation(); }
         }
+        step(0);
+    }
 
-        // 解码：rank -> 6个排序数字
-        function decodeRank(rank) {
-            const nums = new Array(TOTAL_K);
-            let current = 1, remaining = rank;
-            for (let i = 0; i < TOTAL_K; i++) {
-                for (let j = current; j <= TOTAL_N - TOTAL_K + i + 1; j++) {
-                    const comb = C[TOTAL_N - j][TOTAL_K - i - 1];
-                    if (remaining < comb) {
-                        nums[i] = j;
-                        current = j + 1;
-                        break;
-                    }
-                    remaining -= comb;
+    function applyFilteredMask(targetSet, mode) {
+        if (targetSet.size===0) return alert('请选择数字');
+        if (filteredCount===0) return alert('无剩余');
+        if (busy) return alert('处理中');
+        busy=true; setStatus(mode+'过滤中...'); showProgress(0);
+        var tm = maskFrom(Array.from(targetSet));
+        var removed=0, done=0;
+        var BATCH=200000;
+        function step(start) {
+            try {
+                var end=Math.min(start+BATCH, TOTAL);
+                for (var i=start; i<end; i++) {
+                    if (!filteredAlive[i]) continue;
+                    var l=masksLow[i], h=masksHigh[i];
+                    if (mode==='OR' ? ((l&tm.l)||(h&tm.h)) : ((l&tm.l)===tm.l && (h&tm.h)===tm.h)) { filteredAlive[i]=0; removed++; }
                 }
+                done=end;
+                showProgress(Math.round(done/TOTAL*100));
+                if (done<TOTAL) setTimeout(function(){ step(done); }, 5);
+                else {
+                    filteredCount-=removed; updateDisplay();
+                    log('✅ '+mode+'过滤：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组');
+                    finishOperation();
+                }
+            } catch(e) { log('❌ 过滤出错：'+e.message); finishOperation(); }
+        }
+        step(0);
+    }
+
+    function genHit(cm, k) {
+        var nums = unmask(cm.l, cm.h);
+        if (k===6) return [cm];
+        var others = [];
+        for (var i=1; i<=33; i++) if (nums.indexOf(i)===-1) others.push(i);
+        var res = [];
+        if (k===5) {
+            for (var i=0; i<6; i++) {
+                var base = nums.filter(function(_,idx){ return idx!==i; });
+                for (var j=0; j<others.length; j++) res.push(maskFrom([].concat(base,[others[j]]).sort(function(a,b){ return a-b; })));
             }
-            return nums;
-        }
-
-        // 交集大小
-        function intersectionSize(a, b) {
-            let i=0,j=0,c=0;
-            while(i<a.length && j<b.length) {
-                if(a[i]===b[j]){c++;i++;j++;}
-                else if(a[i]<b[j]) i++; else j++;
-            }
-            return c;
-        }
-
-        // 标准化输入字符串
-        function normalizeLine(line) {
-            let s = line.replace(/，/g, ',').replace(/\s+/g, '');
-            const parts = s.split(',').filter(p=>p.length>0);
-            if(parts.length !== TOTAL_K) return null;
-            const nums = [];
-            for(let p of parts) {
-                let n = parseInt(p,10);
-                if(isNaN(n) || n<1 || n>33) return null;
-                nums.push(n);
-            }
-            if(new Set(nums).size !== TOTAL_K) return null;
-            nums.sort((a,b)=>a-b);
-            return nums;
-        }
-
-        function formatNums(nums) { return nums.join(','); }
-
-        // ---------- 状态 ----------
-        let userNums = [];           // 排序后的用户号码组
-        let userMarks = null;       // Uint8Array
-        let hit5Counts = null;      // Int32Array
-        let qualified = [];         // [{rank, hit5}]
-        let currentPage = 0;
-        const PAGE_SIZE = 50;
-        let isProcessing = false;
-
-        // DOM
-        const $input = document.getElementById('inputArea');
-        const $btnStart = document.getElementById('btnStart');
-        const $progressCard = document.getElementById('progressCard');
-        const $progressBar = document.getElementById('progressBar');
-        const $progressText = document.getElementById('progressText');
-        const $summaryCard = document.getElementById('summaryCard');
-        const $summaryBox = document.getElementById('summaryBox');
-        const $statsGrid = document.getElementById('statsGrid');
-        const $resultCard = document.getElementById('resultCard');
-        const $resultInfo = document.getElementById('resultInfo');
-        const $resultBody = document.getElementById('resultBody');
-        const $pagination = document.getElementById('pagination');
-        const $inputStats = document.getElementById('inputStats');
-        const $toast = document.getElementById('toast');
-
-        function toast(msg, isWarn=false) {
-            $toast.textContent = msg;
-            $toast.className = 'toast show' + (isWarn ? ' warn' : '');
-            clearTimeout($toast._t);
-            $toast._t = setTimeout(()=>{ $toast.className = 'toast'; }, 2500);
-        }
-
-        function setProgress(pct, text) {
-            $progressCard.classList.add('active');
-            $progressBar.style.width = Math.round(pct) + '%';
-            $progressBar.textContent = Math.round(pct) + '%';
-            if(text) $progressText.textContent = text;
-        }
-
-        function resetUI() {
-            $progressCard.classList.remove('active');
-            $progressBar.style.width = '0%'; $progressBar.textContent = '0%';
-            $progressText.textContent = '';
-            $summaryCard.style.display = 'none';
-            $resultCard.style.display = 'none';
-            qualified = []; currentPage = 0;
-        }
-
-        // ---------- 异步分片构建 hit5Counts ----------
-        async function buildHit5CountsAsync(userNumsArr) {
-            const total = userNumsArr.length;
-            const counts = new Int32Array(TOTAL_COMBOS);
-            const marks = new Uint8Array(TOTAL_COMBOS);
-
-            // 先标记用户输入
-            for (let i=0; i<total; i++) {
-                const r = encodeRank(userNumsArr[i]);
-                marks[r] = 1;
-            }
-
-            // 生成所有候选数字1~33
-            const allNumbers = [];
-            for (let i=1; i<=TOTAL_N; i++) allNumbers.push(i);
-
-            // 分片处理用户号码，每批 CHUNK 组
-            const CHUNK = 200;
-            for (let start=0; start<total; start+=CHUNK) {
-                const end = Math.min(start+CHUNK, total);
-                for (let idx=start; idx<end; idx++) {
-                    const nums = userNumsArr[idx];
-                    const numSet = new Set(nums);
-                    const candidates = new Set(); // 每组最多162个，去重用set
-
-                    for (let pos=0; pos<TOTAL_K; pos++) {
-                        const orig = nums[pos];
-                        for (let newNum of allNumbers) {
-                            if (numSet.has(newNum)) continue;
-                            const newNums = [...nums];
-                            newNums[pos] = newNum;
-                            newNums.sort((a,b)=>a-b);
-                            candidates.add(encodeRank(newNums));
+        } else if (k===4) {
+            for (var i=0; i<6; i++) {
+                for (var j=i+1; j<6; j++) {
+                    var base = nums.filter(function(_,idx){ return idx!==i && idx!==j; });
+                    for (var x=0; x<others.length; x++) {
+                        for (var y=x+1; y<others.length; y++) {
+                            res.push(maskFrom([].concat(base,[others[x],others[y]]).sort(function(a,b){ return a-b; })));
                         }
                     }
-                    for (let rank of candidates) {
-                        if (marks[rank] === 0) {
-                            counts[rank]++;
-                        }
-                    }
                 }
-                // 更新进度：8% ~ 18%
-                const progress = 8 + Math.round((end/total) * 10);
-                setProgress(progress, `构建中5索引 ${end}/${total} 组...`);
-                // 让出主线程
-                await new Promise(r => setTimeout(r, 0));
             }
-
-            return { counts, marks };
-        }
-
-        // ---------- 异步遍历全组合 ----------
-        async function scanAllCombos(marks, counts) {
-            const qualifiedList = [];
-            let checked = 0;
-            let lastYield = performance.now();
-
-            // 6层循环
-            for (let i1=1; i1<=28; i1++) {
-                for (let i2=i1+1; i2<=29; i2++) {
-                    for (let i3=i2+1; i3<=30; i3++) {
-                        for (let i4=i3+1; i4<=31; i4++) {
-                            for (let i5=i4+1; i5<=32; i5++) {
-                                for (let i6=i5+1; i6<=33; i6++) {
-                                    const nums = [i1,i2,i3,i4,i5,i6];
-                                    const rank = encodeRank(nums);
-                                    checked++;
-
-                                    // 中6个跳过
-                                    if (marks[rank] === 1) continue;
-
-                                    const h5 = counts[rank];
-                                    if (h5 <= 10) {
-                                        qualifiedList.push({ rank, hit5: h5 });
-                                    }
-
-                                    // 每50万次检查是否要让出
-                                    if (checked % 500000 === 0) {
-                                        const now = performance.now();
-                                        if (now - lastYield > 35) {
-                                            const pct = 20 + Math.round((checked / TOTAL_COMBOS) * 58);
-                                            setProgress(pct, `遍历组合 ${(checked/10000).toFixed(0)}万 / 110.8万`);
-                                            await new Promise(r => setTimeout(r, 0));
-                                            lastYield = performance.now();
-                                        }
-                                    }
+        } else if (k===3) {
+            for (var i=0; i<6; i++) {
+                for (var j=i+1; j<6; j++) {
+                    for (var kk=j+1; kk<6; kk++) {
+                        var base = nums.filter(function(_,idx){ return idx!==i && idx!==j && idx!==kk; });
+                        for (var x=0; x<others.length; x++) {
+                            for (var y=x+1; y<others.length; y++) {
+                                for (var z=y+1; z<others.length; z++) {
+                                    res.push(maskFrom([].concat(base,[others[x],others[y],others[z]]).sort(function(a,b){ return a-b; })));
                                 }
                             }
                         }
                     }
                 }
             }
-            return qualifiedList;
         }
+        return res;
+    }
 
-        // ---------- 分页显示 ----------
-        function renderPage(page) {
-            if (qualified.length === 0) {
-                $resultCard.style.display = 'none';
-                return;
-            }
-            $resultCard.style.display = 'block';
-            const start = page * PAGE_SIZE;
-            const end = Math.min(start + PAGE_SIZE, qualified.length);
-            const pageItems = qualified.slice(start, end);
-
-            $resultInfo.textContent = `第 ${start+1}~${end} 组 （共 ${qualified.length.toLocaleString()} 组符合）`;
-
-            const rows = [];
-            for (let i=0; i<pageItems.length; i++) {
-                const {rank, hit5} = pageItems[i];
-                const nums = decodeRank(rank);
-                const stats = {6:0,5:0,4:0,3:0,2:0,1:0,0:0};
-                for (let un of userNums) {
-                    const isect = intersectionSize(nums, un);
-                    stats[isect]++;
+    function doFilter(condMasks, opts) {
+        var removeSet = new Set();
+        var total = condMasks.length;
+        var done = 0;
+        return new Promise(function(resolve) {
+            function step(start) {
+                try {
+                    var end = Math.min(start+80, total);
+                    for (var i=start; i<end; i++) {
+                        var cm = condMasks[i];
+                        if (opts.six) { var idx = maskIndex.get(cm.l+'_'+cm.h); if (idx!==undefined) removeSet.add(idx); }
+                        if (opts.five) { var hits5 = genHit(cm,5); for (var j=0; j<hits5.length; j++) { var idx = maskIndex.get(hits5[j].l+'_'+hits5[j].h); if (idx!==undefined) removeSet.add(idx); } }
+                        if (opts.four) { var hits4 = genHit(cm,4); for (var j=0; j<hits4.length; j++) { var idx = maskIndex.get(hits4[j].l+'_'+hits4[j].h); if (idx!==undefined) removeSet.add(idx); } }
+                        if (opts.three) { var hits3 = genHit(cm,3); for (var j=0; j<hits3.length; j++) { var idx = maskIndex.get(hits3[j].l+'_'+hits3[j].h); if (idx!==undefined) removeSet.add(idx); } }
+                    }
+                    done=end;
+                    showProgress(Math.round(done/total*100));
+                    if (done<total) setTimeout(function(){ step(done); }, 10);
+                    else {
+                        if (opts.zero) {
+                            var allNums = new Set();
+                            for (var i=0; i<condMasks.length; i++) { var nums = unmask(condMasks[i].l, condMasks[i].h); for (var j=0; j<nums.length; j++) allNums.add(nums[j]); }
+                            var miss = [];
+                            for (var i=1; i<=33; i++) if (!allNums.has(i)) miss.push(i);
+                            if (miss.length>=6) {
+                                var zcs = combos(miss,6);
+                                for (var i=0; i<zcs.length; i++) { var m = maskFrom(zcs[i]); var idx = maskIndex.get(m.l+'_'+m.h); if (idx!==undefined) removeSet.add(idx); }
+                            }
+                        }
+                        var removed = 0;
+                        removeSet.forEach(function(idx){ if (filteredAlive[idx]) { filteredAlive[idx]=0; removed++; } });
+                        filteredCount -= removed;
+                        updateDisplay();
+                        resolve(removed);
+                    }
+                } catch(e) {
+                    log('❌ 筛选出错：'+e.message);
+                    resolve(0);
                 }
-                const idx = start + i + 1;
-                const numsHtml = nums.map(n=>`<span class="highlight-num">${n}</span>`).join(' ');
-                let hit5Badge = '';
-                if (hit5===0) hit5Badge = '<span class="badge badge-green">0</span>';
-                else if (hit5<=3) hit5Badge = `<span class="badge badge-green">${hit5}</span>`;
-                else if (hit5<=7) hit5Badge = `<span class="badge badge-orange">${hit5}</span>`;
-                else hit5Badge = `<span class="badge badge-red">${hit5}</span>`;
-                rows.push(`
-                    <tr>
-                        <td>${idx}</td>
-                        <td style="text-align:left">${numsHtml}</td>
-                        <td>${stats[6]}</td>
-                        <td>${stats[5]} ${hit5Badge}</td>
-                        <td>${stats[4]}</td>
-                        <td>${stats[3]}</td>
-                        <td>${stats[2]}</td>
-                        <td>${stats[1]}</td>
-                        <td>${stats[0]}</td>
-                    </tr>`);
             }
-            $resultBody.innerHTML = rows.join('');
-            document.querySelector('.result-table-wrap').scrollTop = 0;
-            updatePagination(page);
+            step(0);
+        });
+    }
+
+    function applyFilter() {
+        if (busy) return alert('处理中');
+        var opts = {
+            zero: document.getElementById('chk0').checked,
+            three: document.getElementById('chk3').checked,
+            four: document.getElementById('chk4').checked,
+            five: document.getElementById('chk5').checked,
+            six: document.getElementById('chk6').checked
+        };
+        if (!opts.zero && !opts.three && !opts.four && !opts.five && !opts.six) return alert('请勾选排除条件');
+        addToHistory();
+        var expanded;
+        try { expanded = expandCurrent(); } catch(e) { log('❌ 解析输入出错：'+e.message); return; }
+        if (!expanded.length) return alert('无有效组合');
+        var masks = expanded.map(function(c){ return maskFrom(c); });
+        var unique = [];
+        var seen = new Set();
+        for (var i=0; i<masks.length; i++) {
+            var k = masks[i].l+'_'+masks[i].h;
+            if (!seen.has(k)) { seen.add(k); unique.push(masks[i]); }
         }
+        log('📋 展开'+expanded.length+'组，去重'+unique.length+'条件');
+        busy=true;
+        document.getElementById('btnApply').disabled=true;
+        document.getElementById('btnApply').textContent='⏳筛选中...';
+        showProgress(0);
+        doFilter(unique, opts).then(function(removed){
+            log('✅ 筛选完成：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组');
+            document.getElementById('inputArea').value='';
+            lastInputSnapshot='';
+            finishOperation();
+        });
+    }
 
-        function updatePagination(page) {
-            const totalPages = Math.ceil(qualified.length / PAGE_SIZE);
-            $pagination.innerHTML = '';
-            if (totalPages <= 1) {
-                $pagination.innerHTML = '<span style="font-size:0.8rem;">共1页</span>';
-                return;
+    function norm(s){ return s.replace(/，/g,',').replace(/：/g,':').trim(); }
+    function parseNums(s){
+        s = norm(s).replace(/\s+/g,'');
+        var parts;
+        if (s.indexOf(',')!==-1) parts = s.split(',').filter(Boolean);
+        else if (s.indexOf(':')!==-1) parts = s.split(':').filter(Boolean);
+        else if (/^\d{12,}$/.test(s)) { parts = []; for (var i=0; i<s.length; i+=2) parts.push(s.substring(i,i+2)); }
+        else parts = [s];
+        var nums = [];
+        for (var i=0; i<parts.length; i++) { var n = parseInt(parts[i],10); if (n>=1 && n<=33) nums.push(n); }
+        return Array.from(new Set(nums)).sort(function(a,b){ return a-b; });
+    }
+    function isDanTuo(s){ return /胆\s*[:：]/.test(norm(s)) && /拖\s*[:：]/.test(norm(s)); }
+    function parseDanTuo(s){
+        var n = norm(s);
+        var dm = n.match(/胆\s*[:：]\s*([^拖]+)/);
+        var tm = n.match(/拖\s*[:：]\s*(.+)/);
+        if (!dm || !tm) return null;
+        return { dan: parseNums(dm[1]), tuo: parseNums(tm[1]) };
+    }
+    function combos(nums, k){
+        if (k===0) return [[]];
+        var res = [];
+        var tmp = new Array(k);
+        (function dfs(start,d){
+            if (d===k) { res.push(tmp.slice()); return; }
+            for (var i=start; i<=nums.length-(k-d); i++) { tmp[d]=nums[i]; dfs(i+1,d+1); }
+        })(0,0);
+        return res;
+    }
+    function expandCurrent(){
+        var text = document.getElementById('inputArea').value;
+        var lines = text.split(/[\n\r]+/).filter(function(l){ return l.trim(); });
+        var all = [];
+        for (var i=0; i<lines.length; i++) {
+            var l = lines[i].trim();
+            if (isDanTuo(l)) {
+                var dt = parseDanTuo(l);
+                if (!dt || dt.dan.length<1 || dt.dan.length>5) continue;
+                var need = 6 - dt.dan.length;
+                if (dt.tuo.length < need) continue;
+                var tcs = combos(dt.tuo, need);
+                for (var j=0; j<tcs.length; j++) all.push(dt.dan.concat(tcs[j]).sort(function(a,b){ return a-b; }));
+            } else {
+                var nums = parseNums(l);
+                if (nums.length<6) continue;
+                var cs = combos(nums,6);
+                for (var j=0; j<cs.length; j++) all.push(cs[j]);
             }
-            const frag = document.createDocumentFragment();
-            const addBtn = (text, cls, onClick) => {
-                const b = document.createElement('button');
-                b.textContent = text; b.className = cls; b.onclick = onClick;
-                frag.appendChild(b);
-            };
-            if (page > 0) addBtn('‹ 上页', 'btn-secondary', ()=>goToPage(page-1));
-            const maxShow = 8;
-            let startP = Math.max(0, page - Math.floor(maxShow/2));
-            let endP = Math.min(totalPages, startP + maxShow);
-            if (endP - startP < maxShow) startP = Math.max(0, endP - maxShow);
-            if (startP > 0) {
-                addBtn('1', 'btn-secondary', ()=>goToPage(0));
-                if (startP > 1) frag.appendChild(document.createTextNode('...'));
-            }
-            for (let p=startP; p<endP; p++) {
-                addBtn(p+1, p===page ? 'btn-primary' : 'btn-secondary', ()=>goToPage(p));
-            }
-            if (endP < totalPages) {
-                if (endP < totalPages-1) frag.appendChild(document.createTextNode('...'));
-                addBtn(totalPages, 'btn-secondary', ()=>goToPage(totalPages-1));
-            }
-            if (page < totalPages-1) addBtn('下页 ›', 'btn-secondary', ()=>goToPage(page+1));
-            $pagination.appendChild(frag);
         }
+        return all;
+    }
 
-        function goToPage(p) {
-            currentPage = p;
-            renderPage(p);
+    function addToHistory(){
+        var raw = document.getElementById('inputArea').value.trim();
+        if (!raw || raw===lastInputSnapshot) return;
+        var combos = expandCurrent();
+        if (combos.length>0) {
+            historyCombos = historyCombos.concat(combos);
+            lastInputSnapshot = raw;
+            log('📥 已记录当前输入（'+combos.length+' 注），历史总计 '+historyCombos.length+' 注');
         }
+    }
 
-        // ---------- 主流程 ----------
-        async function startProcess() {
-            if (isProcessing) {
-                toast('正在处理中，请稍候...', true);
-                return;
-            }
-            resetUI();
-            isProcessing = true;
-            $btnStart.disabled = true;
-            $btnStart.textContent = '⏳ 处理中...';
+    function analyzeDuplicates(){
+        addToHistory();
+        if (!historyCombos.length) return alert('历史记录为空，请先输入号码并点击「统计重复」');
+        var map = new Map();
+        for (var i=0; i<historyCombos.length; i++) {
+            var k = historyCombos[i].map(function(n){ return String(n).padStart(2,'0'); }).join(',');
+            map.set(k, (map.get(k)||0)+1);
+        }
+        var groups = new Map();
+        var allCombosList = [];
+        map.forEach(function(cnt, k){
+            if (!groups.has(cnt)) groups.set(cnt, []);
+            groups.get(cnt).push(k);
+            allCombosList.push(k);
+        });
+        var total = historyCombos.length;
+        var unique = map.size;
+        var area = document.getElementById('resultArea');
+        var title = document.getElementById('resultTitle');
+        var list = document.getElementById('resultGroups');
+        title.textContent = '📊 全部历史组合统计：' + total.toLocaleString() + ' 注 → ' + unique.toLocaleString() + ' 种';
+        var html = '';
+        var sortedCounts = Array.from(groups.keys()).sort(function(a,b){ return b-a; });
+        for (var i=0; i<sortedCounts.length; i++) {
+            var count = sortedCounts[i];
+            var combos = groups.get(count);
+            combos.sort();
+            html += '<div class="group-box"><div class="group-header"><span>出现 '+count+' 次（共 '+combos.length+' 组）</span>';
+            html += '<div><button class="copy-btn" data-count="'+count+'" data-type="plain">📋 复制号码</button></div></div>';
+            html += '<div class="group-list">';
+            for (var j=0; j<combos.length; j++) html += '<div>'+combos[j]+'</div>';
+            html += '</div></div>';
+        }
+        list.innerHTML = html;
+        var buttons = list.querySelectorAll('.copy-btn');
+        for (var i=0; i<buttons.length; i++) {
+            buttons[i].addEventListener('click', function(){
+                var cnt = parseInt(this.dataset.count);
+                var combos = groups.get(cnt);
+                if (!combos) return;
+                var text = combos.join('\n');
+                copyText(text, combos.length);
+            });
+        }
+        area.style.display = 'block';
+        document.getElementById('btnCopyAll').onclick = function() {
+            allCombosList.sort();
+            var text = allCombosList.join('\n');
+            copyText(text, allCombosList.length);
+        };
+        log('📊 统计完成（历史 '+total+' 注）');
+    }
 
+    function copyText(text, n) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function(){ alert('已复制 '+n+' 条'); }).catch(function(){ fallbackCopy(text,n); });
+        } else { fallbackCopy(text,n); }
+    }
+    function fallbackCopy(text, n) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); alert('已复制 '+n+' 条'); } catch(e) { alert('复制失败，请手动复制'); }
+        document.body.removeChild(ta);
+    }
+
+    function exportXLSX(){
+        if (busy) return alert('处理中，请等待当前操作完成');
+        if (filteredCount === 0) return alert('无组合可导出');
+        if (typeof XLSX === 'undefined') { alert('Excel库加载失败，请检查网络后刷新页面'); return; }
+        busy = true;
+        document.getElementById('btnExport').disabled = true;
+        document.getElementById('btnExport').textContent = '收集中...';
+        setStatus('导出中...');
+        showProgress(0);
+        var result = [];
+        var done = 0;
+        var BATCH = 200000;
+        function step(start) {
             try {
-                // 1. 解析输入
-                setProgress(2, '正在解析输入数据...');
-                const raw = $input.value.trim();
-                if (!raw) { toast('请先输入号码组合', true); throw new Error('empty'); }
-                const lines = raw.split(/[\n\r]+/).filter(l=>l.trim());
-                const numMap = new Map();
-                let errCount = 0;
-                for (let line of lines) {
-                    const nums = normalizeLine(line.trim());
-                    if (!nums) { errCount++; continue; }
-                    const key = nums.join(',');
-                    if (!numMap.has(key)) numMap.set(key, nums);
+                var end = Math.min(start + BATCH, TOTAL);
+                for (var i = start; i < end; i++) {
+                    if (filteredAlive[i]) {
+                        result.push(unmask(masksLow[i], masksHigh[i]).map(function(n){ return String(n).padStart(2,'0'); }).join(','));
+                    }
                 }
-                if (numMap.size === 0) {
-                    toast('没有有效的号码组合（需6个1-33不重复数字）', true);
-                    throw new Error('no valid');
+                done = end;
+                showProgress(Math.round(done / TOTAL * 100));
+                if (done < TOTAL) {
+                    setTimeout(function(){ step(done); }, 5);
+                } else {
+                    setTimeout(function() {
+                        try {
+                            var sheetData = [['前区号码']];
+                            var maxLen = 19;
+                            for (var i = 0; i < result.length; i++) {
+                                var r = result[i];
+                                if (r.length > maxLen) maxLen = r.length;
+                                sheetData.push([r]);
+                            }
+                            var wb = XLSX.utils.book_new();
+                            var ws1 = XLSX.utils.aoa_to_sheet(sheetData);
+                            ws1['!cols'] = [{ wch: maxLen + 2 }];
+                            XLSX.utils.book_append_sheet(wb, ws1, '组合列表');
+                            var cnt = new Array(34).fill(0);
+                            for (var i = 0; i < result.length; i++) {
+                                var nums = result[i].split(',');
+                                for (var j = 0; j < nums.length; j++) cnt[+nums[j]]++;
+                            }
+                            var st = [];
+                            for (var i = 1; i <= 33; i++) st.push({ n: i, c: cnt[i] });
+                            st.sort(function(a, b) { return b.c - a.c; });
+                            var statData = [['数字', '次数', '占比']];
+                            for (var i = 0; i < st.length; i++) {
+                                var s = st[i];
+                                statData.push([String(s.n).padStart(2, '0'), s.c, (s.c / (result.length * 6) * 100).toFixed(2) + '%']);
+                            }
+                            var ws2 = XLSX.utils.aoa_to_sheet(statData);
+                            ws2['!cols'] = [{ wch: 8 }, { wch: 12 }, { wch: 10 }];
+                            XLSX.utils.book_append_sheet(wb, ws2, '统计');
+                            var now = new Date();
+                            XLSX.writeFile(wb, '双应用_' + result.length + '组_' + now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + '.xlsx');
+                            log('📥 导出' + result.length.toLocaleString() + '组');
+                            document.getElementById('exportHint').textContent = '✅ 已导出';
+                        } catch (e) {
+                            alert('导出失败：' + e.message);
+                            log('❌ 导出失败：' + e.message);
+                        }
+                        finishOperation();
+                    }, 50);
                 }
-                userNums = Array.from(numMap.values());
-                $inputStats.textContent = `✅ 解析成功：${userNums.length} 组唯一号码`;
-                if (errCount > 0) toast(`跳过了 ${errCount} 行格式不正确的数据`, true);
-
-                // 2. 异步构建中5索引
-                setProgress(5, '开始构建中5命中索引...');
-                const { counts, marks } = await buildHit5CountsAsync(userNums);
-                userMarks = marks;
-                hit5Counts = counts;
-                setProgress(18, '索引构建完成');
-
-                // 3. 遍历全组合筛选
-                const list = await scanAllCombos(marks, counts);
-                qualified = list;
-                setProgress(80, `筛选完成，共 ${list.length} 组符合条件`);
-
-                // 4. 排序：按中5个数升序，相同按rank升序
-                qualified.sort((a,b)=> a.hit5 - b.hit5 || a.rank - b.rank);
-                setProgress(85, '排序完成');
-
-                // 5. 摘要
-                $summaryCard.style.display = 'block';
-                $summaryBox.innerHTML = `全组合 1,107,568 组 | 用户输入 ${userNums.length} 组 | <strong style="color:#0984e3;">符合条件 ${qualified.length.toLocaleString()} 组</strong>`;
-                const dist = new Map();
-                for (let q of qualified) dist.set(q.hit5, (dist.get(q.hit5)||0)+1);
-                let statsHtml = '';
-                for (let [h5,cnt] of [...dist.entries()].sort((a,b)=>a[0]-b[0])) {
-                    statsHtml += `<div class="stat-item"><div class="stat-value">${cnt}</div><div class="stat-label">中5个=${h5}次</div></div>`;
-                }
-                $statsGrid.innerHTML = statsHtml;
-
-                // 6. 显示第一页
-                currentPage = 0;
-                renderPage(0);
-                setProgress(100, '完成！');
-
-            } catch(e) {
-                if (e.message !== 'empty' && e.message !== 'no valid') {
-                    console.error(e);
-                    toast('处理出错：' + e.message, true);
-                }
-                $progressCard.classList.remove('active');
-            } finally {
-                isProcessing = false;
-                $btnStart.disabled = false;
-                $btnStart.textContent = '🚀 开始筛选';
+            } catch (e) {
+                alert('数据收集出错：' + e.message);
+                finishOperation();
             }
         }
+        step(0);
+    }
 
-        // ---------- 按钮事件 ----------
-        document.getElementById('btnStart').addEventListener('click', startProcess);
-        document.getElementById('btnClear').addEventListener('click', ()=>{
-            if (isProcessing) { toast('请等待处理完成', true); return; }
-            $input.value = '';
-            resetUI();
-            $inputStats.textContent = '';
-            userNums = [];
-            toast('已清空');
-        });
-        document.getElementById('btnSample').addEventListener('click', ()=>{
-            if (isProcessing) { toast('请等待处理完成', true); return; }
-            // 生成300组示例（偏向常见号码）
-            const samples = [];
-            const hot = [1,3,5,7,8,11,13,15,17,19,21,23,25,27,29,31,33];
-            const cold = [2,4,6,9,10,12,14,16,18,20,22,24,26,28,30,32];
-            const all = [...hot, ...cold];
-            const used = new Set();
-            let attempts = 0;
-            while(samples.length < 300 && attempts < 1000) {
-                const shuffled = all.sort(()=>Math.random()-0.5);
-                const six = shuffled.slice(0,6).sort((a,b)=>a-b);
-                const key = six.join(',');
-                if(!used.has(key)) {
-                    used.add(key);
-                    samples.push(formatNums(six));
-                }
-                attempts++;
-            }
-            $input.value = samples.join('\n');
-            $inputStats.textContent = `已加载 ${samples.length} 组示例号码`;
-            toast('已加载示例数据');
-        });
+    function drawGrids(){
+        var orG = document.getElementById('orGrid');
+        var andG = document.getElementById('andGrid');
+        orG.innerHTML = ''; andG.innerHTML = '';
+        for (var i=1; i<=33; i++) {
+            var lbl = String(i).padStart(2,'0');
+            (function(idx){
+                var oc = document.createElement('div'); oc.className='n-cell'; oc.textContent=lbl;
+                oc.addEventListener('click',function(){
+                    if (orSel.has(idx)) orSel.delete(idx); else orSel.add(idx);
+                    drawGrids();
+                });
+                if (orSel.has(idx)) oc.classList.add('on-or');
+                orG.appendChild(oc);
+                var ac = document.createElement('div'); ac.className='n-cell'; ac.textContent=lbl;
+                ac.addEventListener('click',function(){
+                    if (andSel.has(idx)) andSel.delete(idx); else andSel.add(idx);
+                    drawGrids();
+                });
+                if (andSel.has(idx)) ac.classList.add('on-and');
+                andG.appendChild(ac);
+            })(i);
+        }
+    }
 
-        // Ctrl+Enter 快捷启动
-        $input.addEventListener('keydown', (e)=>{
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                e.preventDefault();
-                startProcess();
+    function showPairModal() {
+        document.getElementById('pairModalTextarea').value = '';
+        document.getElementById('pairModalOverlay').style.display = 'flex';
+    }
+    function hidePairModal() {
+        document.getElementById('pairModalOverlay').style.display = 'none';
+    }
+    function confirmPairExclusion() {
+        var raw = document.getElementById('pairModalTextarea').value.trim();
+        if (!raw) { alert('请输入至少一组双数字，如 01,02'); return; }
+        var lines = raw.split(/[\n\r]+/).filter(function(l){ return l.trim(); });
+        var pairSet = new Set();
+        for (var i=0; i<lines.length; i++) {
+            var nums = lines[i].split(/[,，]/).map(function(s){ return parseInt(s,10); }).filter(function(n){ return n>=1 && n<=33; });
+            if (nums.length >= 2) {
+                var a = Math.min(nums[0], nums[1]);
+                var b = Math.max(nums[0], nums[1]);
+                if (a !== b) pairSet.add(a+','+b);
             }
+        }
+        if (pairSet.size === 0) { alert('未识别到有效双数字组合'); return; }
+        hidePairModal();
+        applyCustomFilter('双数字组合', function(arr) {
+            var pairs = Array.from(pairSet);
+            for (var i=0; i<pairs.length; i++) {
+                var ab = pairs[i].split(',');
+                var a = parseInt(ab[0]), b = parseInt(ab[1]);
+                if (arr.indexOf(a)!==-1 && arr.indexOf(b)!==-1) return true;
+            }
+            return false;
         });
-https://emily05089.github.io/my-apps/pipei.html
-        console.log('✅ 双色球筛选工具已就绪（异步优化版）');
-    })();
+    }
+
+    function init() {
+        buildAll();
+        drawGrids();
+
+        document.getElementById('btnApply').addEventListener('click', applyFilter);
+        document.getElementById('btnClearInput').addEventListener('click', function(){
+            document.getElementById('inputArea').value = '';
+            ['chk0','chk3','chk4','chk5','chk6'].forEach(function(id){ document.getElementById(id).checked = false; });
+        });
+        document.getElementById('btnStats').addEventListener('click', analyzeDuplicates);
+        document.getElementById('btnResetAll').addEventListener('click', function(){
+            if (busy) return alert('处理中');
+            if (!confirm('重置全部？')) return;
+            filteredAlive.fill(1); filteredCount = TOTAL;
+            historyCombos = []; lastInputSnapshot = '';
+            updateDisplay();
+            document.getElementById('inputArea').value = '';
+            document.getElementById('resultArea').style.display = 'none';
+            orSel.clear(); andSel.clear(); drawGrids();
+            hideProgress(); setStatus('就绪');
+            log('🔄 已重置');
+        });
+        document.getElementById('btnApplyOR').addEventListener('click', function(){ applyFilteredMask(orSel,'OR'); });
+        document.getElementById('btnClearOR').addEventListener('click', function(){ orSel.clear(); drawGrids(); });
+        document.getElementById('btnApplyAND').addEventListener('click', function(){ applyFilteredMask(andSel,'AND'); });
+        document.getElementById('btnClearAND').addEventListener('click', function(){ andSel.clear(); drawGrids(); });
+        document.getElementById('btnExport').addEventListener('click', exportXLSX);
+
+        function bind(id, fn) { document.getElementById(id).addEventListener('click', fn); }
+        bind('btnAllOdd', function(){ applyCustomFilter('全奇数', isAllOdd); });
+        bind('btnAllEven', function(){ applyCustomFilter('全偶数', isAllEven); });
+        bind('btn3Seq', function(){ applyCustomFilter('3连号', function(arr){ return hasSeq(arr,3); }); });
+        bind('btn3Gap', function(){ applyCustomFilter('3隔号', function(arr){ return hasGap(arr,3); }); });
+        bind('btn4Seq', function(){ applyCustomFilter('4连号', function(arr){ return hasSeq(arr,4); }); });
+        bind('btn4Gap', function(){ applyCustomFilter('4隔号', function(arr){ return hasGap(arr,4); }); });
+        bind('btn5Seq', function(){ applyCustomFilter('5连号', function(arr){ return hasSeq(arr,5); }); });
+        bind('btn5Gap', function(){ applyCustomFilter('5隔号', function(arr){ return hasGap(arr,5); }); });
+        bind('btn6Seq', function(){ applyCustomFilter('6连号', function(arr){ return hasSeq(arr,6); }); });
+        bind('btn6Gap', function(){ applyCustomFilter('6隔号', function(arr){ return hasGap(arr,6); }); });
+        bind('btnTail3', function(){ applyCustomFilter('同尾数≥3个', hasSameTail3); });
+        bind('btnTail2Group', function(){ applyCustomFilter('同尾数组数≥2组', hasSameTail2Groups); });
+        bind('btnRatio600', function(){ applyCustomFilter('6:0:0型', function(arr){ return getZonePattern(arr)==='006'; }); });
+        bind('btnRatio510', function(){ applyCustomFilter('5:1:0型', function(arr){ return getZonePattern(arr)==='015'; }); });
+        bind('btnRatio420', function(){ applyCustomFilter('4:2:0型', function(arr){ return getZonePattern(arr)==='024'; }); });
+        bind('btnRatio411', function(){ applyCustomFilter('4:1:1型', function(arr){ return getZonePattern(arr)==='114'; }); });
+        bind('btnRatio330', function(){ applyCustomFilter('3:3:0型', function(arr){ return getZonePattern(arr)==='033'; }); });
+        bind('btnRatio321', function(){ applyCustomFilter('3:2:1型', function(arr){ return getZonePattern(arr)==='123'; }); });
+        bind('btnRatio222', function(){ applyCustomFilter('2:2:2型', function(arr){ return getZonePattern(arr)==='222'; }); });
+        bind('btnExcludeHistory', function(){ applyCustomFilter('历史组合', function(arr){ var key=arr.map(function(n){ return String(n).padStart(2,'0'); }).sort().join(','); return HISTORY_SET.has(key); }); });
+        bind('btnExcludePairs', showPairModal);
+        document.getElementById('btnPairModalCancel').addEventListener('click', hidePairModal);
+        document.getElementById('btnPairModalConfirm').addEventListener('click', confirmPairExclusion);
+
+        log('✅ 最终稳定版就绪，可反复筛选与导出');
+    }
+
+    init();
+})();
 </script>
 </body>
 </html>
