@@ -57,7 +57,6 @@
             padding-bottom: 40px;
         }
 
-        /* 卡片样式 */
         .card {
             background: var(--card-bg);
             border-radius: var(--radius);
@@ -87,22 +86,10 @@
             flex-shrink: 0;
         }
 
-        .icon-input {
-            background: #ebf4ff;
-            color: #4a6cf7;
-        }
-        .icon-result {
-            background: #f0fff4;
-            color: #48bb78;
-        }
-        .icon-stats {
-            background: #fffaf0;
-            color: #ed8936;
-        }
-        .icon-single {
-            background: #f3e8ff;
-            color: #7c3aed;
-        }
+        .icon-input { background: #ebf4ff; color: #4a6cf7; }
+        .icon-result { background: #f0fff4; color: #48bb78; }
+        .icon-stats { background: #fffaf0; color: #ed8936; }
+        .icon-single { background: #f3e8ff; color: #7c3aed; }
 
         .card-header .title {
             font-size: 17px;
@@ -116,14 +103,9 @@
             font-weight: 400;
         }
 
-        .card-body {
-            padding: 20px 24px;
-        }
-        .card-body.no-padding {
-            padding: 0;
-        }
+        .card-body { padding: 20px 24px; }
+        .card-body.no-padding { padding: 0; }
 
-        /* 输入区域 */
         textarea {
             width: 100%;
             min-height: 200px;
@@ -171,7 +153,6 @@
             flex-shrink: 0;
         }
 
-        /* 按钮 */
         .btn-row {
             display: flex;
             gap: 10px;
@@ -206,32 +187,18 @@
             box-shadow: 0 4px 8px rgba(74, 108, 247, 0.35);
             transform: translateY(-1px);
         }
-        .btn-primary:active {
-            transform: translateY(0);
-            box-shadow: 0 1px 2px rgba(74, 108, 247, 0.3);
-        }
-
         .btn-outline {
             background: #fff;
             color: var(--primary);
             border: 2px solid #dce4f7;
         }
-        .btn-outline:hover {
-            background: #f8faff;
-            border-color: var(--primary);
-        }
-
+        .btn-outline:hover { background: #f8faff; border-color: var(--primary); }
         .btn-ghost {
             background: transparent;
             color: var(--text-secondary);
             border: 1px solid transparent;
         }
-        .btn-ghost:hover {
-            background: #f7f8fa;
-            border-color: var(--border);
-            color: var(--text);
-        }
-
+        .btn-ghost:hover { background: #f7f8fa; border-color: var(--border); color: var(--text); }
         .btn-success {
             background: var(--success);
             color: #fff;
@@ -242,20 +209,8 @@
             box-shadow: 0 4px 8px rgba(72, 187, 120, 0.35);
             transform: translateY(-1px);
         }
+        .btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 6px; }
 
-        .btn-sm {
-            padding: 6px 14px;
-            font-size: 12px;
-            border-radius: 6px;
-        }
-
-        .btn-xs {
-            padding: 4px 10px;
-            font-size: 11px;
-            border-radius: 6px;
-        }
-
-        /* 统计摘要 */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -267,13 +222,11 @@
             padding: 14px 16px;
             text-align: center;
             border: 1px solid var(--border);
-            transition: var(--transition);
         }
         .stat-item .stat-value {
             font-size: 28px;
             font-weight: 800;
             color: var(--primary);
-            letter-spacing: -0.02em;
             line-height: 1;
         }
         .stat-item .stat-label {
@@ -282,14 +235,9 @@
             margin-top: 4px;
             font-weight: 500;
         }
-        .stat-item.warn .stat-value {
-            color: var(--warning);
-        }
-        .stat-item.success .stat-value {
-            color: var(--success);
-        }
+        .stat-item.warn .stat-value { color: var(--warning); }
+        .stat-item.success .stat-value { color: var(--success); }
 
-        /* 结果表格容器 */
         .result-scroll {
             max-height: 550px;
             overflow-y: auto;
@@ -297,20 +245,10 @@
             border-radius: var(--radius-sm);
             scroll-behavior: smooth;
         }
-        .result-scroll::-webkit-scrollbar {
-            width: 6px;
-        }
-        .result-scroll::-webkit-scrollbar-track {
-            background: #f8fafc;
-            border-radius: 3px;
-        }
-        .result-scroll::-webkit-scrollbar-thumb {
-            background: #d1dbe6;
-            border-radius: 3px;
-        }
-        .result-scroll::-webkit-scrollbar-thumb:hover {
-            background: #b0c0d0;
-        }
+        .result-scroll::-webkit-scrollbar { width: 6px; }
+        .result-scroll::-webkit-scrollbar-track { background: #f8fafc; border-radius: 3px; }
+        .result-scroll::-webkit-scrollbar-thumb { background: #d1dbe6; border-radius: 3px; }
+        .result-scroll::-webkit-scrollbar-thumb:hover { background: #b0c0d0; }
 
         table {
             width: 100%;
@@ -318,11 +256,7 @@
             font-size: 14px;
             table-layout: fixed;
         }
-        table thead {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
+        table thead { position: sticky; top: 0; z-index: 10; }
         table thead th {
             background: #f1f5f9;
             padding: 11px 12px;
@@ -338,43 +272,14 @@
             padding: 9px 12px;
             text-align: center;
             border-bottom: 1px solid #f2f5f8;
-            font-variant-numeric: tabular-nums;
             font-family: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
-            letter-spacing: 0.03em;
         }
-        table tbody tr {
-            transition: background var(--transition);
-        }
-        table tbody tr:hover {
-            background: #f8faff;
-        }
-        table tbody tr.row-high {
-            background: #fffdf5;
-        }
-        table tbody tr.row-high:hover {
-            background: #fff9e0;
-        }
-        table tbody tr.row-mid {
-            background: #fdfcf9;
-        }
-        .col-rank {
-            width: 48px;
-            color: var(--text-secondary);
-            font-weight: 600;
-            font-size: 12px;
-        }
-        .col-combo {
-            width: 100px;
-            font-weight: 700;
-            color: var(--text);
-            font-size: 15px;
-            letter-spacing: 0.04em;
-        }
-        .col-count {
-            width: 60px;
-            font-weight: 700;
-            font-size: 15px;
-        }
+        table tbody tr:hover { background: #f8faff; }
+        table tbody tr.row-high { background: #fffdf5; }
+        table tbody tr.row-high:hover { background: #fff9e0; }
+        .col-rank { width: 48px; color: var(--text-secondary); font-weight: 600; font-size: 12px; }
+        .col-combo { width: 100px; font-weight: 700; font-size: 15px; }
+        .col-count { width: 60px; font-weight: 700; font-size: 15px; }
         .count-badge {
             display: inline-block;
             padding: 3px 10px;
@@ -383,35 +288,14 @@
             font-size: 13px;
             min-width: 28px;
         }
-        .badge-high {
-            background: #fef3c7;
-            color: #b45309;
-        }
-        .badge-mid {
-            background: #e8f0fe;
-            color: #1e40af;
-        }
-        .badge-low {
-            background: #f1f5f9;
-            color: #64748b;
-        }
-        .badge-zero {
-            background: #fafafa;
-            color: #cbd5e0;
-        }
+        .badge-high { background: #fef3c7; color: #b45309; }
+        .badge-mid { background: #e8f0fe; color: #1e40af; }
+        .badge-low { background: #f1f5f9; color: #64748b; }
+        .badge-zero { background: #fafafa; color: #cbd5e0; }
 
-        /* 空状态 */
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--text-secondary);
-        }
-        .empty-state .empty-icon {
-            font-size: 48px;
-            margin-bottom: 12px;
-        }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+        .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
 
-        /* Toast */
         .toast {
             position: fixed;
             top: 20px;
@@ -426,715 +310,332 @@
             z-index: 9999;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-            letter-spacing: 0.02em;
+            transition: opacity 0.3s ease;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
         }
-        .toast.show {
-            opacity: 1;
-            pointer-events: auto;
-            transform: translateX(-50%) translateY(0);
-        }
-        .toast.success {
-            background: #48bb78;
-        }
-        .toast.error {
-            background: #f56565;
-        }
+        .toast.show { opacity: 1; pointer-events: auto; }
+        .toast.success { background: #48bb78; }
+        .toast.error { background: #f56565; }
 
-        /* 按钮组 */
-        .btn-group {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
+        .btn-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 
-        /* 响应式 */
         @media (max-width: 640px) {
-            body {
-                padding: 10px;
-            }
-            .app-container {
-                gap: 14px;
-                padding-top: 4px;
-                padding-bottom: 20px;
-            }
-            .card-body {
-                padding: 14px 16px;
-            }
-            .card-header {
-                padding: 14px 16px 10px;
-            }
-            textarea {
-                min-height: 150px;
-                font-size: 13px;
-                padding: 10px 12px;
-            }
-            .btn {
-                padding: 8px 14px;
-                font-size: 13px;
-            }
-            table {
-                font-size: 12px;
-            }
-            table thead th,
-            table tbody td {
-                padding: 6px 8px;
-            }
-            .col-combo {
-                font-size: 13px;
-            }
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 8px;
-            }
-            .stat-item {
-                padding: 10px 8px;
-            }
-            .stat-item .stat-value {
-                font-size: 22px;
-            }
-            .result-scroll {
-                max-height: 400px;
-            }
+            body { padding: 10px; }
+            .app-container { gap: 14px; padding-top: 4px; }
+            .card-body { padding: 14px 16px; }
+            textarea { min-height: 150px; font-size: 13px; }
+            .btn { padding: 8px 14px; font-size: 13px; }
+            table { font-size: 12px; }
+            table thead th, table tbody td { padding: 6px 8px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .stat-item .stat-value { font-size: 22px; }
         }
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <!-- 标题 -->
-        <div style="text-align:center; padding: 8px 0 0;">
-            <h1 style="font-size: 24px; font-weight: 800; color: #1a202c; letter-spacing: -0.02em; margin: 0;">
-                🎯 双数字组合频率统计器
-            </h1>
-            <p style="font-size: 13px; color: #8899aa; margin: 4px 0 0; font-weight: 500;">
-                1—33任选2个 · 共528组 · 统计在输入组合中的出现频率 | 单数字频率统计
-            </p>
-        </div>
-
-        <!-- 输入卡片 -->
-        <div class="card" id="inputCard">
-            <div class="card-header">
-                <div class="icon icon-input">📝</div>
-                <div>
-                    <div class="title">输入6数字组合</div>
-                    <div class="subtitle">每行一个组合，数字用逗号分隔（1-33之间）</div>
-                </div>
-            </div>
-            <div class="card-body">
-                <textarea
-                    id="inputArea"
-                    placeholder="示例：&#10;1,2,3,4,5,6&#10;2,3,4,5,6,7&#10;3,4,5,6,7,8&#10;10,15,20,25,30,33&#10;01,07,13,19,25,31&#10;&#10;支持格式：&#10;• 英文逗号或中文逗号分隔&#10;• 1-9自动识别为01-09&#10;• 重复的6数组合自动去重"
-                ></textarea>
-                <div class="hint-text">
-                    <span>💡</span>
-                    <span>数字范围1-33</span>
-                    <span class="dot"></span>
-                    <span>每行6个不重复数字</span>
-                    <span class="dot"></span>
-                    <span>逗号分隔（中英文均可）</span>
-                    <span class="dot"></span>
-                    <span>1-9自动补零</span>
-                </div>
-                <div class="btn-row">
-                    <button class="btn btn-primary" id="btnCalculate" onclick="calculate()">
-                        🔍 开始统计
-                    </button>
-                    <button class="btn btn-outline" id="btnLoadExample" onclick="loadExample()">
-                        📋 加载示例
-                    </button>
-                    <button class="btn btn-ghost" id="btnClear" onclick="clearAll()">
-                        🗑 清空
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 统计摘要卡片 -->
-        <div class="card" id="statsCard" style="display:none;">
-            <div class="card-header">
-                <div class="icon icon-stats">📊</div>
-                <div>
-                    <div class="title">统计摘要</div>
-                    <div class="subtitle">输入数据分析结果</div>
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="stats-grid" id="statsGrid">
-                    <!-- 动态填充 -->
-                </div>
-            </div>
-        </div>
-
-        <!-- 双数字组合结果卡片 -->
-        <div class="card" id="resultCard" style="display:none;">
-            <div class="card-header">
-                <div class="icon icon-result">🏆</div>
-                <div>
-                    <div class="title">双数字组合频率排行 — 528组</div>
-                    <div class="subtitle" id="resultSubtitle">按出现次数从多到少排列</div>
-                </div>
-                <div style="margin-left:auto; display:flex; gap:8px; flex-wrap:wrap;" class="btn-group">
-                    <button class="btn btn-success btn-sm" id="btnCopyAll" onclick="copyResults('all')">
-                        📋 复制全部(带次数)
-                    </button>
-                    <button class="btn btn-outline btn-sm" id="btnCopyNonZero" onclick="copyResults('nonzero')">
-                        ✂️ 复制非零(带次数)
-                    </button>
-                    <button class="btn btn-outline btn-sm" id="btnCopyCombosAll" onclick="copyResults('combos_all')">
-                        📋 纯组合(全部)
-                    </button>
-                    <button class="btn btn-outline btn-sm" id="btnCopyCombosNonZero" onclick="copyResults('combos_nonzero')">
-                        ✂️ 纯组合(非零)
-                    </button>
-                </div>
-            </div>
-            <div class="card-body no-padding">
-                <div class="result-scroll" id="resultScroll">
-                    <div class="empty-state" id="emptyResult">
-                        <div class="empty-icon">📭</div>
-                        <p>暂无结果，请先输入数据并点击统计</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 单数字频率卡片 -->
-        <div class="card" id="singleFreqCard" style="display:none;">
-            <div class="card-header">
-                <div class="icon icon-single">🔢</div>
-                <div>
-                    <div class="title">单数字出现频率统计 (1-33)</div>
-                    <div class="subtitle" id="singleFreqSubtitle">在去重后的组合中，每个数字出现的次数</div>
-                </div>
-                <div style="margin-left:auto;" class="btn-group">
-                    <button class="btn btn-success btn-sm" id="btnCopySingleFreq" onclick="copySingleFreq()">
-                        📋 复制频率统计
-                    </button>
-                </div>
-            </div>
-            <div class="card-body no-padding">
-                <div class="result-scroll" id="singleFreqScroll" style="max-height: 400px;">
-                    <div class="empty-state">
-                        <div class="empty-icon">📭</div>
-                        <p>暂无单数字频率数据</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Toast提示 -->
-        <div class="toast" id="toast"></div>
+<div class="app-container">
+    <!-- 标题 -->
+    <div style="text-align:center; padding: 8px 0 0;">
+        <h1 style="font-size: 24px; font-weight: 800; color: #1a202c; margin: 0;">🎯 双数字组合频率统计器</h1>
+        <p style="font-size: 13px; color: #8899aa; margin: 4px 0 0; font-weight: 500;">
+            1—33任选2个 · 共528组 · 统计在输入组合中的出现频率 | 单数字频率统计
+        </p>
     </div>
 
-    <script>
-        (function() {
-            // ============ 常量 (1-33) ============
-            const TOTAL_PAIRS = 528; // C(33,2) = 528
-            const NUM_RANGE = 33;    // 数字范围 1-33
-            const COMBO_SIZE = 6;    // 每个组合6个数字
+    <!-- 输入卡片 -->
+    <div class="card" id="inputCard">
+        <div class="card-header">
+            <div class="icon icon-input">📝</div>
+            <div>
+                <div class="title">输入6数字组合</div>
+                <div class="subtitle">每行一个组合，数字用逗号分隔（1-33之间）</div>
+            </div>
+        </div>
+        <div class="card-body">
+            <textarea id="inputArea" placeholder="示例：&#10;1,2,3,4,5,6&#10;2,3,4,5,6,7&#10;10,15,20,25,30,33&#10;01,07,13,19,25,31"></textarea>
+            <div class="hint-text">
+                <span>💡</span> <span>数字范围1-33</span> <span class="dot"></span>
+                <span>每行6个不重复数字</span> <span class="dot"></span>
+                <span>逗号分隔（中英文均可）</span> <span class="dot"></span>
+                <span>1-9自动补零</span>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="calculate()">🔍 开始统计</button>
+                <button class="btn btn-outline" onclick="loadExample()">📋 加载示例</button>
+                <button class="btn btn-ghost" onclick="clearAll()">🗑 清空</button>
+            </div>
+        </div>
+    </div>
 
-            // ============ 预生成所有528组2数字组合 ============
-            const ALL_PAIRS = [];
-            for (let a = 1; a <= NUM_RANGE; a++) {
-                for (let b = a + 1; b <= NUM_RANGE; b++) {
-                    ALL_PAIRS.push([a, b]);
+    <!-- 统计摘要卡片 -->
+    <div class="card" id="statsCard" style="display:none;">
+        <div class="card-header">
+            <div class="icon icon-stats">📊</div>
+            <div><div class="title">统计摘要</div><div class="subtitle">输入数据分析结果</div></div>
+        </div>
+        <div class="card-body"><div class="stats-grid" id="statsGrid"></div></div>
+    </div>
+
+    <!-- 双数字组合结果卡片 -->
+    <div class="card" id="resultCard" style="display:none;">
+        <div class="card-header">
+            <div class="icon icon-result">🏆</div>
+            <div>
+                <div class="title">双数字组合频率排行 — 528组</div>
+                <div class="subtitle" id="resultSubtitle">按出现次数从多到少排列</div>
+            </div>
+            <div style="margin-left:auto;" class="btn-group">
+                <button class="btn btn-success btn-sm" onclick="copyResults('all')">📋 复制全部(带次数)</button>
+                <button class="btn btn-outline btn-sm" onclick="copyResults('nonzero')">✂️ 复制非零(带次数)</button>
+                <button class="btn btn-outline btn-sm" onclick="copyResults('combos_all')">📋 纯组合(全部)</button>
+                <button class="btn btn-outline btn-sm" onclick="copyResults('combos_nonzero')">✂️ 纯组合(非零)</button>
+            </div>
+        </div>
+        <div class="card-body no-padding">
+            <div class="result-scroll" id="resultScroll">
+                <div class="empty-state"><div class="empty-icon">📭</div><p>暂无结果</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 单数字频率卡片 -->
+    <div class="card" id="singleFreqCard" style="display:none;">
+        <div class="card-header">
+            <div class="icon icon-single">🔢</div>
+            <div>
+                <div class="title">单数字出现频率统计 (1-33)</div>
+                <div class="subtitle" id="singleFreqSubtitle">在去重后的组合中，每个数字出现的次数</div>
+            </div>
+            <div style="margin-left:auto;">
+                <button class="btn btn-success btn-sm" onclick="copySingleFreq()">📋 复制频率统计</button>
+            </div>
+        </div>
+        <div class="card-body no-padding">
+            <div class="result-scroll" id="singleFreqScroll" style="max-height:400px;">
+                <div class="empty-state"><div class="empty-icon">📭</div><p>暂无数据</p></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+</div>
+
+<script>
+    (function() {
+        // ============ 常量 (严格1-33) ============
+        const TOTAL_PAIRS = 528;      // C(33,2)
+        const NUM_RANGE = 33;         // 数字范围 1-33
+        const COMBO_SIZE = 6;
+
+        // 预生成所有528组2数字组合
+        const ALL_PAIRS = [];
+        for (let a = 1; a <= NUM_RANGE; a++) {
+            for (let b = a + 1; b <= NUM_RANGE; b++) {
+                ALL_PAIRS.push([a, b]);
+            }
+        }
+        const pairToIndex = new Map();
+        ALL_PAIRS.forEach((pair, idx) => pairToIndex.set(pair[0]+','+pair[1], idx));
+
+        // DOM
+        const inputArea = document.getElementById('inputArea');
+        const statsCard = document.getElementById('statsCard');
+        const statsGrid = document.getElementById('statsGrid');
+        const resultCard = document.getElementById('resultCard');
+        const resultScroll = document.getElementById('resultScroll');
+        const resultSubtitle = document.getElementById('resultSubtitle');
+        const singleFreqCard = document.getElementById('singleFreqCard');
+        const singleFreqScroll = document.getElementById('singleFreqScroll');
+        const singleFreqSubtitle = document.getElementById('singleFreqSubtitle');
+        const toast = document.getElementById('toast');
+
+        let lastResults = null;
+        let lastSingleFreq = null;
+        let toastTimer = null;
+
+        function showToast(msg, type='') {
+            if(toastTimer) clearTimeout(toastTimer);
+            toast.textContent = msg;
+            toast.className = 'toast '+type+' show';
+            toastTimer = setTimeout(() => { toast.classList.remove('show'); toast.className='toast'; }, 2200);
+        }
+
+        function fmtNum(n) { return String(n).padStart(2,'0'); }
+        function fmtPair(a,b) { return fmtNum(a)+','+fmtNum(b); }
+
+        // 解析输入
+        function parseInput(text) {
+            const lines = text.split(/\r?\n/);
+            const rawCombos = [];
+            const errors = [];
+            for (let i=0; i<lines.length; i++) {
+                const line = lines[i].trim();
+                if(!line) continue;
+                let processed = line.replace(/，/g, ',');
+                let parts = processed.split(',');
+                let nums = [];
+                for(let p of parts) {
+                    p = p.trim();
+                    if(!p) continue;
+                    let num = parseInt(p,10);
+                    if(!isNaN(num) && num>=1 && num<=NUM_RANGE) nums.push(num);
+                    else if(p.match(/^\d+$/)) errors.push(`第${i+1}行：数字${p}不在1-33范围内`);
+                    else errors.push(`第${i+1}行：${p}无效`);
+                }
+                const uniqueNums = [...new Set(nums)];
+                if(uniqueNums.length < nums.length) errors.push(`第${i+1}行：有重复数字`);
+                if(uniqueNums.length === COMBO_SIZE) {
+                    uniqueNums.sort((a,b)=>a-b);
+                    rawCombos.push(uniqueNums);
+                } else if(uniqueNums.length>0) errors.push(`第${i+1}行：需要6个数字，已跳过`);
+            }
+            return { rawCombos, errors };
+        }
+
+        function deduplicateCombos(raw) {
+            const seen = new Set();
+            return raw.filter(c => { const k=c.join(','); if(seen.has(k)) return false; seen.add(k); return true; });
+        }
+
+        function countPairs(combos) {
+            const counts = new Array(TOTAL_PAIRS).fill(0);
+            for(const combo of combos) {
+                for(let i=0; i<COMBO_SIZE; i++) {
+                    for(let j=i+1; j<COMBO_SIZE; j++) {
+                        const idx = pairToIndex.get(combo[i]+','+combo[j]);
+                        if(idx !== undefined) counts[idx]++;
+                    }
                 }
             }
+            return counts;
+        }
 
-            const pairToIndex = new Map();
-            ALL_PAIRS.forEach((pair, idx) => {
-                const key = pair[0] + ',' + pair[1];
-                pairToIndex.set(key, idx);
+        function countSingleDigits(combos) {
+            const freq = new Array(NUM_RANGE+1).fill(0);
+            for(const combo of combos) for(const n of combo) if(n>=1 && n<=NUM_RANGE) freq[n]++;
+            const list = [];
+            for(let i=1; i<=NUM_RANGE; i++) list.push({ number:i, display:fmtNum(i), count:freq[i] });
+            list.sort((a,b)=> b.count - a.count || a.number - b.number);
+            return list;
+        }
+
+        function buildPairResults(counts) {
+            const res = [];
+            for(let i=0; i<TOTAL_PAIRS; i++) {
+                const [a,b] = ALL_PAIRS[i];
+                res.push({ a, b, count: counts[i], display: fmtPair(a,b) });
+            }
+            res.sort((a,b)=> b.count - a.count || a.a - b.a || a.b - b.b);
+            return res;
+        }
+
+        function renderPairResults(results, uniqueCount, totalInput) {
+            const nonzero = results.filter(r=>r.count>0).length;
+            const maxCount = results[0]?.count || 0;
+            lastResults = { results, totalInput, uniqueInput: uniqueCount, nonzeroCount: nonzero };
+
+            statsCard.style.display='block';
+            statsGrid.innerHTML = `
+                <div class="stat-item"><div class="stat-value">${totalInput}</div><div class="stat-label">原始输入组合</div></div>
+                <div class="stat-item warn"><div class="stat-value">${totalInput-uniqueCount}</div><div class="stat-label">去重移除</div></div>
+                <div class="stat-item success"><div class="stat-value">${uniqueCount}</div><div class="stat-label">有效组合</div></div>
+                <div class="stat-item"><div class="stat-value">${uniqueCount*15}</div><div class="stat-label">子组合次数</div></div>
+                <div class="stat-item success"><div class="stat-value">${nonzero}</div><div class="stat-label">出现≥1次</div></div>
+                <div class="stat-item"><div class="stat-value">${TOTAL_PAIRS-nonzero}</div><div class="stat-label">未出现</div></div>
+            `;
+            resultCard.style.display='block';
+            resultSubtitle.textContent = `共${TOTAL_PAIRS}组 · ${nonzero}组有出现 · 最多${maxCount}次`;
+
+            let html = `<table><thead><tr><th>排名</th><th>双数字组合</th><th>出现次数</th></tr></thead><tbody>`;
+            results.forEach((r,i)=>{
+                let cls = '', badge='badge-zero';
+                if(r.count===maxCount && maxCount>0) { cls='row-high'; badge='badge-high'; }
+                else if(r.count>0) badge='badge-low';
+                html += `<tr class="${cls}"><td>${i+1}</td><td class="col-combo">${r.display}</td><td><span class="count-badge ${badge}">${r.count}</span></td></tr>`;
             });
+            html += '</tbody></table>';
+            resultScroll.innerHTML = html;
+            resultScroll.scrollTop = 0;
+        }
 
-            // ============ DOM引用 ============
-            const inputArea = document.getElementById('inputArea');
-            const statsCard = document.getElementById('statsCard');
-            const statsGrid = document.getElementById('statsGrid');
-            const resultCard = document.getElementById('resultCard');
-            const resultScroll = document.getElementById('resultScroll');
-            const resultSubtitle = document.getElementById('resultSubtitle');
-            const singleFreqCard = document.getElementById('singleFreqCard');
-            const singleFreqScroll = document.getElementById('singleFreqScroll');
-            const singleFreqSubtitle = document.getElementById('singleFreqSubtitle');
-            const toast = document.getElementById('toast');
-
-            // 存储最后一次计算结果
-            let lastResults = null;
-            let lastSingleFreq = null;
-
-            // ============ Toast ============
-            let toastTimer = null;
-            function showToast(msg, type = '') {
-                if (toastTimer) clearTimeout(toastTimer);
-                toast.textContent = msg;
-                toast.className = 'toast ' + type + ' show';
-                toastTimer = setTimeout(() => {
-                    toast.classList.remove('show');
-                    toast.className = 'toast';
-                }, 2200);
-            }
-
-            // ============ 解析输入 ============
-            function parseInput(text) {
-                const lines = text.split(/\r?\n/);
-                const rawCombos = [];
-                const errors = [];
-
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (line === '') continue;
-
-                    let processed = line.replace(/，/g, ',');
-                    let parts = processed.split(',');
-                    let nums = [];
-                    for (let p of parts) {
-                        p = p.trim();
-                        if (p === '') continue;
-                        let num = parseInt(p, 10);
-                        if (!isNaN(num) && num >= 1 && num <= NUM_RANGE) {
-                            nums.push(num);
-                        } else if (p.match(/^\d+$/)) {
-                            let n = parseInt(p, 10);
-                            if (n < 1 || n > NUM_RANGE) {
-                                errors.push(`第${i+1}行：数字"${p}"不在1-${NUM_RANGE}范围内，已忽略`);
-                            }
-                        } else {
-                            errors.push(`第${i+1}行："${p}"不是有效数字，已忽略`);
-                        }
-                    }
-
-                    const uniqueNums = [...new Set(nums)];
-                    if (uniqueNums.length < nums.length) {
-                        errors.push(`第${i+1}行：存在重复数字，已自动去重`);
-                    }
-
-                    if (uniqueNums.length === COMBO_SIZE) {
-                        uniqueNums.sort((a, b) => a - b);
-                        rawCombos.push(uniqueNums);
-                    } else if (uniqueNums.length > 0 && uniqueNums.length < COMBO_SIZE) {
-                        errors.push(`第${i+1}行：仅有${uniqueNums.length}个有效数字，需要恰好${COMBO_SIZE}个，已跳过`);
-                    } else if (uniqueNums.length > COMBO_SIZE) {
-                        errors.push(`第${i+1}行：有${uniqueNums.length}个有效数字（超过${COMBO_SIZE}个），已跳过`);
-                    }
-                }
-
-                return { rawCombos, errors };
-            }
-
-            // ============ 去重6数字组合 ============
-            function deduplicateCombos(rawCombos) {
-                const seen = new Set();
-                const unique = [];
-                for (const combo of rawCombos) {
-                    const key = combo.join(',');
-                    if (!seen.has(key)) {
-                        seen.add(key);
-                        unique.push(combo);
-                    }
-                }
-                return unique;
-            }
-
-            // ============ 统计2数字组合频率 ============
-            function countPairs(uniqueCombos) {
-                const counts = new Array(TOTAL_PAIRS).fill(0);
-                for (const combo of uniqueCombos) {
-                    for (let i = 0; i < COMBO_SIZE; i++) {
-                        for (let j = i + 1; j < COMBO_SIZE; j++) {
-                            const a = combo[i];
-                            const b = combo[j];
-                            const key = a + ',' + b;
-                            const idx = pairToIndex.get(key);
-                            if (idx !== undefined) {
-                                counts[idx]++;
-                            }
-                        }
-                    }
-                }
-                return counts;
-            }
-
-            // ============ 格式化数字为两位 ============
-            function fmtNum(n) {
-                return String(n).padStart(2, '0');
-            }
-
-            function fmtPair(a, b) {
-                return fmtNum(a) + ',' + fmtNum(b);
-            }
-
-            // ============ 生成双数字结果列表 ============
-            function buildPairResultList(counts) {
-                const results = [];
-                for (let idx = 0; idx < TOTAL_PAIRS; idx++) {
-                    const [a, b] = ALL_PAIRS[idx];
-                    results.push({
-                        a: a,
-                        b: b,
-                        count: counts[idx],
-                        display: fmtPair(a, b),
-                    });
-                }
-                results.sort((r1, r2) => {
-                    if (r2.count !== r1.count) return r2.count - r1.count;
-                    if (r1.a !== r2.a) return r1.a - r2.a;
-                    return r1.b - r2.b;
-                });
-                return results;
-            }
-
-            // ============ 统计单数字频率 (1-33) ============
-            function countSingleDigits(uniqueCombos) {
-                const freq = new Array(NUM_RANGE + 1).fill(0);
-                for (const combo of uniqueCombos) {
-                    for (const num of combo) {
-                        if (num >= 1 && num <= NUM_RANGE) {
-                            freq[num]++;
-                        }
-                    }
-                }
-                const list = [];
-                for (let i = 1; i <= NUM_RANGE; i++) {
-                    list.push({
-                        number: i,
-                        display: fmtNum(i),
-                        count: freq[i]
-                    });
-                }
-                list.sort((a, b) => {
-                    if (b.count !== a.count) return b.count - a.count;
-                    return a.number - b.number;
-                });
-                return list;
-            }
-
-            // ============ 渲染双数字结果 ============
-            function renderPairResults(results, uniqueComboCount, totalInputCount) {
-                const nonzeroCount = results.filter(r => r.count > 0).length;
-                const maxCount = results.length > 0 ? results[0].count : 0;
-
-                lastResults = {
-                    results: results,
-                    totalInput: totalInputCount,
-                    uniqueInput: uniqueComboCount,
-                    nonzeroCount: nonzeroCount,
-                    maxCount: maxCount,
-                };
-
-                statsCard.style.display = 'block';
-                statsGrid.innerHTML = `
-                    <div class="stat-item">
-                        <div class="stat-value">${totalInputCount}</div>
-                        <div class="stat-label">原始输入组合数</div>
-                    </div>
-                    <div class="stat-item warn">
-                        <div class="stat-value">${totalInputCount - uniqueComboCount}</div>
-                        <div class="stat-label">去重移除的重复组</div>
-                    </div>
-                    <div class="stat-item success">
-                        <div class="stat-value">${uniqueComboCount}</div>
-                        <div class="stat-label">有效参与统计的组合</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value">${uniqueComboCount * 15}</div>
-                        <div class="stat-label">产生的2数字子组合(次)</div>
-                    </div>
-                    <div class="stat-item success">
-                        <div class="stat-value">${nonzeroCount}</div>
-                        <div class="stat-label">出现≥1次的2数组合</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value">${TOTAL_PAIRS - nonzeroCount}</div>
-                        <div class="stat-label">未出现的2数组合</div>
-                    </div>
-                `;
-
-                resultCard.style.display = 'block';
-                resultSubtitle.textContent =
-                    `共${TOTAL_PAIRS}组 · 按出现次数从多到少排列 · ${nonzeroCount}组有出现 · 最多出现${maxCount}次`;
-
-                if (results.length === 0) {
-                    resultScroll.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>暂无结果</p></div>`;
-                    return;
-                }
-
-                let tableHTML = `
-                    <table>
-                        <thead>
-                            <tr>
-                                <th class="col-rank">排名</th>
-                                <th class="col-combo">双数字组合</th>
-                                <th class="col-count">出现次数</th>
-                            </tr>
-                        </thead>
-                        <tbody>`;
-
-                for (let i = 0; i < results.length; i++) {
-                    const r = results[i];
-                    let rowClass = '';
-                    let badgeClass = '';
-                    if (r.count >= maxCount && r.count > 0 && maxCount > 0) {
-                        rowClass = 'row-high';
-                        badgeClass = 'badge-high';
-                    } else if (r.count >= Math.ceil(maxCount / 2) && r.count > 0 && maxCount > 1) {
-                        rowClass = 'row-mid';
-                        badgeClass = 'badge-mid';
-                    } else if (r.count > 0) {
-                        badgeClass = 'badge-low';
-                    } else {
-                        badgeClass = 'badge-zero';
-                    }
-
-                    tableHTML += `
-                        <tr class="${rowClass}">
-                            <td class="col-rank">${i + 1}</td>
-                            <td class="col-combo">${r.display}</td>
-                            <td class="col-count"><span class="count-badge ${badgeClass}">${r.count}</span></td>
-                        </tr>`;
-                }
-
-                tableHTML += '</tbody></table>';
-                resultScroll.innerHTML = tableHTML;
-                resultScroll.scrollTop = 0;
-            }
-
-            // ============ 渲染单数字频率 ============
-            function renderSingleFreq(freqList, uniqueComboCount) {
-                lastSingleFreq = freqList;
-                singleFreqCard.style.display = 'block';
-                const totalAppearances = freqList.reduce((sum, item) => sum + item.count, 0);
-                singleFreqSubtitle.textContent =
-                    `在 ${uniqueComboCount} 组去重组合中，数字总出现 ${totalAppearances} 次 · 按次数从多到少排列`;
-
-                if (freqList.length === 0) {
-                    singleFreqScroll.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>暂无数据</p></div>`;
-                    return;
-                }
-
-                let tableHTML = `
-                    <table>
-                        <thead>
-                            <tr>
-                                <th class="col-rank">排名</th>
-                                <th class="col-combo">数字</th>
-                                <th class="col-count">出现次数</th>
-                            </tr>
-                        </thead>
-                        <tbody>`;
-
-                const maxCount = freqList[0].count;
-                for (let i = 0; i < freqList.length; i++) {
-                    const item = freqList[i];
-                    let rowClass = '';
-                    let badgeClass = '';
-                    if (item.count === maxCount && maxCount > 0) {
-                        rowClass = 'row-high';
-                        badgeClass = 'badge-high';
-                    } else if (item.count > 0) {
-                        badgeClass = 'badge-low';
-                    } else {
-                        badgeClass = 'badge-zero';
-                    }
-
-                    tableHTML += `
-                        <tr class="${rowClass}">
-                            <td class="col-rank">${i + 1}</td>
-                            <td class="col-combo">${item.display}</td>
-                            <td class="col-count"><span class="count-badge ${badgeClass}">${item.count}</span></td>
-                        </tr>`;
-                }
-
-                tableHTML += '</tbody></table>';
-                singleFreqScroll.innerHTML = tableHTML;
-                singleFreqScroll.scrollTop = 0;
-            }
-
-            // ============ 主计算函数 ============
-            function calculate() {
-                const text = inputArea.value.trim();
-                if (!text) {
-                    showToast('⚠️ 请先在输入框中填写6数字组合', 'error');
-                    statsCard.style.display = 'none';
-                    resultCard.style.display = 'none';
-                    singleFreqCard.style.display = 'none';
-                    lastResults = null;
-                    lastSingleFreq = null;
-                    return;
-                }
-
-                const { rawCombos, errors } = parseInput(text);
-
-                if (rawCombos.length === 0) {
-                    showToast('❌ 未识别到有效的6数字组合，请检查输入格式', 'error');
-                    statsCard.style.display = 'none';
-                    resultCard.style.display = 'none';
-                    singleFreqCard.style.display = 'none';
-                    lastResults = null;
-                    lastSingleFreq = null;
-                    if (errors.length > 0) {
-                        alert('解析错误：\n' + errors.join('\n'));
-                    }
-                    return;
-                }
-
-                const totalInput = rawCombos.length;
-                const uniqueCombos = deduplicateCombos(rawCombos);
-                const uniqueCount = uniqueCombos.length;
-
-                // 双数字统计
-                const pairCounts = countPairs(uniqueCombos);
-                const pairResults = buildPairResultList(pairCounts);
-                renderPairResults(pairResults, uniqueCount, totalInput);
-
-                // 单数字频率统计
-                const singleFreq = countSingleDigits(uniqueCombos);
-                renderSingleFreq(singleFreq, uniqueCount);
-
-                if (errors.length > 0) {
-                    console.warn('解析警告：', errors);
-                    if (errors.length <= 3) {
-                        setTimeout(() => showToast('⚠️ ' + errors[0], 'error'), 500);
-                    } else {
-                        setTimeout(() => showToast('⚠️ 共' + errors.length + '条解析警告，详见控制台', 'error'), 500);
-                    }
-                }
-
-                const nonzeroPairs = pairResults.filter(r => r.count > 0).length;
-                showToast('✅ 统计完成！' + uniqueCount + '组有效输入，' + nonzeroPairs + '组2数组合有出现', 'success');
-
-                setTimeout(() => {
-                    resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 150);
-            }
-
-            // ============ 复制双数字结果 ============
-            function copyResults(mode) {
-                if (!lastResults || !lastResults.results || lastResults.results.length === 0) {
-                    showToast('⚠️ 暂无结果可复制，请先进行统计', 'error');
-                    return;
-                }
-
-                let lines = [];
-                const results = lastResults.results;
-
-                if (mode === 'all') {
-                    for (const r of results) {
-                        lines.push(r.display + '\t' + r.count);
-                    }
-                    showToast('📋 已复制全部528组数据（组合+次数，Tab分隔）', 'success');
-                } else if (mode === 'nonzero') {
-                    for (const r of results) {
-                        if (r.count > 0) {
-                            lines.push(r.display + '\t' + r.count);
-                        }
-                    }
-                    showToast('📋 已复制' + lastResults.nonzeroCount + '组有出现的数据（组合+次数）', 'success');
-                } else if (mode === 'combos_all') {
-                    for (const r of results) {
-                        lines.push(r.display);
-                    }
-                    showToast('📋 已复制全部528组纯组合编号（无次数）', 'success');
-                } else if (mode === 'combos_nonzero') {
-                    for (const r of results) {
-                        if (r.count > 0) {
-                            lines.push(r.display);
-                        }
-                    }
-                    showToast('📋 已复制' + lastResults.nonzeroCount + '组纯组合编号（无次数）', 'success');
-                }
-
-                const textToCopy = lines.join('\n');
-                copyToClipboard(textToCopy);
-            }
-
-            // ============ 复制单数字频率 ============
-            function copySingleFreq() {
-                if (!lastSingleFreq || lastSingleFreq.length === 0) {
-                    showToast('⚠️ 暂无单数字频率数据', 'error');
-                    return;
-                }
-
-                let lines = [];
-                for (const item of lastSingleFreq) {
-                    lines.push(item.display + ',' + item.count);
-                }
-                const textToCopy = lines.join('\n');
-                copyToClipboard(textToCopy);
-                showToast('📋 已复制单数字频率统计（数字,次数）', 'success');
-            }
-
-            // ============ 通用剪贴板复制 ============
-            function copyToClipboard(text) {
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(text).catch(() => {
-                        fallbackCopy(text);
-                    });
-                } else {
-                    fallbackCopy(text);
-                }
-            }
-
-            function fallbackCopy(text) {
-                const textarea = document.createElement('textarea');
-                textarea.value = text;
-                textarea.style.position = 'fixed';
-                textarea.style.left = '-9999px';
-                textarea.style.top = '-9999px';
-                document.body.appendChild(textarea);
-                textarea.focus();
-                textarea.select();
-                try {
-                    document.execCommand('copy');
-                    showToast('📋 已复制到剪贴板', 'success');
-                } catch (e) {
-                    showToast('❌ 复制失败，请手动选择结果复制', 'error');
-                }
-                document.body.removeChild(textarea);
-            }
-
-            // ============ 加载示例 ============
-            function loadExample() {
-                inputArea.value =
-                    '1,2,3,4,5,6\n2,3,4,5,6,7\n3,4,5,6,7,8\n10,15,20,25,30,33\n01,07,13,19,25,31\n5,10,15,20,25,30\n1,2,3,4,5,6';
-                showToast('📋 已加载示例数据（含一组重复用于演示去重）', 'success');
-                setTimeout(() => calculate(), 200);
-            }
-
-            // ============ 清空 ============
-            function clearAll() {
-                inputArea.value = '';
-                statsCard.style.display = 'none';
-                resultCard.style.display = 'none';
-                singleFreqCard.style.display = 'none';
-                resultScroll.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>暂无结果，请先输入数据并点击统计</p></div>`;
-                singleFreqScroll.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>暂无单数字频率数据</p></div>`;
-                lastResults = null;
-                lastSingleFreq = null;
-                showToast('🗑 已清空所有数据', '');
-            }
-
-            // ============ 键盘快捷键 ============
-            inputArea.addEventListener('keydown', function(e) {
-                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                    e.preventDefault();
-                    calculate();
-                }
+        function renderSingleFreq(list, uniqueCount) {
+            lastSingleFreq = list;
+            singleFreqCard.style.display='block';
+            const total = list.reduce((s,i)=>s+i.count,0);
+            singleFreqSubtitle.textContent = `在${uniqueCount}组去重组合中，数字总出现${total}次`;
+            let html = `<table><thead><tr><th>排名</th><th>数字</th><th>出现次数</th></tr></thead><tbody>`;
+            const max = list[0]?.count||0;
+            list.forEach((item,i)=>{
+                let cls='', badge='badge-zero';
+                if(item.count===max && max>0) { cls='row-high'; badge='badge-high'; }
+                else if(item.count>0) badge='badge-low';
+                html += `<tr class="${cls}"><td>${i+1}</td><td class="col-combo">${item.display}</td><td><span class="count-badge ${badge}">${item.count}</span></td></tr>`;
             });
+            html += '</tbody></table>';
+            singleFreqScroll.innerHTML = html;
+        }
 
-            window.addEventListener('DOMContentLoaded', () => {
-                inputArea.focus();
-            });
+        function calculate() {
+            const text = inputArea.value.trim();
+            if(!text) { showToast('请输入数据','error'); return; }
+            const { rawCombos, errors } = parseInput(text);
+            if(!rawCombos.length) { showToast('无有效组合','error'); if(errors.length) alert(errors.join('\n')); return; }
+            const totalInput = rawCombos.length;
+            const uniqueCombos = deduplicateCombos(rawCombos);
+            const uniqueCount = uniqueCombos.length;
 
-            // 暴露全局函数
-            window.calculate = calculate;
-            window.loadExample = loadExample;
-            window.clearAll = clearAll;
-            window.copyResults = copyResults;
-            window.copySingleFreq = copySingleFreq;
-        })();
-    </script>
+            const pairCounts = countPairs(uniqueCombos);
+            renderPairResults(buildPairResults(pairCounts), uniqueCount, totalInput);
+            renderSingleFreq(countSingleDigits(uniqueCombos), uniqueCount);
+
+            if(errors.length) console.warn('解析警告', errors);
+            showToast('✅ 统计完成','success');
+            setTimeout(()=> resultCard.scrollIntoView({behavior:'smooth',block:'start'}),150);
+        }
+
+        function copyResults(mode) {
+            if(!lastResults?.results?.length) { showToast('无结果','error'); return; }
+            let lines = [];
+            const res = lastResults.results;
+            if(mode==='all') res.forEach(r=> lines.push(r.display+'\t'+r.count));
+            else if(mode==='nonzero') res.filter(r=>r.count>0).forEach(r=> lines.push(r.display+'\t'+r.count));
+            else if(mode==='combos_all') res.forEach(r=> lines.push(r.display));
+            else if(mode==='combos_nonzero') res.filter(r=>r.count>0).forEach(r=> lines.push(r.display));
+            navigator.clipboard.writeText(lines.join('\n')).then(()=> showToast('已复制')).catch(()=> showToast('复制失败'));
+        }
+
+        function copySingleFreq() {
+            if(!lastSingleFreq?.length) { showToast('无数据','error'); return; }
+            const lines = lastSingleFreq.map(i=> i.display+','+i.count);
+            navigator.clipboard.writeText(lines.join('\n')).then(()=> showToast('已复制单数字频率')).catch(()=> showToast('复制失败'));
+        }
+
+        function loadExample() {
+            inputArea.value = '1,2,3,4,5,6\n2,3,4,5,6,7\n10,15,20,25,30,33\n01,07,13,19,25,31\n5,10,15,20,25,30\n1,2,3,4,5,6';
+            showToast('示例已加载');
+            setTimeout(calculate,200);
+        }
+
+        function clearAll() {
+            inputArea.value='';
+            statsCard.style.display='none';
+            resultCard.style.display='none';
+            singleFreqCard.style.display='none';
+            resultScroll.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>暂无结果</p></div>';
+            singleFreqScroll.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>暂无数据</p></div>';
+            lastResults = lastSingleFreq = null;
+            showToast('已清空');
+        }
+
+        inputArea.addEventListener('keydown', e => { if((e.ctrlKey||e.metaKey) && e.key==='Enter') { e.preventDefault(); calculate(); } });
+        window.addEventListener('DOMContentLoaded', ()=> inputArea.focus());
+
+        window.calculate = calculate;
+        window.loadExample = loadExample;
+        window.clearAll = clearAll;
+        window.copyResults = copyResults;
+        window.copySingleFreq = copySingleFreq;
+    })();
+</script>
 </body>
 </html>
