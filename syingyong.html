@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>双应用前区筛选 · 修复导出卡死</title>
+    <title>双应用前区筛选 · 双复制版</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { --bg: #f5f6fa; --card-bg: #ffffff; --primary: #4a6cf7; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; --text: #2c3e50; --border: #e0e5ec; --radius: 14px; }
@@ -40,7 +40,8 @@
         .group-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-weight: 600; flex-wrap: wrap; gap: 4px; }
         .group-list { font-family: monospace; font-size: 12px; max-height: 120px; overflow-y: auto; background: #f9fafb; border-radius: 6px; padding: 4px 8px; margin-bottom: 6px; line-height: 1.8; }
         .copy-btn { background: #27ae60; color: #fff; border: none; padding: 4px 10px; border-radius: 12px; font-size: 11px; cursor: pointer; white-space: nowrap; margin: 2px; }
-        .copy-all-btn { background: #e67e22; color: #fff; border: none; padding: 4px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; white-space: nowrap; margin-left: 8px; }
+        .copy-all-btn { background: #e67e22; color: #fff; border: none; padding: 4px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; white-space: nowrap; margin-left: 4px; }
+        .copy-unique-btn { background: #2980b9; color: #fff; border: none; padding: 4px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; white-space: nowrap; margin-left: 4px; }
         .note-box { font-size: 10px; color: #aaa; margin-top: 4px; line-height: 1.6; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; justify-content: center; align-items: center; }
         .modal-box { background: #fff; border-radius: 16px; padding: 20px; width: 90%; max-width: 500px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
@@ -78,9 +79,10 @@
             <button class="btn btn-outline btn-sm" id="btnResetAll">重置</button>
         </div>
         <div class="result-area" id="resultArea">
-            <div style="display:flex; align-items:center; margin-bottom:8px;">
-                <b id="resultTitle" style="flex:1;">统计（含出现1次）</b>
-                <button class="copy-all-btn" id="btnCopyAll">📋 一键复制全部</button>
+            <div style="display:flex; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
+                <b id="resultTitle" style="flex:1; min-width:150px;">统计（含出现1次）</b>
+                <button class="copy-all-btn" id="btnCopyAll">📋 复制全部</button>
+                <button class="copy-unique-btn" id="btnCopyUnique">📋 复制唯一</button>
             </div>
             <div id="resultGroups"></div>
         </div>
@@ -244,9 +246,7 @@
         if (len > arr.length) return false;
         for (var i=0; i <= arr.length-len; i++) {
             var ok = true;
-            for (var j=1; j<len; j++) {
-                if (arr[i+j] - arr[i+j-1] !== gap) { ok = false; break; }
-            }
+            for (var j=1; j<len; j++) { if (arr[i+j] - arr[i+j-1] !== gap) { ok = false; break; } }
             if (ok) return true;
         }
         return false;
@@ -280,37 +280,45 @@
         return parts.join('');
     }
 
-    // ===== 关键修复：确保 busy 标志总是会被重置 =====
-    function resetBusyState() {
+    // 通用状态重置
+    function finishOperation(startTime) {
         busy = false;
         hideProgress();
         setStatus('就绪');
-        document.getElementById('btnExport').disabled = false;
-        document.getElementById('btnExport').textContent = '📥 导出Excel（' + filteredCount.toLocaleString() + '组）';
         document.getElementById('btnApply').disabled = false;
         document.getElementById('btnApply').textContent = '⚡应用筛选';
+        document.getElementById('btnExport').disabled = false;
+        document.getElementById('btnExport').textContent = '📥 导出Excel（' + filteredCount.toLocaleString() + '组）';
+        if (startTime) {
+            var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+            log('⏱️ 本次操作耗时：' + elapsed + ' 秒');
+        }
     }
 
     function applyCustomFilter(name, filterFn) {
         if (busy) return alert('处理中');
         if (filteredCount===0) return alert('无剩余');
         if (!confirm('确认排除 ['+name+']？')) return;
+        var startTime = Date.now();
         busy=true; setStatus(name+' 过滤中...'); showProgress(0);
         var removed=0, done=0;
         var BATCH=60000;
         function step(start) {
-            var end=Math.min(start+BATCH, TOTAL);
-            for (var i=start; i<end; i++) {
-                if (!filteredAlive[i]) continue;
-                if (filterFn(unmask(masksLow[i],masksHigh[i]))) { filteredAlive[i]=0; removed++; }
-            }
-            done=end;
-            showProgress(Math.round(done/TOTAL*100));
-            if (done<TOTAL) setTimeout(function(){ step(done); }, 10);
-            else {
-                filteredCount-=removed; updateDisplay(); hideProgress(); setStatus('就绪'); busy=false;
-                log('✅ '+name+'：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组');
-            }
+            try {
+                var end=Math.min(start+BATCH, TOTAL);
+                for (var i=start; i<end; i++) {
+                    if (!filteredAlive[i]) continue;
+                    if (filterFn(unmask(masksLow[i],masksHigh[i]))) { filteredAlive[i]=0; removed++; }
+                }
+                done=end;
+                showProgress(Math.round(done/TOTAL*100));
+                if (done<TOTAL) setTimeout(function(){ step(done); }, 5);
+                else {
+                    filteredCount-=removed; updateDisplay();
+                    log('✅ '+name+'：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组');
+                    finishOperation(startTime);
+                }
+            } catch(e) { log('❌ 过滤出错：'+e.message); finishOperation(startTime); }
         }
         step(0);
     }
@@ -319,24 +327,28 @@
         if (targetSet.size===0) return alert('请选择数字');
         if (filteredCount===0) return alert('无剩余');
         if (busy) return alert('处理中');
+        var startTime = Date.now();
         busy=true; setStatus(mode+'过滤中...'); showProgress(0);
         var tm = maskFrom(Array.from(targetSet));
         var removed=0, done=0;
         var BATCH=200000;
         function step(start) {
-            var end=Math.min(start+BATCH, TOTAL);
-            for (var i=start; i<end; i++) {
-                if (!filteredAlive[i]) continue;
-                var l=masksLow[i], h=masksHigh[i];
-                if (mode==='OR' ? ((l&tm.l)||(h&tm.h)) : ((l&tm.l)===tm.l && (h&tm.h)===tm.h)) { filteredAlive[i]=0; removed++; }
-            }
-            done=end;
-            showProgress(Math.round(done/TOTAL*100));
-            if (done<TOTAL) setTimeout(function(){ step(done); }, 5);
-            else {
-                filteredCount-=removed; updateDisplay(); hideProgress(); setStatus('就绪'); busy=false;
-                log('✅ '+mode+'过滤：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组');
-            }
+            try {
+                var end=Math.min(start+BATCH, TOTAL);
+                for (var i=start; i<end; i++) {
+                    if (!filteredAlive[i]) continue;
+                    var l=masksLow[i], h=masksHigh[i];
+                    if (mode==='OR' ? ((l&tm.l)||(h&tm.h)) : ((l&tm.l)===tm.l && (h&tm.h)===tm.h)) { filteredAlive[i]=0; removed++; }
+                }
+                done=end;
+                showProgress(Math.round(done/TOTAL*100));
+                if (done<TOTAL) setTimeout(function(){ step(done); }, 5);
+                else {
+                    filteredCount-=removed; updateDisplay();
+                    log('✅ '+mode+'过滤：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组');
+                    finishOperation(startTime);
+                }
+            } catch(e) { log('❌ 过滤出错：'+e.message); finishOperation(startTime); }
         }
         step(0);
     }
@@ -388,33 +400,38 @@
         var done = 0;
         return new Promise(function(resolve) {
             function step(start) {
-                var end = Math.min(start+80, total);
-                for (var i=start; i<end; i++) {
-                    var cm = condMasks[i];
-                    if (opts.six) { var idx = maskIndex.get(cm.l+'_'+cm.h); if (idx!==undefined) removeSet.add(idx); }
-                    if (opts.five) { var hits5 = genHit(cm,5); for (var j=0; j<hits5.length; j++) { var idx = maskIndex.get(hits5[j].l+'_'+hits5[j].h); if (idx!==undefined) removeSet.add(idx); } }
-                    if (opts.four) { var hits4 = genHit(cm,4); for (var j=0; j<hits4.length; j++) { var idx = maskIndex.get(hits4[j].l+'_'+hits4[j].h); if (idx!==undefined) removeSet.add(idx); } }
-                    if (opts.three) { var hits3 = genHit(cm,3); for (var j=0; j<hits3.length; j++) { var idx = maskIndex.get(hits3[j].l+'_'+hits3[j].h); if (idx!==undefined) removeSet.add(idx); } }
-                }
-                done=end;
-                showProgress(Math.round(done/total*100));
-                if (done<total) setTimeout(function(){ step(done); }, 10);
-                else {
-                    if (opts.zero) {
-                        var allNums = new Set();
-                        for (var i=0; i<condMasks.length; i++) { var nums = unmask(condMasks[i].l, condMasks[i].h); for (var j=0; j<nums.length; j++) allNums.add(nums[j]); }
-                        var miss = [];
-                        for (var i=1; i<=33; i++) if (!allNums.has(i)) miss.push(i);
-                        if (miss.length>=6) {
-                            var zcs = combos(miss,6);
-                            for (var i=0; i<zcs.length; i++) { var m = maskFrom(zcs[i]); var idx = maskIndex.get(m.l+'_'+m.h); if (idx!==undefined) removeSet.add(idx); }
-                        }
+                try {
+                    var end = Math.min(start+80, total);
+                    for (var i=start; i<end; i++) {
+                        var cm = condMasks[i];
+                        if (opts.six) { var idx = maskIndex.get(cm.l+'_'+cm.h); if (idx!==undefined) removeSet.add(idx); }
+                        if (opts.five) { var hits5 = genHit(cm,5); for (var j=0; j<hits5.length; j++) { var idx = maskIndex.get(hits5[j].l+'_'+hits5[j].h); if (idx!==undefined) removeSet.add(idx); } }
+                        if (opts.four) { var hits4 = genHit(cm,4); for (var j=0; j<hits4.length; j++) { var idx = maskIndex.get(hits4[j].l+'_'+hits4[j].h); if (idx!==undefined) removeSet.add(idx); } }
+                        if (opts.three) { var hits3 = genHit(cm,3); for (var j=0; j<hits3.length; j++) { var idx = maskIndex.get(hits3[j].l+'_'+hits3[j].h); if (idx!==undefined) removeSet.add(idx); } }
                     }
-                    var removed = 0;
-                    removeSet.forEach(function(idx){ if (filteredAlive[idx]) { filteredAlive[idx]=0; removed++; } });
-                    filteredCount -= removed;
-                    updateDisplay(); hideProgress();
-                    resolve(removed);
+                    done=end;
+                    showProgress(Math.round(done/total*100));
+                    if (done<total) setTimeout(function(){ step(done); }, 5);
+                    else {
+                        if (opts.zero) {
+                            var allNums = new Set();
+                            for (var i=0; i<condMasks.length; i++) { var nums = unmask(condMasks[i].l, condMasks[i].h); for (var j=0; j<nums.length; j++) allNums.add(nums[j]); }
+                            var miss = [];
+                            for (var i=1; i<=33; i++) if (!allNums.has(i)) miss.push(i);
+                            if (miss.length>=6) {
+                                var zcs = combos(miss,6);
+                                for (var i=0; i<zcs.length; i++) { var m = maskFrom(zcs[i]); var idx = maskIndex.get(m.l+'_'+m.h); if (idx!==undefined) removeSet.add(idx); }
+                            }
+                        }
+                        var removed = 0;
+                        removeSet.forEach(function(idx){ if (filteredAlive[idx]) { filteredAlive[idx]=0; removed++; } });
+                        filteredCount -= removed;
+                        updateDisplay();
+                        resolve(removed);
+                    }
+                } catch(e) {
+                    log('❌ 筛选出错：'+e.message);
+                    resolve(0);
                 }
             }
             step(0);
@@ -423,6 +440,7 @@
 
     function applyFilter() {
         if (busy) return alert('处理中');
+        var startTime = Date.now();
         var opts = {
             zero: document.getElementById('chk0').checked,
             three: document.getElementById('chk3').checked,
@@ -432,7 +450,8 @@
         };
         if (!opts.zero && !opts.three && !opts.four && !opts.five && !opts.six) return alert('请勾选排除条件');
         addToHistory();
-        var expanded = expandCurrent();
+        var expanded;
+        try { expanded = expandCurrent(); } catch(e) { log('❌ 解析输入出错：'+e.message); return; }
         if (!expanded.length) return alert('无有效组合');
         var masks = expanded.map(function(c){ return maskFrom(c); });
         var unique = [];
@@ -447,13 +466,10 @@
         document.getElementById('btnApply').textContent='⏳筛选中...';
         showProgress(0);
         doFilter(unique, opts).then(function(removed){
-            setStatus('就绪');
             log('✅ 筛选完成：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组');
             document.getElementById('inputArea').value='';
             lastInputSnapshot='';
-            busy=false;
-            document.getElementById('btnApply').disabled=false;
-            document.getElementById('btnApply').textContent='⚡应用筛选';
+            finishOperation(startTime);
         });
     }
 
@@ -530,12 +546,34 @@
             map.set(k, (map.get(k)||0)+1);
         }
         var groups = new Map();
-        var allCombosList = [];
+        var allCombosList = [];   // 含重复，用于“复制全部”
+        var uniqueCombosList = []; // 去重，用于“复制唯一”
         map.forEach(function(cnt, k){
             if (!groups.has(cnt)) groups.set(cnt, []);
             groups.get(cnt).push(k);
-            allCombosList.push(k);
+            // 全部组合（含重复）按照出现次数依次放入
+            for (var r = 0; r < cnt; r++) allCombosList.push(k);
+            // 唯一组合只放一次
+            uniqueCombosList.push(k);
         });
+        // 对唯一组合排序
+        uniqueCombosList.sort();
+        // 对全部组合也排序（按出现次数从高到低后，组内排序已在分组时做过）
+        // 这里为了顺序清晰，allCombosList 按次数降序排列（已经在构建时按次数顺序？我们需要按次数降序）
+        // 重新构建 allCombosList，确保按出现次数从高到低排列
+        allCombosList = [];
+        var sortedCounts = Array.from(groups.keys()).sort(function(a,b){ return b-a; });
+        for (var i = 0; i < sortedCounts.length; i++) {
+            var count = sortedCounts[i];
+            var combos = groups.get(count);
+            combos.sort();
+            for (var j = 0; j < combos.length; j++) {
+                for (var r = 0; r < count; r++) {
+                    allCombosList.push(combos[j]);
+                }
+            }
+        }
+
         var total = historyCombos.length;
         var unique = map.size;
         var area = document.getElementById('resultArea');
@@ -543,20 +581,20 @@
         var list = document.getElementById('resultGroups');
         title.textContent = '📊 全部历史组合统计：' + total.toLocaleString() + ' 注 → ' + unique.toLocaleString() + ' 种';
         var html = '';
-        var sortedCounts = Array.from(groups.keys()).sort(function(a,b){ return b-a; });
-        for (var i=0; i<sortedCounts.length; i++) {
+        for (var i = 0; i < sortedCounts.length; i++) {
             var count = sortedCounts[i];
             var combos = groups.get(count);
             combos.sort();
             html += '<div class="group-box"><div class="group-header"><span>出现 '+count+' 次（共 '+combos.length+' 组）</span>';
             html += '<div><button class="copy-btn" data-count="'+count+'" data-type="plain">📋 复制号码</button></div></div>';
             html += '<div class="group-list">';
-            for (var j=0; j<combos.length; j++) html += '<div>'+combos[j]+'</div>';
+            for (var j = 0; j < combos.length; j++) html += '<div>'+combos[j]+'</div>';
             html += '</div></div>';
         }
         list.innerHTML = html;
+        // 绑定分组复制按钮
         var buttons = list.querySelectorAll('.copy-btn');
-        for (var i=0; i<buttons.length; i++) {
+        for (var i = 0; i < buttons.length; i++) {
             buttons[i].addEventListener('click', function(){
                 var cnt = parseInt(this.dataset.count);
                 var combos = groups.get(cnt);
@@ -566,11 +604,18 @@
             });
         }
         area.style.display = 'block';
+
+        // 复制全部按钮
         document.getElementById('btnCopyAll').onclick = function() {
-            allCombosList.sort();
             var text = allCombosList.join('\n');
             copyText(text, allCombosList.length);
         };
+        // 复制唯一按钮
+        document.getElementById('btnCopyUnique').onclick = function() {
+            var text = uniqueCombosList.join('\n');
+            copyText(text, uniqueCombosList.length);
+        };
+
         log('📊 统计完成（历史 '+total+' 注）');
     }
 
@@ -590,22 +635,19 @@
         document.body.removeChild(ta);
     }
 
-    // ===== 修复后的导出函数 =====
     function exportXLSX(){
         if (busy) return alert('处理中，请等待当前操作完成');
         if (filteredCount === 0) return alert('无组合可导出');
         if (typeof XLSX === 'undefined') { alert('Excel库加载失败，请检查网络后刷新页面'); return; }
-
+        var startTime = Date.now();
         busy = true;
         document.getElementById('btnExport').disabled = true;
         document.getElementById('btnExport').textContent = '收集中...';
         setStatus('导出中...');
         showProgress(0);
-
         var result = [];
         var done = 0;
         var BATCH = 200000;
-
         function step(start) {
             try {
                 var end = Math.min(start + BATCH, TOTAL);
@@ -619,7 +661,6 @@
                 if (done < TOTAL) {
                     setTimeout(function(){ step(done); }, 5);
                 } else {
-                    // 数据收集完毕，生成 Excel
                     setTimeout(function() {
                         try {
                             var sheetData = [['前区号码']];
@@ -633,7 +674,6 @@
                             var ws1 = XLSX.utils.aoa_to_sheet(sheetData);
                             ws1['!cols'] = [{ wch: maxLen + 2 }];
                             XLSX.utils.book_append_sheet(wb, ws1, '组合列表');
-
                             var cnt = new Array(34).fill(0);
                             for (var i = 0; i < result.length; i++) {
                                 var nums = result[i].split(',');
@@ -650,7 +690,6 @@
                             var ws2 = XLSX.utils.aoa_to_sheet(statData);
                             ws2['!cols'] = [{ wch: 8 }, { wch: 12 }, { wch: 10 }];
                             XLSX.utils.book_append_sheet(wb, ws2, '统计');
-
                             var now = new Date();
                             XLSX.writeFile(wb, '双应用_' + result.length + '组_' + now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + '.xlsx');
                             log('📥 导出' + result.length.toLocaleString() + '组');
@@ -659,13 +698,12 @@
                             alert('导出失败：' + e.message);
                             log('❌ 导出失败：' + e.message);
                         }
-                        // 无论如何都要重置状态
-                        resetBusyState();
+                        finishOperation(startTime);
                     }, 50);
                 }
             } catch (e) {
                 alert('数据收集出错：' + e.message);
-                resetBusyState();
+                finishOperation(startTime);
             }
         }
         step(0);
@@ -782,7 +820,7 @@
         document.getElementById('btnPairModalCancel').addEventListener('click', hidePairModal);
         document.getElementById('btnPairModalConfirm').addEventListener('click', confirmPairExclusion);
 
-        log('✅ 导出修复版就绪，可反复导出');
+        log('✅ 双复制版就绪');
     }
 
     init();
