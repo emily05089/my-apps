@@ -196,6 +196,43 @@
     }
     .error-line { font-weight: 700; color: #b91c1c; }
     .error-reason { color: #7f1d1d; margin-left: 6px; }
+    
+    .dup-box {
+      background: #fefce8;
+      border: 1px solid #fde047;
+      border-left: 4px solid #ca8a04;
+      padding: 12px 16px;
+      border-radius: 12px;
+      color: #713f12;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .dup-box summary {
+      cursor: pointer;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #854d0e;
+    }
+    .dup-group {
+      margin-bottom: 12px;
+    }
+    .dup-group-title {
+      font-weight: 700;
+      color: #b45309;
+      margin-bottom: 4px;
+    }
+    .dup-item {
+      font-family: 'Fira Code', monospace;
+      background: #fef9c3;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin: 2px 0;
+      display: inline-block;
+      margin-right: 8px;
+      color: #422006;
+    }
     @media (max-width: 600px) {
       .container { padding: 16px; }
       .btn { padding: 10px 18px; }
@@ -206,11 +243,11 @@
 <div class="container">
   <h1>
     🎱 双分组
-    <span class="icon">6组分类</span>
+    <span class="icon">6组分类·重复统计</span>
   </h1>
 
   <div class="input-area">
-    <label>📋 输入组合（支持逗号、点号、空格分隔，所有组合均保留）</label>
+    <label>📋 输入组合（支持逗号、点号、空格分隔，重复组合会统计）</label>
     <textarea id="comboInput" placeholder="单式/复式：1,2,3,4,5,6
 或用点号：5.15.20.25.29.30
 胆拖：胆:15,22,32 拖:01,05,07,10,18,26,27
@@ -222,7 +259,7 @@
       <span>✅ 分隔符：<code>,</code> <code>.</code> <code>空格</code> 均可</span>
       <span>✅ 胆拖：<code>胆:15,22,32 拖:01,05,07</code></span>
       <span>⚠️ 数字必须1-33，单式至少6个数字</span>
-      <span>🔄 重复组合全部保留，不做去重</span>
+      <span>🔁 重复组合按次数统计显示</span>
     </div>
   </div>
 
@@ -347,6 +384,17 @@
     return merged;
   }
 
+  // 生成规范字符串用于重复比较
+  function normalizeItem(parsed) {
+    if (parsed.type === 'standard') {
+      // 单式/复式：排序数字后逗号连接
+      return parsed.nums.join(',');
+    } else if (parsed.type === 'dantuo') {
+      return `胆:${parsed.danNums.join(',')} 拖:${parsed.tuoNums.join(',')}`;
+    }
+    return null;
+  }
+
   function parseLine(line) {
     const trimmed = line.trim();
     if (!trimmed) return null;
@@ -368,8 +416,8 @@
         return { type: 'invalid', raw: trimmed, reason: `拖码超出1-33：[${tuoResult.invalidNums.join(',')}]` };
       }
 
-      const danNums = danResult.nums;
-      const tuoNums = tuoResult.nums;
+      const danNums = danResult.nums.sort((a,b)=>a-b);
+      const tuoNums = tuoResult.nums.sort((a,b)=>a-b);
 
       if (danNums.length === 0) return { type: 'invalid', raw: trimmed, reason: '胆码为空或不在1-33范围' };
       if (tuoNums.length === 0) return { type: 'invalid', raw: trimmed, reason: '拖码为空或不在1-33范围' };
@@ -379,7 +427,7 @@
         if (tuoNums.includes(n)) return { type: 'invalid', raw: trimmed, reason: `数字${n}在胆拖中重复` };
       }
 
-      return { type: 'dantuo', raw: trimmed, danCount: danNums.length, tuoCount: tuoNums.length };
+      return { type: 'dantuo', raw: trimmed, danCount: danNums.length, tuoCount: tuoNums.length, danNums, tuoNums };
     } else if (danIdx !== -1 && tuoIdx === -1) {
       return { type: 'invalid', raw: trimmed, reason: '缺少拖码' };
     } else if (danIdx === -1 && tuoIdx !== -1) {
@@ -389,11 +437,11 @@
       if (result.invalidNums.length > 0) {
         return { type: 'invalid', raw: trimmed, reason: `超出1-33：[${result.invalidNums.join(',')}]` };
       }
-      const nums = result.nums;
+      const nums = result.nums.sort((a,b)=>a-b);
       if (nums.length === 0) return { type: 'invalid', raw: trimmed, reason: '未识别到1-33的数字' };
       if (new Set(nums).size !== nums.length) return { type: 'invalid', raw: trimmed, reason: `数字重复：[${nums.join(',')}]` };
       if (nums.length < 6) return { type: 'invalid', raw: trimmed, reason: `只有${nums.length}个数字：[${nums.join(',')}]，至少需要6个` };
-      return { type: 'standard', raw: trimmed, count: nums.length };
+      return { type: 'standard', raw: trimmed, count: nums.length, nums };
     }
   }
 
@@ -404,6 +452,7 @@
     
     const groups = GROUP_DEFS.map(g => ({ ...g, items: [] }));
     const errors = [];
+    const countMap = new Map(); // 规范字符串 -> 出现次数
 
     for (let i = 0; i < mergedLines.length; i++) {
       const line = mergedLines[i];
@@ -413,6 +462,12 @@
       if (parsed.type === 'invalid') {
         errors.push({ lineNum: i + 1, reason: parsed.reason, raw: parsed.raw });
         continue;
+      }
+
+      // 统计重复
+      const norm = normalizeItem(parsed);
+      if (norm) {
+        countMap.set(norm, (countMap.get(norm) || 0) + 1);
       }
 
       let matched = false;
@@ -428,14 +483,23 @@
       }
     }
 
-    // 注意：此处不再进行去重，所有重复组合都保留
-    render(groups, errors);
+    // 整理重复统计（按次数分组）
+    const dupByCount = {}; // { 2: [norm1, norm2], 3: [...] }
+    for (let [norm, count] of countMap.entries()) {
+      if (count >= 2) {
+        if (!dupByCount[count]) dupByCount[count] = [];
+        dupByCount[count].push(norm);
+      }
+    }
+
+    render(groups, errors, dupByCount);
   }
 
-  function render(groups, errors) {
+  function render(groups, errors, dupByCount) {
     const container = document.getElementById('resultsContainer');
     let html = '';
 
+    // 错误提示
     if (errors.length) {
       html += `<details class="error-box" open>
         <summary>⚠️ ${errors.length} 行错误，已跳过（点击折叠）</summary>`;
@@ -449,6 +513,28 @@
       html += `</details>`;
     }
 
+    // 重复统计区域
+    const dupCounts = Object.keys(dupByCount).map(Number).sort((a,b)=>a-b);
+    if (dupCounts.length > 0) {
+      html += `<details class="dup-box" open>
+        <summary>🔁 重复组合统计（点击折叠）</summary>`;
+      
+      for (let count of dupCounts) {
+        const norms = dupByCount[count];
+        html += `<div class="dup-group">
+          <div class="dup-group-title">出现 ${count} 次的组合（共 ${norms.length} 种）：</div>`;
+        for (let norm of norms) {
+          html += `<span class="dup-item">${escHtml(norm)}</span>`;
+        }
+        html += `</div>`;
+      }
+      
+      html += `</details>`;
+    } else {
+      html += `<div style="color:#8899aa; padding:8px 16px; background:#f8fafd; border-radius:12px; font-size:0.9rem;">✅ 没有重复组合</div>`;
+    }
+
+    // 分组结果
     const groupsData = {};
     for (let g of groups) {
       groupsData[g.id] = g.items.join('\n');
@@ -470,6 +556,7 @@
 
     container.innerHTML = html;
 
+    // 绑定复制事件
     container.querySelectorAll('.copy-btn').forEach(btn => {
       btn.addEventListener('click', function() {
         const groupId = this.getAttribute('data-group-id');
@@ -541,7 +628,8 @@
       '胆:03,05,26',
       '拖:08,16,19,20,21',
       '1,2,3,4,5,6',
-      '5.15.20.25.29.30'
+      '5.15.20.25.29.30',
+      '1,2,3,4,5,6'
     ];
     document.getElementById('comboInput').value = demo.join('\n');
     process();
@@ -558,4 +646,4 @@
 })();
 </script>
 </body>
-</html> 
+</html>
