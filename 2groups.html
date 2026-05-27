@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>双数字组合与单数字频率统计器 - 1至33</title>
+    <title>双数字组合频率统计器 - 1至33 (保留重复组合)</title>
     <style>
         :root {
             --bg: #f0f4f8;
@@ -124,7 +124,7 @@
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
             gap: 12px;
         }
         .stat-item {
@@ -207,7 +207,7 @@
 <div class="app-container">
     <div style="text-align:center; padding: 8px 0;">
         <h1 style="font-size: 24px; font-weight: 800;">🎯 双数字组合频率统计器</h1>
-        <p style="color: #8899aa; font-size: 13px;">1—33任选2个 · 共528组 · 支持勾选复制组合</p>
+        <p style="color: #8899aa; font-size: 13px;">1—33任选2个 · 共528组 · 保留所有输入组合（含重复）</p>
     </div>
 
     <!-- 输入卡片 -->
@@ -216,11 +216,11 @@
             <div class="icon icon-input">📝</div>
             <div>
                 <div class="title" style="font-weight:700;">输入6数字组合</div>
-                <div style="font-size:13px; color:var(--text-secondary);">每行一个组合，数字用逗号分隔（1-33）</div>
+                <div style="font-size:13px; color:var(--text-secondary);">每行一个组合，数字用逗号分隔（1-33），重复组合会累加次数</div>
             </div>
         </div>
         <div class="card-body">
-            <textarea id="inputArea" placeholder="示例：&#10;1,2,3,4,5,6&#10;2,3,4,5,6,7&#10;10,15,20,25,30,33&#10;01,07,13,19,25,31"></textarea>
+            <textarea id="inputArea" placeholder="示例：&#10;1,2,3,4,5,6&#10;1,2,3,4,5,6&#10;2,3,4,5,6,7&#10;10,15,20,25,30,33&#10;01,07,13,19,25,31"></textarea>
             <div class="btn-row">
                 <button class="btn btn-primary" onclick="calculate()">🔍 开始统计</button>
                 <button class="btn btn-outline" onclick="loadExample()">📋 加载示例</button>
@@ -282,6 +282,7 @@
         const NUM_RANGE = 33;
         const COMBO_SIZE = 6;
 
+        // 预生成所有528组组合
         const ALL_PAIRS = [];
         for (let a = 1; a <= NUM_RANGE; a++) {
             for (let b = a + 1; b <= NUM_RANGE; b++) {
@@ -316,157 +317,248 @@
         function fmtNum(n) { return String(n).padStart(2,'0'); }
         function fmtPair(a,b) { return fmtNum(a)+','+fmtNum(b); }
 
+        // 解析输入，保留所有有效组合（不去重）
         function parseInput(text) {
             const lines = text.split(/\r?\n/);
-            const rawCombos = [];
+            const validCombos = [];
             const errors = [];
-            lines.forEach((line, i) => {
-                line = line.trim();
-                if(!line) return;
-                let parts = line.replace(/，/g, ',').split(',');
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line === '') continue;
+
+                let processed = line.replace(/，/g, ',');
+                let parts = processed.split(',');
                 let nums = [];
-                parts.forEach(p => {
+                for (let p of parts) {
                     p = p.trim();
-                    if(!p) return;
-                    let num = parseInt(p,10);
-                    if(!isNaN(num) && num>=1 && num<=NUM_RANGE) nums.push(num);
-                    else errors.push(`第${i+1}行：数字${p}无效`);
-                });
+                    if (p === '') continue;
+                    let num = parseInt(p, 10);
+                    if (!isNaN(num) && num >= 1 && num <= NUM_RANGE) {
+                        nums.push(num);
+                    } else if (p.match(/^\d+$/)) {
+                        errors.push(`第${i+1}行：数字"${p}"不在1-33范围内，已忽略`);
+                    } else {
+                        errors.push(`第${i+1}行："${p}"不是有效数字，已忽略`);
+                    }
+                }
+
+                // 行内去重（避免同一行出现重复数字导致组合不标准）
                 const uniqueNums = [...new Set(nums)];
-                if(uniqueNums.length === COMBO_SIZE) {
-                    uniqueNums.sort((a,b)=>a-b);
-                    rawCombos.push(uniqueNums);
-                } else if(uniqueNums.length > 0) errors.push(`第${i+1}行：需要6个数字`);
-            });
-            return { rawCombos, errors };
+                if (uniqueNums.length < nums.length) {
+                    errors.push(`第${i+1}行：存在重复数字，已自动去重`);
+                }
+
+                if (uniqueNums.length === COMBO_SIZE) {
+                    uniqueNums.sort((a, b) => a - b);
+                    validCombos.push(uniqueNums);
+                } else if (uniqueNums.length > 0) {
+                    errors.push(`第${i+1}行：需要恰好6个数字，当前${uniqueNums.length}个，已跳过`);
+                }
+            }
+            return { validCombos, errors };
         }
 
-        function deduplicate(raw) {
-            const seen = new Set();
-            return raw.filter(c => { const k=c.join(','); if(seen.has(k)) return false; seen.add(k); return true; });
-        }
-
+        // 计算双数字频率（直接使用所有有效组合，包含重复）
         function countPairs(combos) {
             const counts = new Array(TOTAL_PAIRS).fill(0);
-            combos.forEach(combo => {
-                for(let i=0; i<COMBO_SIZE; i++)
-                    for(let j=i+1; j<COMBO_SIZE; j++) {
-                        const idx = pairToIndex.get(combo[i]+','+combo[j]);
-                        if(idx !== undefined) counts[idx]++;
+            for (const combo of combos) {
+                for (let i = 0; i < COMBO_SIZE; i++) {
+                    for (let j = i + 1; j < COMBO_SIZE; j++) {
+                        const a = combo[i];
+                        const b = combo[j];
+                        const key = a + ',' + b;
+                        const idx = pairToIndex.get(key);
+                        if (idx !== undefined) counts[idx]++;
                     }
-            });
+                }
+            }
             return counts;
+        }
+
+        // 计算单数字频率
+        function countSingleDigits(combos) {
+            const freq = new Array(NUM_RANGE + 1).fill(0);
+            for (const combo of combos) {
+                for (const num of combo) {
+                    if (num >= 1 && num <= NUM_RANGE) freq[num]++;
+                }
+            }
+            const list = [];
+            for (let i = 1; i <= NUM_RANGE; i++) {
+                list.push({ number: i, display: fmtNum(i), count: freq[i] });
+            }
+            list.sort((a, b) => b.count - a.count || a.number - b.number);
+            return list;
         }
 
         function calculate() {
             const text = inputArea.value.trim();
-            if(!text) { showToast('请输入数据','error'); return; }
-            const { rawCombos, errors } = parseInput(text);
-            if(!rawCombos.length) { showToast('无有效组合','error'); return; }
-            const totalInput = rawCombos.length;
-            const uniqueCombos = deduplicate(rawCombos);
-            const uniqueCount = uniqueCombos.length;
+            if (!text) {
+                showToast('⚠️ 请先输入6数字组合', 'error');
+                return;
+            }
 
-            const pairCounts = countPairs(uniqueCombos);
+            const { validCombos, errors } = parseInput(text);
+            if (validCombos.length === 0) {
+                showToast('❌ 没有识别到有效的6数字组合', 'error');
+                if (errors.length) alert('错误详情：\n' + errors.join('\n'));
+                return;
+            }
+
+            const totalInput = validCombos.length; // 所有有效组合数（包含重复）
+
+            // 双数字统计
+            const pairCounts = countPairs(validCombos);
             const results = ALL_PAIRS.map((pair, idx) => ({
-                a: pair[0], b: pair[1],
+                a: pair[0],
+                b: pair[1],
                 count: pairCounts[idx],
                 display: fmtPair(pair[0], pair[1])
             }));
-            results.sort((a,b) => b.count - a.count || a.a - b.a || a.b - b.b);
+            results.sort((a, b) => b.count - a.count || a.a - b.a || a.b - b.b);
             lastResults = results;
 
-            const nonzero = results.filter(r=>r.count>0).length;
-            statsCard.style.display='block';
+            const nonzero = results.filter(r => r.count > 0).length;
+            const maxCount = results[0]?.count || 0;
+
+            // 摘要卡片
+            statsCard.style.display = 'block';
             statsGrid.innerHTML = `
-                <div class="stat-item"><div class="stat-value">${totalInput}</div><div class="stat-label">原始输入</div></div>
-                <div class="stat-item"><div class="stat-value">${uniqueCount}</div><div class="stat-label">有效组合</div></div>
-                <div class="stat-item"><div class="stat-value">${nonzero}</div><div class="stat-label">出现≥1次</div></div>
-                <div class="stat-item"><div class="stat-value">${TOTAL_PAIRS-nonzero}</div><div class="stat-label">未出现</div></div>
+                <div class="stat-item">
+                    <div class="stat-value">${totalInput}</div>
+                    <div class="stat-label">参与统计的组合数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${totalInput * 15}</div>
+                    <div class="stat-label">产生的2数字子组合(次)</div>
+                </div>
+                <div class="stat-item success">
+                    <div class="stat-value">${nonzero}</div>
+                    <div class="stat-label">出现≥1次的2数组合</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${TOTAL_PAIRS - nonzero}</div>
+                    <div class="stat-label">未出现的2数组合</div>
+                </div>
             `;
 
-            resultCard.style.display='block';
-            resultSubtitle.textContent = `共528组 · 按次数降序 · 最多出现${results[0].count}次`;
+            // 结果表格
+            resultCard.style.display = 'block';
+            resultSubtitle.textContent = `共528组 · 按次数降序 · 最多出现${maxCount}次`;
+
             let html = `<table><thead><tr>
                 <th class="col-check"><input type="checkbox" id="selectAllCheckbox" title="全选/取消"></th>
-                <th class="col-rank">排名</th><th>组合</th><th>次数</th></tr></thead><tbody>`;
-            results.forEach((r,i) => {
+                <th class="col-rank">排名</th><th>组合</th><th>出现次数</th></tr></thead><tbody>`;
+
+            results.forEach((r, i) => {
+                let badgeClass = 'badge-zero';
+                if (r.count === maxCount && maxCount > 0) badgeClass = 'badge-high';
+                else if (r.count > 0) badgeClass = 'badge-low';
                 html += `<tr>
                     <td><input type="checkbox" class="combo-checkbox" data-combo="${r.display}"></td>
-                    <td>${i+1}</td><td class="col-combo">${r.display}</td>
-                    <td><span class="count-badge ${r.count===results[0].count?'badge-high':(r.count>0?'badge-low':'badge-zero')}">${r.count}</span></td>
+                    <td>${i + 1}</td>
+                    <td class="col-combo">${r.display}</td>
+                    <td><span class="count-badge ${badgeClass}">${r.count}</span></td>
                 </tr>`;
             });
             html += '</tbody></table>';
             resultScroll.innerHTML = html;
 
-            // 全选逻辑
-            document.getElementById('selectAllCheckbox').addEventListener('change', function(e) {
-                const checked = e.target.checked;
-                document.querySelectorAll('.combo-checkbox').forEach(cb => cb.checked = checked);
-            });
+            // 全选/取消逻辑
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.addEventListener('change', function(e) {
+                    const checked = e.target.checked;
+                    document.querySelectorAll('.combo-checkbox').forEach(cb => cb.checked = checked);
+                });
+                // 单个复选框变化时更新全选框状态
+                const checkboxes = document.querySelectorAll('.combo-checkbox');
+                checkboxes.forEach(cb => {
+                    cb.addEventListener('change', function() {
+                        const allChecked = Array.from(checkboxes).every(c => c.checked);
+                        const noneChecked = Array.from(checkboxes).every(c => !c.checked);
+                        selectAllCheckbox.checked = allChecked;
+                        selectAllCheckbox.indeterminate = !allChecked && !noneChecked;
+                    });
+                });
+            }
 
             // 单数字频率
-            const singleFreq = new Array(NUM_RANGE+1).fill(0);
-            uniqueCombos.forEach(c => c.forEach(n => { if(n>=1&&n<=NUM_RANGE) singleFreq[n]++; }));
-            const freqList = [];
-            for(let i=1; i<=NUM_RANGE; i++) freqList.push({ number:i, display:fmtNum(i), count:singleFreq[i] });
-            freqList.sort((a,b) => b.count - a.count || a.number - b.number);
-            lastSingleFreq = freqList;
+            const singleFreq = countSingleDigits(validCombos);
+            lastSingleFreq = singleFreq;
 
-            singleFreqCard.style.display='block';
-            singleFreqSubtitle.textContent = `在${uniqueCount}组去重组合中统计`;
-            let freqHtml = `<table><thead><tr><th>排名</th><th>数字</th><th>次数</th></tr></thead><tbody>`;
-            freqList.forEach((item,i) => {
-                freqHtml += `<tr><td>${i+1}</td><td class="col-combo">${item.display}</td>
-                    <td><span class="count-badge ${item.count===freqList[0].count?'badge-high':(item.count>0?'badge-low':'badge-zero')}">${item.count}</span></td></tr>`;
+            singleFreqCard.style.display = 'block';
+            singleFreqSubtitle.textContent = `基于 ${totalInput} 组输入统计 (1-33)`;
+            let freqHtml = `<table><thead><tr><th>排名</th><th>数字</th><th>出现次数</th></tr></thead><tbody>`;
+            const singleMax = singleFreq[0]?.count || 0;
+            singleFreq.forEach((item, i) => {
+                let badge = 'badge-zero';
+                if (item.count === singleMax && singleMax > 0) badge = 'badge-high';
+                else if (item.count > 0) badge = 'badge-low';
+                freqHtml += `<tr><td>${i + 1}</td><td class="col-combo">${item.display}</td>
+                    <td><span class="count-badge ${badge}">${item.count}</span></td></tr>`;
             });
             freqHtml += '</tbody></table>';
             singleFreqScroll.innerHTML = freqHtml;
 
-            if(errors.length) console.warn('解析警告', errors);
-            showToast('✅ 统计完成','success');
+            if (errors.length) console.warn('解析警告：', errors);
+            showToast('✅ 统计完成！' + totalInput + '组参与计算', 'success');
         }
 
+        // 复制全部带次数
         window.copyAllWithCount = function() {
-            if(!lastResults) { showToast('无结果','error'); return; }
+            if (!lastResults) { showToast('无结果可复制', 'error'); return; }
             const lines = lastResults.map(r => r.display + '\t' + r.count);
-            navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('已复制全部528组(带次数)')).catch(() => showToast('复制失败'));
+            navigator.clipboard.writeText(lines.join('\n'))
+                .then(() => showToast('已复制全部528组（组合+次数）', 'success'))
+                .catch(() => showToast('复制失败'));
         };
 
+        // 复制勾选的组合（仅组合编号）
         window.copySelectedCombos = function() {
-            const checkboxes = document.querySelectorAll('.combo-checkbox:checked');
-            if(checkboxes.length === 0) { showToast('请先勾选组合','error'); return; }
-            const combos = Array.from(checkboxes).map(cb => cb.dataset.combo);
-            navigator.clipboard.writeText(combos.join('\n')).then(() => showToast(`已复制${combos.length}个组合`)).catch(() => showToast('复制失败'));
+            const checked = document.querySelectorAll('.combo-checkbox:checked');
+            if (checked.length === 0) { showToast('请先勾选要复制的组合', 'error'); return; }
+            const combos = Array.from(checked).map(cb => cb.dataset.combo);
+            navigator.clipboard.writeText(combos.join('\n'))
+                .then(() => showToast(`已复制 ${combos.length} 个组合编号`, 'success'))
+                .catch(() => showToast('复制失败'));
         };
 
+        // 复制单数字频率
         window.copySingleFreq = function() {
-            if(!lastSingleFreq) { showToast('无数据','error'); return; }
-            const lines = lastSingleFreq.map(i => i.display + ',' + i.count);
-            navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('已复制单数字频率')).catch(() => showToast('复制失败'));
+            if (!lastSingleFreq) { showToast('无单数字数据', 'error'); return; }
+            const lines = lastSingleFreq.map(item => item.display + ',' + item.count);
+            navigator.clipboard.writeText(lines.join('\n'))
+                .then(() => showToast('已复制单数字频率', 'success'))
+                .catch(() => showToast('复制失败'));
         };
 
         window.loadExample = function() {
-            inputArea.value = '1,2,3,4,5,6\n2,3,4,5,6,7\n10,15,20,25,30,33\n01,07,13,19,25,31\n5,10,15,20,25,30\n1,2,3,4,5,6';
-            showToast('示例已加载');
+            inputArea.value = '1,2,3,4,5,6\n1,2,3,4,5,6\n2,3,4,5,6,7\n10,15,20,25,30,33\n01,07,13,19,25,31';
+            showToast('示例已加载（含重复行）', 'success');
             setTimeout(calculate, 200);
         };
 
         window.clearAll = function() {
-            inputArea.value='';
-            statsCard.style.display='none';
-            resultCard.style.display='none';
-            singleFreqCard.style.display='none';
-            lastResults = lastSingleFreq = null;
-            showToast('已清空');
+            inputArea.value = '';
+            statsCard.style.display = 'none';
+            resultCard.style.display = 'none';
+            singleFreqCard.style.display = 'none';
+            lastResults = null;
+            lastSingleFreq = null;
+            showToast('已清空', '');
         };
 
-        inputArea.addEventListener('keydown', e => {
-            if((e.ctrlKey||e.metaKey) && e.key==='Enter') { e.preventDefault(); calculate(); }
+        // 快捷键 Ctrl+Enter 统计
+        inputArea.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                calculate();
+            }
         });
-        window.addEventListener('DOMContentLoaded', ()=> inputArea.focus());
 
+        window.addEventListener('DOMContentLoaded', () => inputArea.focus());
         window.calculate = calculate;
     })();
 </script>
