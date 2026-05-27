@@ -196,42 +196,11 @@
     }
     .error-line { font-weight: 700; color: #b91c1c; }
     .error-reason { color: #7f1d1d; margin-left: 6px; }
-    
-    .dup-box {
-      background: #fefce8;
+    .dup-card {
+      background: #fffbeb;
       border: 1px solid #fde047;
-      border-left: 4px solid #ca8a04;
-      padding: 12px 16px;
-      border-radius: 12px;
-      color: #713f12;
-      font-size: 0.85rem;
-      margin-bottom: 6px;
-      max-height: 400px;
-      overflow-y: auto;
-    }
-    .dup-box summary {
-      cursor: pointer;
-      font-weight: 700;
-      margin-bottom: 8px;
-      color: #854d0e;
-    }
-    .dup-group {
-      margin-bottom: 12px;
-    }
-    .dup-group-title {
-      font-weight: 700;
-      color: #b45309;
-      margin-bottom: 4px;
-    }
-    .dup-item {
-      font-family: 'Fira Code', monospace;
-      background: #fef9c3;
-      padding: 2px 8px;
-      border-radius: 4px;
-      margin: 2px 0;
-      display: inline-block;
-      margin-right: 8px;
-      color: #422006;
+      border-radius: 18px;
+      padding: 16px 20px;
     }
     @media (max-width: 600px) {
       .container { padding: 16px; }
@@ -243,11 +212,11 @@
 <div class="container">
   <h1>
     🎱 双分组
-    <span class="icon">6组分类·重复统计</span>
+    <span class="icon">6组分类·重复可复制</span>
   </h1>
 
   <div class="input-area">
-    <label>📋 输入组合（支持逗号、点号、空格分隔，重复组合会统计）</label>
+    <label>📋 输入组合（支持逗号、点号、空格分隔）</label>
     <textarea id="comboInput" placeholder="单式/复式：1,2,3,4,5,6
 或用点号：5.15.20.25.29.30
 胆拖：胆:15,22,32 拖:01,05,07,10,18,26,27
@@ -259,7 +228,7 @@
       <span>✅ 分隔符：<code>,</code> <code>.</code> <code>空格</code> 均可</span>
       <span>✅ 胆拖：<code>胆:15,22,32 拖:01,05,07</code></span>
       <span>⚠️ 数字必须1-33，单式至少6个数字</span>
-      <span>🔁 重复组合按次数统计显示</span>
+      <span>🔁 重复组合按频次独立复制</span>
     </div>
   </div>
 
@@ -384,10 +353,8 @@
     return merged;
   }
 
-  // 生成规范字符串用于重复比较
   function normalizeItem(parsed) {
     if (parsed.type === 'standard') {
-      // 单式/复式：排序数字后逗号连接
       return parsed.nums.join(',');
     } else if (parsed.type === 'dantuo') {
       return `胆:${parsed.danNums.join(',')} 拖:${parsed.tuoNums.join(',')}`;
@@ -452,7 +419,7 @@
     
     const groups = GROUP_DEFS.map(g => ({ ...g, items: [] }));
     const errors = [];
-    const countMap = new Map(); // 规范字符串 -> 出现次数
+    const countMap = new Map();
 
     for (let i = 0; i < mergedLines.length; i++) {
       const line = mergedLines[i];
@@ -464,7 +431,6 @@
         continue;
       }
 
-      // 统计重复
       const norm = normalizeItem(parsed);
       if (norm) {
         countMap.set(norm, (countMap.get(norm) || 0) + 1);
@@ -483,8 +449,7 @@
       }
     }
 
-    // 整理重复统计（按次数分组）
-    const dupByCount = {}; // { 2: [norm1, norm2], 3: [...] }
+    const dupByCount = {};
     for (let [norm, count] of countMap.entries()) {
       if (count >= 2) {
         if (!dupByCount[count]) dupByCount[count] = [];
@@ -499,7 +464,6 @@
     const container = document.getElementById('resultsContainer');
     let html = '';
 
-    // 错误提示
     if (errors.length) {
       html += `<details class="error-box" open>
         <summary>⚠️ ${errors.length} 行错误，已跳过（点击折叠）</summary>`;
@@ -513,28 +477,26 @@
       html += `</details>`;
     }
 
-    // 重复统计区域
     const dupCounts = Object.keys(dupByCount).map(Number).sort((a,b)=>a-b);
+    const dupData = {}; // 用于复制按钮
     if (dupCounts.length > 0) {
-      html += `<details class="dup-box" open>
-        <summary>🔁 重复组合统计（点击折叠）</summary>`;
-      
       for (let count of dupCounts) {
         const norms = dupByCount[count];
-        html += `<div class="dup-group">
-          <div class="dup-group-title">出现 ${count} 次的组合（共 ${norms.length} 种）：</div>`;
-        for (let norm of norms) {
-          html += `<span class="dup-item">${escHtml(norm)}</span>`;
-        }
-        html += `</div>`;
+        const id = 'dup' + count;
+        dupData[id] = norms.join('\n');
+        html += `
+          <div class="dup-card">
+            <div class="group-header">
+              <span class="group-title">🔁 出现 ${count} 次的组合 <span class="badge">${norms.length} 种</span></span>
+              <button class="copy-btn" data-dup-id="${id}">📋 复制本组</button>
+            </div>
+            <div class="combo-list">${escHtml(dupData[id])}</div>
+          </div>`;
       }
-      
-      html += `</details>`;
     } else {
       html += `<div style="color:#8899aa; padding:8px 16px; background:#f8fafd; border-radius:12px; font-size:0.9rem;">✅ 没有重复组合</div>`;
     }
 
-    // 分组结果
     const groupsData = {};
     for (let g of groups) {
       groupsData[g.id] = g.items.join('\n');
@@ -556,24 +518,37 @@
 
     container.innerHTML = html;
 
-    // 绑定复制事件
-    container.querySelectorAll('.copy-btn').forEach(btn => {
+    // 绑定复制事件：分组
+    container.querySelectorAll('.copy-btn[data-group-id]').forEach(btn => {
       btn.addEventListener('click', function() {
         const groupId = this.getAttribute('data-group-id');
         const content = groupsData[groupId] || '';
         if (!content || this.disabled) return;
-
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(content).then(() => {
-            showCopied(this);
-          }).catch(() => {
-            fallbackCopy(content, this);
-          });
-        } else {
-          fallbackCopy(content, this);
-        }
+        copyContent(content, this);
       });
     });
+
+    // 绑定复制事件：重复统计
+    container.querySelectorAll('.copy-btn[data-dup-id]').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const dupId = this.getAttribute('data-dup-id');
+        const content = dupData[dupId] || '';
+        if (!content) return;
+        copyContent(content, this);
+      });
+    });
+  }
+
+  function copyContent(text, btn) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        showCopied(btn);
+      }).catch(() => {
+        fallbackCopy(text, btn);
+      });
+    } else {
+      fallbackCopy(text, btn);
+    }
   }
 
   function fallbackCopy(text, btn) {
@@ -629,7 +604,8 @@
       '拖:08,16,19,20,21',
       '1,2,3,4,5,6',
       '5.15.20.25.29.30',
-      '1,2,3,4,5,6'
+      '1,2,3,4,5,6',
+      '胆:06,14,27 拖:03,09,11,17,20,23,29,32'
     ];
     document.getElementById('comboInput').value = demo.join('\n');
     process();
