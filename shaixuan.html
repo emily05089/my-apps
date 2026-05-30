@@ -2,790 +2,1446 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>双应用前区筛选 · 最终修复版</title>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>双色球彩票红球识别工具</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3/build/pdf.min.js">
+    </script>
     <style>
-        :root { --bg: #f5f6fa; --card-bg: #ffffff; --primary: #4a6cf7; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; --text: #2c3e50; --border: #e0e5ec; --radius: 14px; }
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif; background: var(--bg); color: var(--text); padding: 12px; font-size: 14px; }
-        .container { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
-        .card { background: var(--card-bg); border-radius: var(--radius); padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-        .badge { display: inline-block; padding: 6px 12px; border-radius: 16px; font-weight: 700; font-size: 15px; background: #e8f5e9; color: #27ae60; }
-        textarea { width: 100%; height: 110px; border: 1.5px solid var(--border); border-radius: 12px; padding: 10px; font-size: 14px; font-family: monospace; resize: vertical; background: #fafbfc; }
-        textarea:focus { outline: none; border-color: var(--primary); background: #fff; }
-        .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; }
-        .chip { display: flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 18px; background: #f2f3f7; font-size: 13px; cursor: pointer; }
-        .chip input { width: 16px; height: 16px; accent-color: var(--primary); }
-        .btn { padding: 10px 18px; border-radius: 20px; font-weight: 600; font-size: 14px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; background: var(--primary); color: #fff; }
-        .btn:active { opacity: 0.8; transform: scale(0.97); }
-        .btn:disabled { opacity: 0.5; pointer-events: none; }
-        .btn-outline { background: #fff; color: var(--primary); border: 1.5px solid var(--primary); }
-        .btn-sm { padding: 6px 12px; font-size: 12px; }
-        .btn-warn { background: var(--warning); color: #fff; }
-        .btn-danger { background: var(--danger); color: #fff; }
-        .number-grid { display: flex; flex-wrap: wrap; gap: 3px; margin: 6px 0; }
-        .n-cell { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; cursor: pointer; background: #fff; transition: 0.1s; color: #333; }
-        .n-cell:active { transform: scale(0.9); }
-        .n-cell.on-or { background: #ffe0e0; border-color: #e74c3c; }
-        .n-cell.on-and { background: #d5e8ff; border-color: #2980b9; }
-        .log { max-height: 100px; overflow-y: auto; font-size: 11px; color: #555; background: #f9fafb; border-radius: 10px; padding: 6px 10px; margin-top: 4px; }
-        .progress-wrap { height: 5px; background: #eee; border-radius: 3px; margin: 4px 0; overflow: hidden; display: none; }
-        .progress-bar { height: 100%; background: var(--primary); width: 0%; }
-        .flex-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-        .tag { font-size: 11px; color: #999; }
-        hr { margin: 10px 0; border-color: #eee; }
-        .result-area { max-height: 400px; overflow-y: auto; margin-top: 8px; display: none; }
-        .group-box { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; }
-        .group-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-weight: 600; flex-wrap: wrap; gap: 4px; }
-        .group-list { font-family: monospace; font-size: 12px; max-height: 120px; overflow-y: auto; background: #f9fafb; border-radius: 6px; padding: 4px 8px; margin-bottom: 6px; line-height: 1.8; }
-        .copy-btn { background: #27ae60; color: #fff; border: none; padding: 4px 10px; border-radius: 12px; font-size: 11px; cursor: pointer; white-space: nowrap; margin: 2px; }
-        .copy-all-btn { background: #e67e22; color: #fff; border: none; padding: 4px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; white-space: nowrap; margin-left: 8px; }
-        .note-box { font-size: 10px; color: #aaa; margin-top: 4px; line-height: 1.6; }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; justify-content: center; align-items: center; }
-        .modal-box { background: #fff; border-radius: 16px; padding: 20px; width: 90%; max-width: 500px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
-        .modal-title { font-weight: 700; font-size: 16px; margin-bottom: 12px; }
-        .modal-textarea { width: 100%; height: 150px; border: 1.5px solid var(--border); border-radius: 12px; padding: 10px; font-size: 14px; font-family: monospace; resize: vertical; background: #fafbfc; }
-        .modal-textarea:focus { outline: none; border-color: var(--primary); background: #fff; }
-        .modal-buttons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+        :root {
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --primary: #1a73e8;
+            --primary-hover: #1557b0;
+            --danger: #d93025;
+            --success: #188038;
+            --warning: #e6a817;
+            --text: #202124;
+            --text-secondary: #5f6368;
+            --border: #dadce0;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --transition: 0.2s ease;
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Microsoft YaHei Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .app-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px 16px 40px;
+        }
+
+        /* Header */
+        .app-header {
+            text-align: center;
+            padding: 24px 0 16px;
+        }
+        .app-header .icon-wrap {
+            display: inline-block;
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #e63946, #ff6b6b);
+            border-radius: 50%;
+            font-size: 30px;
+            line-height: 56px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 14px rgba(230, 57, 70, 0.3);
+        }
+        .app-header h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.3px;
+        }
+        .app-header .subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px 24px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+            transition: var(--transition);
+        }
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-title .badge {
+            font-size: 0.75rem;
+            background: #e8f0fe;
+            color: var(--primary);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 40px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition);
+            background: #fafbfc;
+            position: relative;
+        }
+        .upload-zone:hover,
+        .upload-zone.drag-over {
+            border-color: var(--primary);
+            background: #f0f5ff;
+            box-shadow: 0 0 0 4px rgba(26, 115, 232, 0.06);
+        }
+        .upload-zone .upload-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .upload-zone .upload-text {
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text);
+        }
+        .upload-zone .upload-hint {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        .upload-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* File List */
+        .file-list {
+            max-height: 360px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            background: #fafbfc;
+            margin-bottom: 6px;
+            border: 1px solid #eee;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+        .file-item .thumb {
+            width: 44px;
+            height: 56px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+            flex-shrink: 0;
+            background: #fff;
+        }
+        .file-item .file-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .file-item .file-name {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .file-item .file-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .file-item .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .status-pending {
+            background: #ccc;
+        }
+        .status-processing {
+            background: #f9ab00;
+            animation: pulse 0.8s infinite;
+        }
+        .status-done {
+            background: var(--success);
+        }
+        .status-error {
+            background: var(--danger);
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.3;
+            }
+        }
+        .file-item .btn-remove {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+        .file-item .btn-remove:hover {
+            color: var(--danger);
+            background: #fce8e6;
+        }
+
+        /* Buttons */
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 20px;
+            border-radius: 24px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all var(--transition);
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3);
+        }
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            box-shadow: 0 4px 14px rgba(26, 115, 232, 0.4);
+            transform: translateY(-1px);
+        }
+        .btn-primary:disabled {
+            background: #a8c7fa;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        .btn-outline {
+            background: #fff;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+        .btn-outline:hover {
+            background: #e8f0fe;
+        }
+        .btn-danger {
+            background: #fff;
+            color: var(--danger);
+            border: 2px solid var(--danger);
+        }
+        .btn-danger:hover {
+            background: #fce8e6;
+        }
+        .btn-copy {
+            background: #fff;
+            color: var(--success);
+            border: 2px solid var(--success);
+            font-family: var(--font-mono);
+        }
+        .btn-copy:hover {
+            background: #e6f4ea;
+        }
+
+        /* Progress */
+        .progress-wrap {
+            margin-top: 12px;
+        }
+        .progress-bar-outer {
+            height: 8px;
+            background: #e8eaed;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-bar-inner {
+            height: 100%;
+            background: linear-gradient(90deg, #1a73e8, #4da3ff);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        .progress-text {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            text-align: center;
+        }
+
+        /* Output */
+        .output-area {
+            width: 100%;
+            min-height: 200px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            padding: 14px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            resize: vertical;
+            background: #fefefe;
+            line-height: 1.7;
+            letter-spacing: 0.3px;
+            tab-size: 4;
+        }
+        .output-area:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.08);
+        }
+        .output-stats {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            margin-top: 6px;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #323232;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 24px;
+            font-size: 0.85rem;
+            z-index: 9999;
+            animation: fadeInOut 2.2s ease forwards;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+            pointer-events: none;
+        }
+        @keyframes fadeInOut {
+            0% {
+                opacity: 0;
+                transform: translateY(-16px);
+            }
+            12% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            80% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-12px);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .app-header h1 {
+                font-size: 1.3rem;
+            }
+            .card {
+                padding: 14px 12px;
+            }
+            .upload-zone {
+                padding: 24px 12px;
+            }
+            .btn {
+                padding: 8px 14px;
+                font-size: 0.82rem;
+            }
+            .file-item {
+                padding: 8px;
+                gap: 6px;
+            }
+            .file-item .thumb {
+                width: 32px;
+                height: 42px;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c4c7cc;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a0a4a9;
+        }
     </style>
 </head>
 <body>
-<div class="container">
-    <div style="text-align:center;">
-        <h2 style="font-size:18px;margin:0;">双应用前区筛选</h2>
-        <div style="margin-top:6px;"><span>当前剩余组合：<span class="badge" id="filteredBadge">1,107,568</span></span></div>
-        <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
-        <div id="statusText" style="font-size:11px;color:#999;margin-top:2px;">就绪</div>
-    </div>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="app-header">
+            <div class="icon-wrap">🎱</div>
+            <h1>双色球彩票红球识别工具</h1>
+            <p class="subtitle">上传彩票图片或PDF，自动识别红球号码、倍数、胆拖</p>
+        </div>
 
-    <div class="card">
-        <b>📝 输入号码（每次筛选自动记录历史）</b>
-        <textarea id="inputArea" placeholder="每行一组，支持复式/单式/胆拖
-例: 1,2,3,4,5,6,7,8,9
-胆:04,07,16,27 拖:05,08,14"></textarea>
-        <div class="chip-row">
-            <label class="chip"><input type="checkbox" id="chk0">中0个</label>
-            <label class="chip"><input type="checkbox" id="chk3">中3个</label>
-            <label class="chip"><input type="checkbox" id="chk4">中4个</label>
-            <label class="chip"><input type="checkbox" id="chk5">中5个</label>
-            <label class="chip"><input type="checkbox" id="chk6">中6个</label>
-        </div>
-        <div class="flex-row">
-            <button class="btn" id="btnApply">⚡应用筛选</button>
-            <button class="btn btn-outline btn-sm" id="btnClearInput">清空</button>
-            <button class="btn btn-warn btn-sm" id="btnStats">📊 统计全部历史</button>
-            <button class="btn btn-outline btn-sm" id="btnResetAll">重置</button>
-        </div>
-        <div class="result-area" id="resultArea">
-            <div style="display:flex; align-items:center; margin-bottom:8px;">
-                <b id="resultTitle" style="flex:1;">统计（含出现1次）</b>
-                <button class="copy-all-btn" id="btnCopyAll">📋 一键复制全部</button>
+        <!-- Upload Card -->
+        <div class="card" id="uploadCard">
+            <div class="card-title">
+                📤 上传文件
+                <span class="badge" id="fileCountBadge">未选择文件</span>
             </div>
-            <div id="resultGroups"></div>
+            <div class="upload-zone" id="uploadZone">
+                <span class="upload-icon">📁</span>
+                <div class="upload-text">点击选择文件或拖拽到此处</div>
+                <div class="upload-hint">支持 JPG / PNG / BMP / WEBP / PDF（图片可多选，PDF限一个）</div>
+                <input type="file" id="fileInput" accept="image/*,.pdf" multiple>
+            </div>
+            <div class="file-list" id="fileList"></div>
+            <div class="btn-row">
+                <button class="btn btn-outline" id="btnClearFiles" title="清除所有已上传文件">🗑️ 清空文件</button>
+                <button class="btn btn-primary" id="btnStartRecognition" disabled>
+                    🔍 开始识别
+                </button>
+                <span style="font-size:0.82rem;color:var(--text-secondary);align-self:center;" id="workerHint"></span>
+            </div>
+            <div class="progress-wrap" id="progressWrap" style="display:none;">
+                <div class="progress-bar-outer">
+                    <div class="progress-bar-inner" id="progressBar"></div>
+                </div>
+                <div class="progress-text" id="progressText">准备中...</div>
+            </div>
         </div>
-        <div class="log" id="logArea"><div>系统就绪</div></div>
-    </div>
 
-    <div class="card">
-        <b>数字过滤（累积生效）</b>
-        <div style="margin-top:8px;"><span style="color:#e74c3c;">● OR排除</span> <span class="tag">包含任一即删</span></div>
-        <div class="number-grid" id="orGrid"></div>
-        <button class="btn btn-outline btn-sm" id="btnApplyOR">✅ 应用OR过滤</button>
-        <button class="btn btn-outline btn-sm" id="btnClearOR">清除OR选择</button>
-        <div class="tag">已选 <span id="orCount">0</span> 个</div>
-        <div style="margin-top:12px;"><span style="color:#2980b9;">● AND排除</span> <span class="tag">包含全部才删</span></div>
-        <div class="number-grid" id="andGrid"></div>
-        <button class="btn btn-outline btn-sm" id="btnApplyAND">✅ 应用AND过滤</button>
-        <button class="btn btn-outline btn-sm" id="btnClearAND">清除AND选择</button>
-        <div class="tag">已选 <span id="andCount">0</span> 个</div>
-    </div>
-
-    <div class="card">
-        <b>特殊条件 / 尾数 / 区间 / 历史排除</b>
-        <div class="flex-row" style="margin-top:6px;">
-            <button class="btn btn-danger btn-sm" id="btnAllOdd">全奇数</button>
-            <button class="btn btn-danger btn-sm" id="btnAllEven">全偶数</button>
-            <button class="btn btn-danger btn-sm" id="btn3Seq">3连号</button>
-            <button class="btn btn-danger btn-sm" id="btn3Gap">3隔号</button>
-            <button class="btn btn-danger btn-sm" id="btn4Seq">4连号</button>
-            <button class="btn btn-danger btn-sm" id="btn4Gap">4隔号</button>
-            <button class="btn btn-danger btn-sm" id="btn5Seq">5连号</button>
-            <button class="btn btn-danger btn-sm" id="btn5Gap">5隔号</button>
-            <button class="btn btn-danger btn-sm" id="btn6Seq">6连号</button>
-            <button class="btn btn-danger btn-sm" id="btn6Gap">6隔号</button>
-            <button class="btn btn-danger btn-sm" id="btnTail3">同尾数≥3个</button>
-            <button class="btn btn-danger btn-sm" id="btnTail2Group">同尾数组数≥2组</button>
-            <button class="btn btn-danger btn-sm" id="btnRatio600">6:0:0型</button>
-            <button class="btn btn-danger btn-sm" id="btnRatio510">5:1:0型</button>
-            <button class="btn btn-danger btn-sm" id="btnRatio420">4:2:0型</button>
-            <button class="btn btn-danger btn-sm" id="btnRatio411">4:1:1型</button>
-            <button class="btn btn-danger btn-sm" id="btnRatio330">3:3:0型</button>
-            <button class="btn btn-danger btn-sm" id="btnRatio321">3:2:1型</button>
-            <button class="btn btn-danger btn-sm" id="btnRatio222">2:2:2型</button>
-            <button class="btn btn-danger btn-sm" id="btnExcludeHistory">排除历史组合</button>
+        <!-- Output Card -->
+        <div class="card" id="outputCard">
+            <div class="card-title">
+                📋 识别结果
+                <span class="badge" id="resultStats">等待识别</span>
+            </div>
+            <textarea class="output-area" id="outputArea" placeholder="识别结果将显示在这里...&#10;格式：红球号码用英文逗号隔开，一行一组号码&#10;倍数会自动展开为多行&#10;胆拖格式：胆:01,02,03，拖:04,05,06,07,08,09" readonly></textarea>
+            <div class="btn-row">
+                <button class="btn btn-copy" id="btnCopy" disabled>📋 一键复制全部结果</button>
+                <button class="btn btn-outline" id="btnDownload" disabled>💾 下载结果文本</button>
+                <span class="output-stats" id="outputStats"></span>
+            </div>
         </div>
-        <div class="flex-row" style="margin-top:6px;">
-            <button class="btn btn-danger btn-sm" id="btnExcludePairs">排除双数字组合</button>
-        </div>
-        <div class="note-box">※ 以上功能累积生效，点击后从当前剩余组合中删除符合条件的组合。</div>
-    </div>
 
-    <div class="card">
-        <button class="btn" id="btnExport" style="width:100%;">📥 导出Excel（<span id="exportCount">1,107,568</span>组）</button>
-        <div id="exportHint" style="font-size:11px;color:#888;margin-top:4px;"></div>
-    </div>
-</div>
-
-<!-- 双数字组合弹窗 -->
-<div class="modal-overlay" id="pairModalOverlay">
-    <div class="modal-box">
-        <div class="modal-title">输入双数字组合（一行一组，如 01,02）</div>
-        <textarea class="modal-textarea" id="pairModalTextarea" placeholder="01,02
-18,29
-03,15"></textarea>
-        <div class="modal-buttons">
-            <button class="btn btn-outline btn-sm" id="btnPairModalCancel">取消</button>
-            <button class="btn btn-sm" id="btnPairModalConfirm">确认排除</button>
+        <!-- Info Card -->
+        <div class="card" style="font-size:0.82rem;color:var(--text-secondary);">
+            <strong>💡 说明：</strong>
+            数字1-9自动补零为01-09；倍数（括号/方括号/倍数字样）自动展开为多行；胆拖格式为"胆:xx,xx，拖:xx,xx"；按图片顺序依次识别。
+            <br><strong>⚠️ 注意：</strong>OCR识别依赖图片清晰度，请确保彩票图片清晰、光线均匀。识别完成后请核对结果。
         </div>
     </div>
-</div>
 
-<script>
-(function() {
-    var TOTAL = 1107568;
-    var filteredAlive = new Uint8Array(TOTAL);
-    var filteredCount = TOTAL;
-    var masksLow, masksHigh;
-    var maskIndex = new Map();
-    var busy = false;
-    var orSel = new Set();
-    var andSel = new Set();
-    var historyCombos = [];
-    var lastInputSnapshot = '';
+    <script>
+        (function() {
+            // ==================== DOM元素 ====================
+            const uploadZone = document.getElementById('uploadZone');
+            const fileInput = document.getElementById('fileInput');
+            const fileListEl = document.getElementById('fileList');
+            const fileCountBadge = document.getElementById('fileCountBadge');
+            const btnClearFiles = document.getElementById('btnClearFiles');
+            const btnStartRecognition = document.getElementById('btnStartRecognition');
+            const progressWrap = document.getElementById('progressWrap');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const outputArea = document.getElementById('outputArea');
+            const resultStats = document.getElementById('resultStats');
+            const btnCopy = document.getElementById('btnCopy');
+            const btnDownload = document.getElementById('btnDownload');
+            const outputStats = document.getElementById('outputStats');
+            const workerHint = document.getElementById('workerHint');
 
-    // 历史组合列表
-    var HISTORY_LINES = [
-        "01,03,11,22,26,31","09,14,15,16,29,30","06,09,25,27,28,30","03,04,14,15,18,20",
-        "09,15,18,24,28,33","07,16,21,24,27,30","02,09,10,24,31,33","04,11,15,17,24,30",
-        "02,14,17,18,22,30","06,09,14,16,25,32","02,07,12,19,24,31","02,08,10,17,19,24",
-        "03,04,14,22,23,33","08,17,18,21,25,30","01,02,13,23,25,27","11,22,27,29,31,33",
-        "06,10,12,15,22,28","02,06,12,24,25,32","01,03,07,13,22,23","03,06,13,21,28,29",
-        "01,03,11,18,31,33","03,10,12,13,18,33","10,11,14,19,22,24","06,19,22,23,28,31",
-        "02,06,09,17,25,28","02,13,17,18,25,26","02,09,16,22,25,29","02,03,15,20,23,24",
-        "01,02,13,21,23,29","01,03,08,10,23,29","15,18,23,25,28,32","03,13,25,26,30,31",
-        "01,13,14,21,24,30","07,08,16,17,18,30","11,15,17,22,25,30","01,03,05,18,29,32",
-        "04,05,09,10,27,30","07,10,13,22,27,31","07,13,19,22,26,32","04,09,12,13,16,20",
-        "03,05,07,16,20,24","02,03,04,20,31,32","04,09,10,15,19,26","03,06,13,19,23,25",
-        "06,09,16,27,31,33","09,13,19,27,29,30","02,06,22,23,24,28","01,20,22,27,30,33",
-        "03,07,08,09,18,32","05,06,09,21,28,30","01,05,07,18,30,32","02,06,11,12,13,33",
-        "08,09,14,22,28,30","06,13,17,19,24,31","01,02,04,06,22,30","03,04,09,10,15,22",
-        "01,03,05,08,22,33","05,07,12,24,26,28","11,12,15,18,25,32","01,08,15,20,26,33",
-        "02,09,12,13,15,24","02,13,15,23,27,31","02,04,05,10,12,13","01,03,04,12,18,24",
-        "02,05,17,22,30,33","10,13,14,23,24,27","02,08,11,23,27,29","08,10,14,23,28,32",
-        "01,02,05,09,25,32","03,05,09,13,26,29","05,14,17,19,20,33","04,08,10,21,23,32",
-        "03,13,14,18,24,31","01,05,08,14,19,23","03,04,07,13,20,30","02,10,18,19,24,27",
-        "03,09,15,17,19,28","02,12,13,16,19,25","03,09,12,13,26,32","01,02,18,19,21,33",
-        "07,09,23,24,25,26","16,18,19,20,25,31","06,08,10,25,29,30","01,02,04,07,13,32",
-        "06,09,23,26,28,32","01,10,11,16,24,26","06,08,17,20,25,33","02,04,08,24,28,31",
-        "02,03,08,19,24,30","01,20,21,25,26,27","08,10,13,15,24,31","03,09,11,13,20,32"
-    ];
-    var HISTORY_SET = new Set();
-    for (var i = 0; i < HISTORY_LINES.length; i++) {
-        var nums = HISTORY_LINES[i].split(',').map(function(s){ return parseInt(s,10); });
-        if (nums.length === 6) {
-            var key = nums.map(function(n){ return String(n).padStart(2,'0'); }).sort().join(',');
-            HISTORY_SET.add(key);
-        }
-    }
+            // ==================== 状态变量 ====================
+            let allFiles = []; // { file, type:'image'|'pdf', previewUrl?, pdfPages?, status:'pending'|'processing'|'done'|'error', resultText? }
+            let isProcessing = false;
+            let abortController = null;
+            let ocrWorker = null;
+            let ocrScheduler = null;
+            let tesseractReady = false;
+            let totalToProcess = 0;
+            let processedCount = 0;
 
-    function buildAll() {
-        masksLow = new Uint32Array(TOTAL);
-        masksHigh = new Uint32Array(TOTAL);
-        var idx = 0;
-        for (var a=1;a<=28;a++) for (var b=a+1;b<=29;b++) for (var c=b+1;c<=30;c++) for (var d=c+1;d<=31;d++) for (var e=d+1;e<=32;e++) for (var f=e+1;f<=33;f++) {
-            var m = maskFrom([a,b,c,d,e,f]);
-            masksLow[idx] = m.l; masksHigh[idx] = m.h;
-            maskIndex.set(m.l+'_'+m.h, idx);
-            idx++;
-        }
-        filteredAlive.fill(1);
-        filteredCount = TOTAL;
-        updateDisplay();
-        log('✅ 全集已加载');
-    }
-
-    function maskFrom(arr) { var l=0,h=0; for (var i=0;i<arr.length;i++) { if (arr[i]<=32) l |= (1 << (arr[i]-1)); else if (arr[i]===33) h |= 1; } return {l:l,h:h}; }
-    function unmask(l,h) { var r=[]; for (var i=0;i<32;i++) if (l & (1<<i)) r.push(i+1); if (h & 1) r.push(33); return r; }
-
-    function updateDisplay() {
-        document.getElementById('filteredBadge').textContent = filteredCount.toLocaleString();
-        document.getElementById('exportCount').textContent = filteredCount.toLocaleString();
-        document.getElementById('orCount').textContent = orSel.size;
-        document.getElementById('andCount').textContent = andSel.size;
-    }
-
-    function log(s) {
-        var el = document.getElementById('logArea');
-        var d = document.createElement('div');
-        d.textContent = s;
-        el.appendChild(d);
-        el.scrollTop = el.scrollHeight;
-        while (el.children.length > 25) el.removeChild(el.firstChild);
-    }
-
-    function setStatus(s) { document.getElementById('statusText').textContent = s; }
-    function showProgress(pct) { document.getElementById('progressWrap').style.display = 'block'; document.getElementById('progressBar').style.width = pct+'%'; }
-    function hideProgress() { document.getElementById('progressWrap').style.display = 'none'; }
-
-    function isAllOdd(arr) { return arr.every(function(n){ return n%2===1; }); }
-    function isAllEven(arr) { return arr.every(function(n){ return n%2===0; }); }
-    function hasConsecutive(arr, len, gap) {
-        if (len > arr.length) return false;
-        for (var i=0; i <= arr.length-len; i++) {
-            var ok = true;
-            for (var j=1; j<len; j++) { if (arr[i+j] - arr[i+j-1] !== gap) { ok = false; break; } }
-            if (ok) return true;
-        }
-        return false;
-    }
-    function hasSeq(arr, len) { return hasConsecutive(arr, len, 1); }
-    function hasGap(arr, len) {
-        var odds = arr.filter(function(n){ return n%2===1; });
-        var evens = arr.filter(function(n){ return n%2===0; });
-        return hasConsecutive(odds, len, 2) || hasConsecutive(evens, len, 2);
-    }
-    function hasSameTail3(arr) {
-        var t = [0,0,0,0,0,0,0,0,0,0];
-        for (var i=0; i<arr.length; i++) { t[arr[i]%10]++; if (t[arr[i]%10]>=3) return true; }
-        return false;
-    }
-    function hasSameTail2Groups(arr) {
-        var t = [0,0,0,0,0,0,0,0,0,0];
-        for (var i=0; i<arr.length; i++) t[arr[i]%10]++;
-        var g = 0;
-        for (var i=0; i<10; i++) { if (t[i]>=2) g++; if (g>=2) return true; }
-        return false;
-    }
-    function getZonePattern(arr) {
-        var a=0,b=0,c=0;
-        for (var i=0; i<arr.length; i++) {
-            if (arr[i]>=1 && arr[i]<=11) a++;
-            else if (arr[i]>=12 && arr[i]<=22) b++;
-            else c++;
-        }
-        var parts = [a,b,c].sort(function(x,y){ return x-y; });
-        return parts.join('');
-    }
-
-    // 通用状态重置
-    function finishOperation() {
-        busy = false;
-        hideProgress();
-        setStatus('就绪');
-        document.getElementById('btnApply').disabled = false;
-        document.getElementById('btnApply').textContent = '⚡应用筛选';
-        document.getElementById('btnExport').disabled = false;
-        document.getElementById('btnExport').textContent = '📥 导出Excel（' + filteredCount.toLocaleString() + '组）';
-    }
-
-    function applyCustomFilter(name, filterFn) {
-        if (busy) return alert('处理中');
-        if (filteredCount===0) return alert('无剩余');
-        if (!confirm('确认排除 ['+name+']？')) return;
-        busy=true; setStatus(name+' 过滤中...'); showProgress(0);
-        var removed=0, done=0;
-        var BATCH=60000;
-        function step(start) {
-            try {
-                var end=Math.min(start+BATCH, TOTAL);
-                for (var i=start; i<end; i++) {
-                    if (!filteredAlive[i]) continue;
-                    if (filterFn(unmask(masksLow[i],masksHigh[i]))) { filteredAlive[i]=0; removed++; }
-                }
-                done=end;
-                showProgress(Math.round(done/TOTAL*100));
-                if (done<TOTAL) setTimeout(function(){ step(done); }, 10);
-                else {
-                    filteredCount-=removed; updateDisplay();
-                    log('✅ '+name+'：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组');
-                    finishOperation();
-                }
-            } catch(e) { log('❌ 过滤出错：'+e.message); finishOperation(); }
-        }
-        step(0);
-    }
-
-    function applyFilteredMask(targetSet, mode) {
-        if (targetSet.size===0) return alert('请选择数字');
-        if (filteredCount===0) return alert('无剩余');
-        if (busy) return alert('处理中');
-        busy=true; setStatus(mode+'过滤中...'); showProgress(0);
-        var tm = maskFrom(Array.from(targetSet));
-        var removed=0, done=0;
-        var BATCH=200000;
-        function step(start) {
-            try {
-                var end=Math.min(start+BATCH, TOTAL);
-                for (var i=start; i<end; i++) {
-                    if (!filteredAlive[i]) continue;
-                    var l=masksLow[i], h=masksHigh[i];
-                    if (mode==='OR' ? ((l&tm.l)||(h&tm.h)) : ((l&tm.l)===tm.l && (h&tm.h)===tm.h)) { filteredAlive[i]=0; removed++; }
-                }
-                done=end;
-                showProgress(Math.round(done/TOTAL*100));
-                if (done<TOTAL) setTimeout(function(){ step(done); }, 5);
-                else {
-                    filteredCount-=removed; updateDisplay();
-                    log('✅ '+mode+'过滤：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组');
-                    finishOperation();
-                }
-            } catch(e) { log('❌ 过滤出错：'+e.message); finishOperation(); }
-        }
-        step(0);
-    }
-
-    function genHit(cm, k) {
-        var nums = unmask(cm.l, cm.h);
-        if (k===6) return [cm];
-        var others = [];
-        for (var i=1; i<=33; i++) if (nums.indexOf(i)===-1) others.push(i);
-        var res = [];
-        if (k===5) {
-            for (var i=0; i<6; i++) {
-                var base = nums.filter(function(_,idx){ return idx!==i; });
-                for (var j=0; j<others.length; j++) res.push(maskFrom([].concat(base,[others[j]]).sort(function(a,b){ return a-b; })));
+            // ==================== 工具函数 ====================
+            function showToast(msg) {
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.textContent = msg;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 2300);
             }
-        } else if (k===4) {
-            for (var i=0; i<6; i++) {
-                for (var j=i+1; j<6; j++) {
-                    var base = nums.filter(function(_,idx){ return idx!==i && idx!==j; });
-                    for (var x=0; x<others.length; x++) {
-                        for (var y=x+1; y<others.length; y++) {
-                            res.push(maskFrom([].concat(base,[others[x],others[y]]).sort(function(a,b){ return a-b; })));
-                        }
-                    }
-                }
+
+            function formatFileSize(bytes) {
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+                return (bytes / 1048576).toFixed(2) + ' MB';
             }
-        } else if (k===3) {
-            for (var i=0; i<6; i++) {
-                for (var j=i+1; j<6; j++) {
-                    for (var kk=j+1; kk<6; kk++) {
-                        var base = nums.filter(function(_,idx){ return idx!==i && idx!==j && idx!==kk; });
-                        for (var x=0; x<others.length; x++) {
-                            for (var y=x+1; y<others.length; y++) {
-                                for (var z=y+1; z<others.length; z++) {
-                                    res.push(maskFrom([].concat(base,[others[x],others[y],others[z]]).sort(function(a,b){ return a-b; })));
-                                }
-                            }
-                        }
-                    }
-                }
+
+            function padZero(num) {
+                const n = parseInt(num, 10);
+                if (isNaN(n)) return String(num).trim();
+                if (n >= 1 && n <= 9) return '0' + n;
+                if (n >= 10 && n <= 33) return String(n);
+                return String(num).trim();
             }
-        }
-        return res;
-    }
 
-    function doFilter(condMasks, opts) {
-        var removeSet = new Set();
-        var total = condMasks.length;
-        var done = 0;
-        return new Promise(function(resolve) {
-            function step(start) {
-                try {
-                    var end = Math.min(start+80, total);
-                    for (var i=start; i<end; i++) {
-                        var cm = condMasks[i];
-                        if (opts.six) { var idx = maskIndex.get(cm.l+'_'+cm.h); if (idx!==undefined) removeSet.add(idx); }
-                        if (opts.five) { var hits5 = genHit(cm,5); for (var j=0; j<hits5.length; j++) { var idx = maskIndex.get(hits5[j].l+'_'+hits5[j].h); if (idx!==undefined) removeSet.add(idx); } }
-                        if (opts.four) { var hits4 = genHit(cm,4); for (var j=0; j<hits4.length; j++) { var idx = maskIndex.get(hits4[j].l+'_'+hits4[j].h); if (idx!==undefined) removeSet.add(idx); } }
-                        if (opts.three) { var hits3 = genHit(cm,3); for (var j=0; j<hits3.length; j++) { var idx = maskIndex.get(hits3[j].l+'_'+hits3[j].h); if (idx!==undefined) removeSet.add(idx); } }
-                    }
-                    done=end;
-                    showProgress(Math.round(done/total*100));
-                    if (done<total) setTimeout(function(){ step(done); }, 10);
-                    else {
-                        if (opts.zero) {
-                            var allNums = new Set();
-                            for (var i=0; i<condMasks.length; i++) { var nums = unmask(condMasks[i].l, condMasks[i].h); for (var j=0; j<nums.length; j++) allNums.add(nums[j]); }
-                            var miss = [];
-                            for (var i=1; i<=33; i++) if (!allNums.has(i)) miss.push(i);
-                            if (miss.length>=6) {
-                                var zcs = combos(miss,6);
-                                for (var i=0; i<zcs.length; i++) { var m = maskFrom(zcs[i]); var idx = maskIndex.get(m.l+'_'+m.h); if (idx!==undefined) removeSet.add(idx); }
-                            }
-                        }
-                        var removed = 0;
-                        removeSet.forEach(function(idx){ if (filteredAlive[idx]) { filteredAlive[idx]=0; removed++; } });
-                        filteredCount -= removed;
-                        updateDisplay();
-                        resolve(removed);
-                    }
-                } catch(e) {
-                    log('❌ 筛选出错：'+e.message);
-                    resolve(0);
-                }
+            function isRedBall(num) {
+                const n = parseInt(num, 10);
+                return !isNaN(n) && n >= 1 && n <= 33;
             }
-            step(0);
-        });
-    }
 
-    function applyFilter() {
-        if (busy) return alert('处理中');
-        var opts = {
-            zero: document.getElementById('chk0').checked,
-            three: document.getElementById('chk3').checked,
-            four: document.getElementById('chk4').checked,
-            five: document.getElementById('chk5').checked,
-            six: document.getElementById('chk6').checked
-        };
-        if (!opts.zero && !opts.three && !opts.four && !opts.five && !opts.six) return alert('请勾选排除条件');
-        addToHistory();
-        var expanded;
-        try { expanded = expandCurrent(); } catch(e) { log('❌ 解析输入出错：'+e.message); return; }
-        if (!expanded.length) return alert('无有效组合');
-        var masks = expanded.map(function(c){ return maskFrom(c); });
-        var unique = [];
-        var seen = new Set();
-        for (var i=0; i<masks.length; i++) {
-            var k = masks[i].l+'_'+masks[i].h;
-            if (!seen.has(k)) { seen.add(k); unique.push(masks[i]); }
-        }
-        log('📋 展开'+expanded.length+'组，去重'+unique.length+'条件');
-        busy=true;
-        document.getElementById('btnApply').disabled=true;
-        document.getElementById('btnApply').textContent='⏳筛选中...';
-        showProgress(0);
-        doFilter(unique, opts).then(function(removed){
-            log('✅ 筛选完成：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组');
-            document.getElementById('inputArea').value='';
-            lastInputSnapshot='';
-            finishOperation();
-        });
-    }
+            // ==================== 文件管理 ====================
+            function updateUI() {
+                const totalFiles = allFiles.length;
+                fileCountBadge.textContent = totalFiles === 0 ? '未选择文件' : `已选 ${totalFiles} 个文件`;
+                btnStartRecognition.disabled = totalFiles === 0 || isProcessing;
+                btnClearFiles.disabled = isProcessing;
 
-    function norm(s){ return s.replace(/，/g,',').replace(/：/g,':').trim(); }
-    function parseNums(s){
-        s = norm(s).replace(/\s+/g,'');
-        var parts;
-        if (s.indexOf(',')!==-1) parts = s.split(',').filter(Boolean);
-        else if (s.indexOf(':')!==-1) parts = s.split(':').filter(Boolean);
-        else if (/^\d{12,}$/.test(s)) { parts = []; for (var i=0; i<s.length; i+=2) parts.push(s.substring(i,i+2)); }
-        else parts = [s];
-        var nums = [];
-        for (var i=0; i<parts.length; i++) { var n = parseInt(parts[i],10); if (n>=1 && n<=33) nums.push(n); }
-        return Array.from(new Set(nums)).sort(function(a,b){ return a-b; });
-    }
-    function isDanTuo(s){ return /胆\s*[:：]/.test(norm(s)) && /拖\s*[:：]/.test(norm(s)); }
-    function parseDanTuo(s){
-        var n = norm(s);
-        var dm = n.match(/胆\s*[:：]\s*([^拖]+)/);
-        var tm = n.match(/拖\s*[:：]\s*(.+)/);
-        if (!dm || !tm) return null;
-        return { dan: parseNums(dm[1]), tuo: parseNums(tm[1]) };
-    }
-    function combos(nums, k){
-        if (k===0) return [[]];
-        var res = [];
-        var tmp = new Array(k);
-        (function dfs(start,d){
-            if (d===k) { res.push(tmp.slice()); return; }
-            for (var i=start; i<=nums.length-(k-d); i++) { tmp[d]=nums[i]; dfs(i+1,d+1); }
-        })(0,0);
-        return res;
-    }
-    function expandCurrent(){
-        var text = document.getElementById('inputArea').value;
-        var lines = text.split(/[\n\r]+/).filter(function(l){ return l.trim(); });
-        var all = [];
-        for (var i=0; i<lines.length; i++) {
-            var l = lines[i].trim();
-            if (isDanTuo(l)) {
-                var dt = parseDanTuo(l);
-                if (!dt || dt.dan.length<1 || dt.dan.length>5) continue;
-                var need = 6 - dt.dan.length;
-                if (dt.tuo.length < need) continue;
-                var tcs = combos(dt.tuo, need);
-                for (var j=0; j<tcs.length; j++) all.push(dt.dan.concat(tcs[j]).sort(function(a,b){ return a-b; }));
-            } else {
-                var nums = parseNums(l);
-                if (nums.length<6) continue;
-                var cs = combos(nums,6);
-                for (var j=0; j<cs.length; j++) all.push(cs[j]);
-            }
-        }
-        return all;
-    }
-
-    function addToHistory(){
-        var raw = document.getElementById('inputArea').value.trim();
-        if (!raw || raw===lastInputSnapshot) return;
-        var combos = expandCurrent();
-        if (combos.length>0) {
-            historyCombos = historyCombos.concat(combos);
-            lastInputSnapshot = raw;
-            log('📥 已记录当前输入（'+combos.length+' 注），历史总计 '+historyCombos.length+' 注');
-        }
-    }
-
-    function analyzeDuplicates(){
-        addToHistory();
-        if (!historyCombos.length) return alert('历史记录为空，请先输入号码并点击「统计重复」');
-        var map = new Map();
-        for (var i=0; i<historyCombos.length; i++) {
-            var k = historyCombos[i].map(function(n){ return String(n).padStart(2,'0'); }).join(',');
-            map.set(k, (map.get(k)||0)+1);
-        }
-        var groups = new Map();
-        var allCombosList = [];
-        map.forEach(function(cnt, k){
-            if (!groups.has(cnt)) groups.set(cnt, []);
-            groups.get(cnt).push(k);
-            allCombosList.push(k);
-        });
-        var total = historyCombos.length;
-        var unique = map.size;
-        var area = document.getElementById('resultArea');
-        var title = document.getElementById('resultTitle');
-        var list = document.getElementById('resultGroups');
-        title.textContent = '📊 全部历史组合统计：' + total.toLocaleString() + ' 注 → ' + unique.toLocaleString() + ' 种';
-        var html = '';
-        var sortedCounts = Array.from(groups.keys()).sort(function(a,b){ return b-a; });
-        for (var i=0; i<sortedCounts.length; i++) {
-            var count = sortedCounts[i];
-            var combos = groups.get(count);
-            combos.sort();
-            html += '<div class="group-box"><div class="group-header"><span>出现 '+count+' 次（共 '+combos.length+' 组）</span>';
-            html += '<div><button class="copy-btn" data-count="'+count+'" data-type="plain">📋 复制号码</button></div></div>';
-            html += '<div class="group-list">';
-            for (var j=0; j<combos.length; j++) html += '<div>'+combos[j]+'</div>';
-            html += '</div></div>';
-        }
-        list.innerHTML = html;
-        var buttons = list.querySelectorAll('.copy-btn');
-        for (var i=0; i<buttons.length; i++) {
-            buttons[i].addEventListener('click', function(){
-                var cnt = parseInt(this.dataset.count);
-                var combos = groups.get(cnt);
-                if (!combos) return;
-                var text = combos.join('\n');
-                copyText(text, combos.length);
-            });
-        }
-        area.style.display = 'block';
-        document.getElementById('btnCopyAll').onclick = function() {
-            allCombosList.sort();
-            var text = allCombosList.join('\n');
-            copyText(text, allCombosList.length);
-        };
-        log('📊 统计完成（历史 '+total+' 注）');
-    }
-
-    function copyText(text, n) {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(function(){ alert('已复制 '+n+' 条'); }).catch(function(){ fallbackCopy(text,n); });
-        } else { fallbackCopy(text,n); }
-    }
-    function fallbackCopy(text, n) {
-        var ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed';
-        ta.style.left = '-9999px';
-        document.body.appendChild(ta);
-        ta.select();
-        try { document.execCommand('copy'); alert('已复制 '+n+' 条'); } catch(e) { alert('复制失败，请手动复制'); }
-        document.body.removeChild(ta);
-    }
-
-    function exportXLSX(){
-        if (busy) return alert('处理中，请等待当前操作完成');
-        if (filteredCount === 0) return alert('无组合可导出');
-        if (typeof XLSX === 'undefined') { alert('Excel库加载失败，请检查网络后刷新页面'); return; }
-        busy = true;
-        document.getElementById('btnExport').disabled = true;
-        document.getElementById('btnExport').textContent = '收集中...';
-        setStatus('导出中...');
-        showProgress(0);
-        var result = [];
-        var done = 0;
-        var BATCH = 200000;
-        function step(start) {
-            try {
-                var end = Math.min(start + BATCH, TOTAL);
-                for (var i = start; i < end; i++) {
-                    if (filteredAlive[i]) {
-                        result.push(unmask(masksLow[i], masksHigh[i]).map(function(n){ return String(n).padStart(2,'0'); }).join(','));
-                    }
+                if (totalFiles === 0) {
+                    fileListEl.innerHTML =
+                        '<div style="text-align:center;color:#999;padding:20px;">暂无文件，请上传彩票图片或PDF</div>';
                 }
-                done = end;
-                showProgress(Math.round(done / TOTAL * 100));
-                if (done < TOTAL) {
-                    setTimeout(function(){ step(done); }, 5);
+
+                // 更新worker提示
+                if (tesseractReady && totalFiles > 0 && !isProcessing) {
+                    workerHint.textContent = '✅ OCR引擎就绪';
+                    workerHint.style.color = 'var(--success)';
+                } else if (!tesseractReady && totalFiles > 0) {
+                    workerHint.textContent = '⏳ OCR引擎加载中...';
+                    workerHint.style.color = 'var(--warning)';
                 } else {
-                    setTimeout(function() {
-                        try {
-                            var sheetData = [['前区号码']];
-                            var maxLen = 19;
-                            for (var i = 0; i < result.length; i++) {
-                                var r = result[i];
-                                if (r.length > maxLen) maxLen = r.length;
-                                sheetData.push([r]);
-                            }
-                            var wb = XLSX.utils.book_new();
-                            var ws1 = XLSX.utils.aoa_to_sheet(sheetData);
-                            ws1['!cols'] = [{ wch: maxLen + 2 }];
-                            XLSX.utils.book_append_sheet(wb, ws1, '组合列表');
-                            var cnt = new Array(34).fill(0);
-                            for (var i = 0; i < result.length; i++) {
-                                var nums = result[i].split(',');
-                                for (var j = 0; j < nums.length; j++) cnt[+nums[j]]++;
-                            }
-                            var st = [];
-                            for (var i = 1; i <= 33; i++) st.push({ n: i, c: cnt[i] });
-                            st.sort(function(a, b) { return b.c - a.c; });
-                            var statData = [['数字', '次数', '占比']];
-                            for (var i = 0; i < st.length; i++) {
-                                var s = st[i];
-                                statData.push([String(s.n).padStart(2, '0'), s.c, (s.c / (result.length * 6) * 100).toFixed(2) + '%']);
-                            }
-                            var ws2 = XLSX.utils.aoa_to_sheet(statData);
-                            ws2['!cols'] = [{ wch: 8 }, { wch: 12 }, { wch: 10 }];
-                            XLSX.utils.book_append_sheet(wb, ws2, '统计');
-                            var now = new Date();
-                            XLSX.writeFile(wb, '双应用_' + result.length + '组_' + now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + '.xlsx');
-                            log('📥 导出' + result.length.toLocaleString() + '组');
-                            document.getElementById('exportHint').textContent = '✅ 已导出';
-                        } catch (e) {
-                            alert('导出失败：' + e.message);
-                            log('❌ 导出失败：' + e.message);
-                        }
-                        finishOperation();
-                    }, 50);
+                    workerHint.textContent = '';
                 }
-            } catch (e) {
-                alert('数据收集出错：' + e.message);
-                finishOperation();
             }
-        }
-        step(0);
-    }
 
-    function drawGrids(){
-        var orG = document.getElementById('orGrid');
-        var andG = document.getElementById('andGrid');
-        orG.innerHTML = ''; andG.innerHTML = '';
-        for (var i=1; i<=33; i++) {
-            var lbl = String(i).padStart(2,'0');
-            (function(idx){
-                var oc = document.createElement('div'); oc.className='n-cell'; oc.textContent=lbl;
-                oc.addEventListener('click',function(){
-                    if (orSel.has(idx)) orSel.delete(idx); else orSel.add(idx);
-                    drawGrids();
+            function renderFileList() {
+                if (allFiles.length === 0) {
+                    fileListEl.innerHTML =
+                        '<div style="text-align:center;color:#999;padding:20px;">暂无文件，请上传彩票图片或PDF</div>';
+                    return;
+                }
+                fileListEl.innerHTML = allFiles.map((f, i) => {
+                    const statusClass = 'status-' + f.status;
+                    let thumbHtml = '';
+                    if (f.type === 'image' && f.previewUrl) {
+                        thumbHtml = `<img class="thumb" src="${f.previewUrl}" alt="预览">`;
+                    } else if (f.type === 'pdf') {
+                        thumbHtml =
+                            '<div class="thumb" style="display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:#fef3f3;">📄</div>';
+                    } else {
+                        thumbHtml =
+                            '<div class="thumb" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem;background:#f5f5f5;">🖼️</div>';
+                    }
+                    const statusLabel = f.status === 'pending' ? '等待中' : f.status === 'processing' ?
+                        '识别中...' : f.status === 'done' ? '已完成' : '失败';
+                    return `
+                        <div class="file-item">
+                            ${thumbHtml}
+                            <div class="file-info">
+                                <div class="file-name" title="${f.file.name}">${f.file.name}</div>
+                                <div class="file-meta">${formatFileSize(f.file.size)} · ${f.type === 'pdf' ? 'PDF文档' : '图片'} · ${statusLabel}</div>
+                            </div>
+                            <div class="status-dot ${statusClass}"></div>
+                            <button class="btn-remove" data-index="${i}" title="移除" ${isProcessing ? 'disabled' : ''}>✕</button>
+                        </div>`;
+                }).join('');
+
+                // 绑定移除按钮
+                fileListEl.querySelectorAll('.btn-remove').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const idx = parseInt(btn.dataset.index, 10);
+                        if (!isProcessing && idx >= 0 && idx < allFiles.length) {
+                            removeFile(idx);
+                        }
+                    });
                 });
-                if (orSel.has(idx)) oc.classList.add('on-or');
-                orG.appendChild(oc);
-                var ac = document.createElement('div'); ac.className='n-cell'; ac.textContent=lbl;
-                ac.addEventListener('click',function(){
-                    if (andSel.has(idx)) andSel.delete(idx); else andSel.add(idx);
-                    drawGrids();
+            }
+
+            function removeFile(index) {
+                const f = allFiles[index];
+                if (f.previewUrl && f.previewUrl.startsWith('blob:')) {
+                    URL.revokeObjectURL(f.previewUrl);
+                }
+                allFiles.splice(index, 1);
+                renderFileList();
+                updateUI();
+                resetOutput();
+            }
+
+            function clearAllFiles() {
+                if (isProcessing) return;
+                allFiles.forEach(f => {
+                    if (f.previewUrl && f.previewUrl.startsWith('blob:')) {
+                        URL.revokeObjectURL(f.previewUrl);
+                    }
                 });
-                if (andSel.has(idx)) ac.classList.add('on-and');
-                andG.appendChild(ac);
-            })(i);
-        }
-    }
-
-    function showPairModal() {
-        document.getElementById('pairModalTextarea').value = '';
-        document.getElementById('pairModalOverlay').style.display = 'flex';
-    }
-    function hidePairModal() {
-        document.getElementById('pairModalOverlay').style.display = 'none';
-    }
-    function confirmPairExclusion() {
-        var raw = document.getElementById('pairModalTextarea').value.trim();
-        if (!raw) { alert('请输入至少一组双数字，如 01,02'); return; }
-        var lines = raw.split(/[\n\r]+/).filter(function(l){ return l.trim(); });
-        var pairSet = new Set();
-        for (var i=0; i<lines.length; i++) {
-            var nums = lines[i].split(/[,，]/).map(function(s){ return parseInt(s,10); }).filter(function(n){ return n>=1 && n<=33; });
-            if (nums.length >= 2) {
-                var a = Math.min(nums[0], nums[1]);
-                var b = Math.max(nums[0], nums[1]);
-                if (a !== b) pairSet.add(a+','+b);
+                allFiles = [];
+                fileInput.value = '';
+                renderFileList();
+                updateUI();
+                resetOutput();
+                progressWrap.style.display = 'none';
+                progressBar.style.width = '0%';
+                progressText.textContent = '';
+                processedCount = 0;
+                totalToProcess = 0;
             }
-        }
-        if (pairSet.size === 0) { alert('未识别到有效双数字组合'); return; }
-        hidePairModal();
-        applyCustomFilter('双数字组合', function(arr) {
-            var pairs = Array.from(pairSet);
-            for (var i=0; i<pairs.length; i++) {
-                var ab = pairs[i].split(',');
-                var a = parseInt(ab[0]), b = parseInt(ab[1]);
-                if (arr.indexOf(a)!==-1 && arr.indexOf(b)!==-1) return true;
+
+            function resetOutput() {
+                outputArea.value = '';
+                resultStats.textContent = '等待识别';
+                btnCopy.disabled = true;
+                btnDownload.disabled = true;
+                outputStats.textContent = '';
             }
-            return false;
-        });
-    }
 
-    function init() {
-        buildAll();
-        drawGrids();
+            function addFiles(files) {
+                let imageCount = allFiles.filter(f => f.type === 'image').length;
+                const pdfCount = allFiles.filter(f => f.type === 'pdf').length;
 
-        document.getElementById('btnApply').addEventListener('click', applyFilter);
-        document.getElementById('btnClearInput').addEventListener('click', function(){
-            document.getElementById('inputArea').value = '';
-            ['chk0','chk3','chk4','chk5','chk6'].forEach(function(id){ document.getElementById(id).checked = false; });
-        });
-        document.getElementById('btnStats').addEventListener('click', analyzeDuplicates);
-        document.getElementById('btnResetAll').addEventListener('click', function(){
-            if (busy) return alert('处理中');
-            if (!confirm('重置全部？')) return;
-            filteredAlive.fill(1); filteredCount = TOTAL;
-            historyCombos = []; lastInputSnapshot = '';
-            updateDisplay();
-            document.getElementById('inputArea').value = '';
-            document.getElementById('resultArea').style.display = 'none';
-            orSel.clear(); andSel.clear(); drawGrids();
-            hideProgress(); setStatus('就绪');
-            log('🔄 已重置');
-        });
-        document.getElementById('btnApplyOR').addEventListener('click', function(){ applyFilteredMask(orSel,'OR'); });
-        document.getElementById('btnClearOR').addEventListener('click', function(){ orSel.clear(); drawGrids(); });
-        document.getElementById('btnApplyAND').addEventListener('click', function(){ applyFilteredMask(andSel,'AND'); });
-        document.getElementById('btnClearAND').addEventListener('click', function(){ andSel.clear(); drawGrids(); });
-        document.getElementById('btnExport').addEventListener('click', exportXLSX);
+                for (const file of files) {
+                    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+                        if (pdfCount + (allFiles.filter(f => f.type === 'pdf').length > 0 ? 0 : 1) > 1 &&
+                            allFiles.some(f => f.type === 'pdf')) {
+                            showToast('⚠️ PDF文件只允许上传一个，已跳过重复PDF');
+                            continue;
+                        }
+                        const previewUrl = URL.createObjectURL(file);
+                        allFiles.push({ file, type: 'pdf', previewUrl, pdfPages: null, status: 'pending',
+                            resultText: '' });
+                    } else if (file.type.startsWith('image/') || /\.(jpg|jpeg|png|bmp|webp|gif|tiff?)$/i.test(file
+                            .name)) {
+                        imageCount++;
+                        const previewUrl = URL.createObjectURL(file);
+                        allFiles.push({ file, type: 'image', previewUrl, status: 'pending', resultText: '' });
+                    } else {
+                        // 尝试作为图片处理
+                        const previewUrl = URL.createObjectURL(file);
+                        allFiles.push({ file, type: 'image', previewUrl, status: 'pending', resultText: '' });
+                    }
+                }
+                renderFileList();
+                updateUI();
+                resetOutput();
+                progressWrap.style.display = 'none';
+            }
 
-        function bind(id, fn) { document.getElementById(id).addEventListener('click', fn); }
-        bind('btnAllOdd', function(){ applyCustomFilter('全奇数', isAllOdd); });
-        bind('btnAllEven', function(){ applyCustomFilter('全偶数', isAllEven); });
-        bind('btn3Seq', function(){ applyCustomFilter('3连号', function(arr){ return hasSeq(arr,3); }); });
-        bind('btn3Gap', function(){ applyCustomFilter('3隔号', function(arr){ return hasGap(arr,3); }); });
-        bind('btn4Seq', function(){ applyCustomFilter('4连号', function(arr){ return hasSeq(arr,4); }); });
-        bind('btn4Gap', function(){ applyCustomFilter('4隔号', function(arr){ return hasGap(arr,4); }); });
-        bind('btn5Seq', function(){ applyCustomFilter('5连号', function(arr){ return hasSeq(arr,5); }); });
-        bind('btn5Gap', function(){ applyCustomFilter('5隔号', function(arr){ return hasGap(arr,5); }); });
-        bind('btn6Seq', function(){ applyCustomFilter('6连号', function(arr){ return hasSeq(arr,6); }); });
-        bind('btn6Gap', function(){ applyCustomFilter('6隔号', function(arr){ return hasGap(arr,6); }); });
-        bind('btnTail3', function(){ applyCustomFilter('同尾数≥3个', hasSameTail3); });
-        bind('btnTail2Group', function(){ applyCustomFilter('同尾数组数≥2组', hasSameTail2Groups); });
-        bind('btnRatio600', function(){ applyCustomFilter('6:0:0型', function(arr){ return getZonePattern(arr)==='006'; }); });
-        bind('btnRatio510', function(){ applyCustomFilter('5:1:0型', function(arr){ return getZonePattern(arr)==='015'; }); });
-        bind('btnRatio420', function(){ applyCustomFilter('4:2:0型', function(arr){ return getZonePattern(arr)==='024'; }); });
-        bind('btnRatio411', function(){ applyCustomFilter('4:1:1型', function(arr){ return getZonePattern(arr)==='114'; }); });
-        bind('btnRatio330', function(){ applyCustomFilter('3:3:0型', function(arr){ return getZonePattern(arr)==='033'; }); });
-        bind('btnRatio321', function(){ applyCustomFilter('3:2:1型', function(arr){ return getZonePattern(arr)==='123'; }); });
-        bind('btnRatio222', function(){ applyCustomFilter('2:2:2型', function(arr){ return getZonePattern(arr)==='222'; }); });
-        bind('btnExcludeHistory', function(){ applyCustomFilter('历史组合', function(arr){ var key=arr.map(function(n){ return String(n).padStart(2,'0'); }).sort().join(','); return HISTORY_SET.has(key); }); });
-        bind('btnExcludePairs', showPairModal);
-        document.getElementById('btnPairModalCancel').addEventListener('click', hidePairModal);
-        document.getElementById('btnPairModalConfirm').addEventListener('click', confirmPairExclusion);
+            // ==================== 事件监听 ====================
+            uploadZone.addEventListener('click', (e) => {
+                if (e.target === fileInput) return;
+                fileInput.click();
+            });
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                    addFiles(Array.from(e.target.files));
+                    fileInput.value = '';
+                }
+            });
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadZone.classList.add('drag-over');
+            });
+            uploadZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadZone.classList.remove('drag-over');
+            });
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadZone.classList.remove('drag-over');
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    addFiles(Array.from(e.dataTransfer.files));
+                }
+            });
+            btnClearFiles.addEventListener('click', clearAllFiles);
 
-        log('✅ 最终稳定版就绪，可反复筛选与导出');
-    }
+            // ==================== Tesseract.js初始化 ====================
+            async function initTesseract() {
+                if (tesseractReady && ocrWorker) return;
+                try {
+                    workerHint.textContent = '⏳ 加载OCR引擎...';
+                    workerHint.style.color = 'var(--warning)';
+                    // 创建单个worker用于顺序处理（更稳定）
+                    ocrWorker = await Tesseract.createWorker('chi_sim', 1, {
+                        logger: (m) => {
+                            if (m.status === 'loading tesseract core' || m.status === 'loading language traineddata') {
+                                const pct = m.progress ? Math.round(m.progress * 100) : 0;
+                                workerHint.textContent = `⏳ 加载OCR引擎 ${pct}%...`;
+                            }
+                        }
+                    });
+                    // 设置参数提高识别准确率
+                    await ocrWorker.setParameters({
+                        tessedit_pageseg_mode: '6', // 假设为统一文本块
+                        tessedit_char_whitelist: '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ()[]（）【】倍胆拖,:,.，
+                            ',
+                    });
+                    tesseractReady = true;
+                    workerHint.textContent = '✅ OCR引擎就绪';
+                    workerHint.style.color = 'var(--success)';
+                    updateUI();
+                } catch (err) {
+                    console.error('Tesseract初始化失败:', err);
+                    workerHint.textContent = '❌ OCR引擎加载失败，请刷新重试';
+                    workerHint.style.color = 'var(--danger)';
+                    tesseractReady = false;
+                    throw err;
+                }
+            }
 
-    init();
-})();
-</script>
+            // 预初始化
+            initTesseract().catch(() => {});
+
+            // ==================== 图像预处理 ====================
+            function preprocessImage(imageElement) {
+                const canvas = document.createElement('canvas');
+                const maxWidth = 1800;
+                const maxHeight = 2400;
+                let w = imageElement.naturalWidth || imageElement.width;
+                let h = imageElement.naturalHeight || imageElement.height;
+
+                // 缩放
+                if (w > maxWidth || h > maxHeight) {
+                    const ratio = Math.min(maxWidth / w, maxHeight / h);
+                    w = Math.round(w * ratio);
+                    h = Math.round(h * ratio);
+                }
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+
+                // 绘制
+                ctx.drawImage(imageElement, 0, 0, w, h);
+
+                // 获取图像数据
+                const imageData = ctx.getImageData(0, 0, w, h);
+                const data = imageData.data;
+
+                // 灰度化 + 对比度增强
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    // 加权灰度
+                    let gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                    // 对比度拉伸
+                    gray = ((gray - 128) * 1.4) + 128;
+                    gray = Math.max(0, Math.min(255, gray));
+                    data[i] = gray;
+                    data[i + 1] = gray;
+                    data[i + 2] = gray;
+                }
+                ctx.putImageData(imageData, 0, 0);
+
+                return canvas;
+            }
+
+            // ==================== OCR识别单张图片 ====================
+            async function ocrImage(imageElement) {
+                if (!tesseractReady || !ocrWorker) {
+                    await initTesseract();
+                }
+                const processedCanvas = preprocessImage(imageElement);
+                const result = await ocrWorker.recognize(processedCanvas);
+                return {
+                    text: result.data.text,
+                    confidence: result.data.confidence,
+                    lines: result.data.lines || [],
+                    words: result.data.words || [],
+                };
+            }
+
+            // ==================== PDF处理 ====================
+            async function processPDF(pdfFile) {
+                const arrayBuffer = await pdfFile.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const totalPages = pdf.numPages;
+                const pagesData = [];
+
+                for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+                    const page = await pdf.getPage(pageNum);
+                    const viewport = page.getViewport({ scale: 2.0 }); // 2倍缩放提高清晰度
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.min(viewport.width, 2400);
+                    canvas.height = Math.min(viewport.height, 3200);
+                    const scale = Math.min(canvas.width / viewport.width, canvas.height / viewport.height);
+                    const adjustedViewport = page.getViewport({ scale: scale * 2.0 });
+
+                    canvas.width = Math.floor(adjustedViewport.width);
+                    canvas.height = Math.floor(adjustedViewport.height);
+
+                    const ctx = canvas.getContext('2d');
+                    await page.render({
+                        canvasContext: ctx,
+                        viewport: adjustedViewport,
+                    }).promise;
+
+                    pagesData.push({
+                        pageNum,
+                        canvas,
+                        imageDataUrl: canvas.toDataURL('image/png'),
+                    });
+                }
+                return pagesData;
+            }
+
+            // ==================== 解析OCR结果 ====================
+            function parseLotteryNumbers(ocrResult) {
+                const text = ocrResult.text;
+                const lines = ocrResult.lines || [];
+                const words = ocrResult.words || [];
+
+                // 按y坐标排序行
+                const sortedLines = [...lines].sort((a, b) => {
+                    const ay = a.bbox ? a.bbox.y0 : 0;
+                    const by = b.bbox ? b.bbox.y0 : 0;
+                    return ay - by;
+                });
+
+                const results = []; // 每组: { redBalls:[], type:'single'|'multiple'|'dantuo', danBalls:[], tuoBalls:[], multiplier:1,
+                // rawLine:'' }
+
+                // 策略1：按行分析
+                for (const line of sortedLines) {
+                    const lineText = line.text || '';
+                    const lineY = line.bbox ? line.bbox.y0 : 0;
+                    const parsed = parseLine(lineText, lineY);
+                    if (parsed) {
+                        results.push(parsed);
+                    }
+                }
+
+                // 策略2：如果按行没找到足够结果，从整体文本中提取
+                if (results.length === 0) {
+                    const globalParsed = parseFullText(text);
+                    if (globalParsed.length > 0) {
+                        results.push(...globalParsed);
+                    }
+                }
+
+                // 策略3：使用word级别信息按y坐标聚类
+                if (results.length === 0 && words.length > 0) {
+                    const clustered = clusterWordsByY(words);
+                    for (const cluster of clustered) {
+                        const clusterText = cluster.map(w => w.text || '').join(' ');
+                        const parsed = parseLine(clusterText, cluster[0]?.bbox?.y0 || 0);
+                        if (parsed) {
+                            results.push(parsed);
+                        }
+                    }
+                }
+
+                // 去重（相同红球组合只保留一个，但保留不同倍数）
+                const uniqueResults = [];
+                const seen = new Set();
+                for (const r of results) {
+                    const key = r.redBalls.join(',') + '|' + r.type + '|' + (r.danBalls || []).join(',') + '|' + (r
+                        .tuoBalls || []).join(',');
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        uniqueResults.push(r);
+                    } else {
+                        // 如果已存在，累加倍数
+                        const existing = uniqueResults.find(x => {
+                            const xkey = x.redBalls.join(',') + '|' + x.type + '|' + (x.danBalls || []).join(
+                                ',') + '|' + (x.tuoBalls || []).join(',');
+                            return xkey === key;
+                        });
+                        if (existing) {
+                            existing.multiplier += r.multiplier;
+                        }
+                    }
+                }
+
+                return uniqueResults;
+            }
+
+            function parseLine(lineText, lineY) {
+                if (!lineText || lineText.trim().length === 0) return null;
+                const cleaned = lineText.replace(/\s+/g, ' ').trim();
+
+                // 检测胆拖
+                const dantuoMatch = detectDanTuo(cleaned);
+                if (dantuoMatch) {
+                    return dantuoMatch;
+                }
+
+                // 提取所有数字（考虑可能的分隔符）
+                const allNumbers = extractNumbers(cleaned);
+
+                // 过滤红球范围内的数字
+                const redCandidates = allNumbers.filter(n => isRedBall(n));
+
+                if (redCandidates.length >= 5 && redCandidates.length <= 20) {
+                    // 可能是红球号码组
+                    const multiplier = detectMultiplier(cleaned, allNumbers, redCandidates);
+                    const type = redCandidates.length === 6 ? 'single' : 'multiple';
+
+                    return {
+                        redBalls: redCandidates.map(n => padZero(n)),
+                        type: type,
+                        danBalls: null,
+                        tuoBalls: null,
+                        multiplier: multiplier,
+                        rawLine: cleaned,
+                        lineY: lineY,
+                    };
+                }
+
+                // 如果红球候选少于5个，可能是部分识别，尝试从行中提取
+                if (redCandidates.length >= 3 && redCandidates.length < 5) {
+                    const multiplier = detectMultiplier(cleaned, allNumbers, redCandidates);
+                    return {
+                        redBalls: redCandidates.map(n => padZero(n)),
+                        type: 'partial',
+                        danBalls: null,
+                        tuoBalls: null,
+                        multiplier: multiplier,
+                        rawLine: cleaned,
+                        lineY: lineY,
+                    };
+                }
+
+                return null;
+            }
+
+            function parseFullText(fullText) {
+                const results = [];
+                const cleaned = fullText.replace(/\s+/g, ' ').trim();
+
+                // 查找胆拖模式
+                const dantuoResult = detectDanTuo(cleaned);
+                if (dantuoResult) {
+                    results.push(dantuoResult);
+                    return results;
+                }
+
+                // 提取所有数字序列
+                const numberSequences = extractNumberSequences(cleaned);
+                for (const seq of numberSequences) {
+                    const redCandidates = seq.filter(n => isRedBall(n));
+                    if (redCandidates.length >= 5 && redCandidates.length <= 20) {
+                        const multiplier = detectMultiplierFromSeq(cleaned, seq);
+                        results.push({
+                            redBalls: redCandidates.map(n => padZero(n)),
+                            type: redCandidates.length === 6 ? 'single' : 'multiple',
+                            danBalls: null,
+                            tuoBalls: null,
+                            multiplier: multiplier,
+                            rawLine: seq.join(','),
+                            lineY: 0,
+                        });
+                    }
+                }
+
+                return results;
+            }
+
+            function detectDanTuo(text) {
+                // 检测胆拖模式：胆:xx,xx 拖:xx,xx 或 胆码:xx 拖码:xx
+                const danPatterns = [
+                    /胆[码\s]*[：:]\s*([\d\s,，、]+)/i,
+                    /胆[：:]\s*([\d\s,，、]+)/i,
+                    /\(胆\)\s*([\d\s,，、]+)/i,
+                ];
+                const tuoPatterns = [
+                    /拖[码\s]*[：:]\s*([\d\s,，、]+)/i,
+                    /拖[：:]\s*([\d\s,，、]+)/i,
+                    /\(拖\)\s*([\d\s,，、]+)/i,
+                ];
+
+                let danBalls = null;
+                let tuoBalls = null;
+
+                for (const pat of danPatterns) {
+                    const m = text.match(pat);
+                    if (m) {
+                        danBalls = extractNumbers(m[1]).filter(n => isRedBall(n)).map(n => padZero(n));
+                        break;
+                    }
+                }
+                for (const pat of tuoPatterns) {
+                    const m = text.match(pat);
+                    if (m) {
+                        tuoBalls = extractNumbers(m[1]).filter(n => isRedBall(n)).map(n => padZero(n));
+                        break;
+                    }
+                }
+
+                if (danBalls && danBalls.length > 0 && tuoBalls && tuoBalls.length > 0) {
+                    const allNums = extractNumbers(text);
+                    const multiplier = detectMultiplierGeneric(text, allNums);
+                    return {
+                        redBalls: [...danBalls, ...tuoBalls],
+                        type: 'dantuo',
+                        danBalls: danBalls,
+                        tuoBalls: tuoBalls,
+                        multiplier: multiplier,
+                        rawLine: text,
+                        lineY: 0,
+                    };
+                }
+                return null;
+            }
+
+            function extractNumbers(text) {
+                // 从文本中提取所有数字（支持各种分隔符）
+                const nums = [];
+                // 匹配数字（包括小数但只取整数部分）
+                const matches = text.match(/\d+/g);
+                if (matches) {
+                    for (const m of matches) {
+                        const n = parseInt(m, 10);
+                        if (!isNaN(n) && n > 0 && n < 100) {
+                            nums.push(n);
+                        }
+                    }
+                }
+                return nums;
+            }
+
+            function extractNumberSequences(text) {
+                // 提取连续的数字序列（被非数字分隔符分隔）
+                const sequences = [];
+                const parts = text.split(/[^\d]+/);
+                let currentSeq = [];
+                for (const part of parts) {
+                    const n = parseInt(part, 10);
+                    if (!isNaN(n) && n > 0 && n < 100) {
+                        currentSeq.push(n);
+                    } else if (currentSeq.length > 0) {
+                        if (currentSeq.length >= 5) sequences.push([...currentSeq]);
+                        currentSeq = [];
+                    }
+                }
+                if (currentSeq.length >= 5) sequences.push([...currentSeq]);
+                return sequences;
+            }
+
+            function detectMultiplier(lineText, allNumbers, redCandidates) {
+                // 在红球候选之外查找倍数
+                const otherNums = allNumbers.filter(n => !redCandidates.includes(n));
+
+                // 查找括号中的数字
+                const bracketPatterns = [
+                    /[\(（]\s*(\d{1,3})\s*[\)）]/g,
+                    /[\【\[]\s*(\d{1,3})\s*[\】\]]/g,
+                    /[\[【]\s*(\d{1,3})\s*[\]】]/g,
+                ];
+                for (const pat of bracketPatterns) {
+                    let m;
+                    while ((m = pat.exec(lineText)) !== null) {
+                        const val = parseInt(m[1], 10);
+                        if (val >= 2 && val <= 200 && val !== 0) {
+                            return val;
+                        }
+                    }
+                }
+
+                // 查找"倍数"关键字
+                const倍Match = lineText.match(/倍[数]?\s*[：:]*\s*(\d{1,3})/i);
+                if (倍Match) {
+                    const val = parseInt(倍Match[1], 10);
+                    if (val >= 2 && val <= 200) return val;
+                }
+
+                // 查找数字后跟"倍"
+                const numBeiMatch = lineText.match(/(\d{1,3})\s*倍/);
+                if (numBeiMatch) {
+                    const val = parseInt(numBeiMatch[1], 10);
+                    if (val >= 2 && val <= 200) return val;
+                }
+
+                // 在其他数字中查找可能的倍数（较大的数字，如22、50等）
+                for (const n of otherNums) {
+                    if (n >= 2 && n <= 200 && n !== 16 && n !== 33) {
+                        // 排除常见的蓝球号码
+                        if (n > 33 || (n > 16 && n <= 200)) {
+                            return n;
+                        }
+                    }
+                }
+
+                return 1;
+            }
+
+            function detectMultiplierFromSeq(fullText, seq) {
+                const allNums = extractNumbers(fullText);
+                const seqSet = new Set(seq);
+                const otherNums = allNums.filter(n => !seqSet.has(n));
+                return detectMultiplierGeneric(fullText, allNums);
+            }
+
+            function detectMultiplierGeneric(text, allNums) {
+                const bracketPatterns = [
+                    /[\(（]\s*(\d{1,3})\s*[\)）]/g,
+                    /[\【\[]\s*(\d{1,3})\s*[\】\]]/g,
+                ];
+                for (const pat of bracketPatterns) {
+                    let m;
+                    while ((m = pat.exec(text)) !== null) {
+                        const val = parseInt(m[1], 10);
+                        if (val >= 2 && val <= 200) return val;
+                    }
+                }
+                const倍Match = text.match(/倍[数]?\s*[：:]*\s*(\d{1,3})/i);
+                if (倍Match) {
+                    const val = parseInt(倍Match[1], 10);
+                    if (val >= 2 && val <= 200) return val;
+                }
+                const numBeiMatch = text.match(/(\d{1,3})\s*倍/);
+                if (numBeiMatch) {
+                    const val = parseInt(numBeiMatch[1], 10);
+                    if (val >= 2 && val <= 200) return val;
+                }
+                return 1;
+            }
+
+            function clusterWordsByY(words) {
+                if (words.length === 0) return [];
+                const sorted = [...words].sort((a, b) => (a.bbox?.y0 || 0) - (b.bbox?.y0 || 0));
+                const clusters = [];
+                let currentCluster = [sorted[0]];
+                let currentY = sorted[0].bbox?.y0 || 0;
+
+                for (let i = 1; i < sorted.length; i++) {
+                    const wy = sorted[i].bbox?.y0 || 0;
+                    if (Math.abs(wy - currentY) < 40) {
+                        // 同一行
+                        currentCluster.push(sorted[i]);
+                    } else if (Math.abs(wy - currentY) < 120) {
+                        // 可能同一组（多行）
+                        currentCluster.push(sorted[i]);
+                        currentY = wy;
+                    } else {
+                        // 新组
+                        if (currentCluster.length >= 3) {
+                            clusters.push([...currentCluster]);
+                        }
+                        currentCluster = [sorted[i]];
+                        currentY = wy;
+                    }
+                }
+                if (currentCluster.length >= 3) {
+                    clusters.push([...currentCluster]);
+                }
+                return clusters;
+            }
+
+            // ==================== 格式化输出 ====================
+            function formatOutput(parsedResults) {
+                const lines = [];
+                for (const result of parsedResults) {
+                    const multiplier = Math.max(1, Math.min(result.multiplier || 1, 200));
+                    let lineText;
+                    if (result.type === 'dantuo' && result.danBalls && result.tuoBalls) {
+                        lineText = '胆:' + result.danBalls.join(',') + '，拖:' + result.tuoBalls.join(',');
+                    } else {
+                        lineText = result.redBalls.join(',');
+                    }
+                    // 按倍数输出
+                    for (let i = 0; i < multiplier; i++) {
+                        lines.push(lineText);
+                    }
+                }
+                return lines.join('\n');
+            }
+
+            // ==================== 主处理流程 ====================
+            async function processAllFiles() {
+                if (isProcessing) return;
+                if (allFiles.length === 0) {
+                    showToast('⚠️ 请先上传文件');
+                    return;
+                }
+                if (!tesseractReady) {
+                    showToast('⏳ OCR引擎尚未就绪，请稍候...');
+                    await initTesseract();
+                    if (!tesseractReady) {
+                        showToast('❌ OCR引擎加载失败');
+                        return;
+                    }
+                }
+
+                isProcessing = true;
+                abortController = new AbortController();
+                const signal = abortController.signal;
+                updateUI();
+                btnStartRecognition.disabled = true;
+                btnStartRecognition.textContent = '⏳ 识别中...';
+                progressWrap.style.display = 'block';
+                progressBar.style.width = '0%';
+                progressText.textContent = '准备处理...';
+                resetOutput();
+
+                // 计算总处理单元
+                totalToProcess = 0;
+                for (const f of allFiles) {
+                    if (f.type === 'pdf') {
+                        // PDF需要先解析页数
+                        totalToProcess += 0; // 稍后动态更新
+                    } else {
+                        totalToProcess += 1;
+                    }
+                }
+                // 先假设PDF有若干页，后续更新
+                let pdfTotalPages = 0;
+                const pdfFileObj = allFiles.find(f => f.type === 'pdf');
+                if (pdfFileObj) {
+                    try {
+                        const pdfData = await processPDF(pdfFileObj.file);
+                        pdfFileObj.pdfPages = pdfData;
+                        pdfTotalPages = pdfData.length;
+                        pdfFileObj.status = 'pending';
+                    } catch (err) {
+                        console.error('PDF解析失败:', err);
+                        pdfFileObj.status = 'error';
+                        pdfFileObj.resultText = '[PDF解析失败]';
+                        showToast('❌ PDF解析失败，请检查文件');
+                    }
+                }
+                totalToProcess = allFiles.filter(f => f.type === 'image').length + pdfTotalPages;
+                processedCount = 0;
+
+                if (totalToProcess === 0) {
+                    showToast('⚠️ 没有可处理的文件');
+                    finishProcessing();
+                    return;
+                }
+
+                progressText.textContent = `0 / ${totalToProcess} 完成`;
+
+                const allOutputLines = [];
+                const fileResults = []; // 按文件顺序存储结果
+
+                // 处理每个文件
+                for (let fileIdx = 0; fileIdx < allFiles.length; fileIdx++) {
+                    if (signal.aborted) break;
+                    const fileObj = allFiles[fileIdx];
+
+                    if (fileObj.type === 'image') {
+                        fileObj.status = 'processing';
+                        renderFileList();
+                        updateProgress();
+
+                        try {
+                            const img = await loadImage(fileObj.previewUrl);
+                            const ocrResult = await ocrImage(img);
+                            const parsed = parseLotteryNumbers(ocrResult);
+                            const formatted = formatOutput(parsed);
+                            fileObj.resultText = formatted;
+                            fileObj.status = 'done';
+                            if (formatted) allOutputLines.push(formatted);
+                            fileResults.push({ name: fileObj.file.name, text: formatted, parsed: parsed });
+                        } catch (err) {
+                            console.error(`识别失败: ${fileObj.file.name}`, err);
+                            fileObj.status = 'error';
+                            fileObj.resultText = `[识别失败: ${err.message}]`;
+                            fileResults.push({ name: fileObj.file.name, text: '', parsed: [], error: true });
+                        }
+                        processedCount++;
+                        updateProgress();
+                        renderFileList();
+
+                    } else if (fileObj.type === 'pdf' && fileObj.pdfPages) {
+                        const pdfPages = fileObj.pdfPages;
+                        fileObj.status = 'processing';
+                        renderFileList();
+                        updateProgress();
+
+                        for (let pageIdx = 0; pageIdx < pdfPages.length; pageIdx++) {
+                            if (signal.aborted) break;
+                            const pageData = pdfPages[pageIdx];
+                            try {
+                                const img = await loadImageFromDataUrl(pageData.imageDataUrl);
+                                const ocrResult = await ocrImage(img);
+                                const parsed = parseLotteryNumbers(ocrResult);
+                                const formatted = formatOutput(parsed);
+                                if (formatted) allOutputLines.push(formatted);
+                                fileResults.push({
+                                    name: `${fileObj.file.name} - 第${pageData.pageNum}页`,
+                                    text: formatted,
+                                    parsed: parsed,
+                                });
+                            } catch (err) {
+                                console.error(`PDF第${pageData.pageNum}页识别失败:`, err);
+                                fileResults.push({
+                                    name: `${fileObj.file.name} - 第${pageData.pageNum}页`,
+                                    text: '',
+                                    parsed: [],
+                                    error: true,
+                                });
+                            }
+                            processedCount++;
+                            updateProgress();
+                            renderFileList();
+                        }
+                        fileObj.status = 'done';
+                        renderFileList();
+                    }
+                }
+
+                // 汇总输出
+                const finalOutput = allOutputLines.join('\n');
+                outputArea.value = finalOutput;
+                if (finalOutput.trim()) {
+                    resultStats.textContent = `识别完成 · ${allOutputLines.length} 行`;
+                    btnCopy.disabled = false;
+                    btnDownload.disabled = false;
+                    outputStats.textContent = `共 ${allOutputLines.length} 行号码（含倍数展开）`;
+                } else {
+                    resultStats.textContent = '未识别到号码';
+                    outputStats.textContent = '请检查图片质量或手动输入';
+                }
+
+                finishProcessing();
+            }
+
+            function loadImage(src) {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => resolve(img);
+                    img.onerror = () => reject(new Error('图片加载失败'));
+                    img.src = src;
+                });
+            }
+
+            function loadImageFromDataUrl(dataUrl) {
+                return loadImage(dataUrl);
+            }
+
+            function updateProgress() {
+                if (totalToProcess === 0) return;
+                const pct = Math.round((processedCount / totalToProcess) * 100);
+                progressBar.style.width = pct + '%';
+                progressText.textContent = `${processedCount} / ${totalToProcess} 完成 (${pct}%)`;
+            }
+
+            function finishProcessing() {
+                isProcessing = false;
+                abortController = null;
+                btnStartRecognition.disabled = false;
+                btnStartRecognition.textContent = '🔍 开始识别';
+                updateUI();
+                if (processedCount >= totalToProcess && totalToProcess > 0) {
+                    progressBar.style.width = '100%';
+                    progressText.textContent = `全部完成！共处理 ${totalToProcess} 个单元`;
+                }
+            }
+
+            // ==================== 按钮事件 ====================
+            btnStartRecognition.addEventListener('click', async () => {
+                if (isProcessing) return;
+                await processAllFiles();
+            });
+
+            btnCopy.addEventListener('click', () => {
+                const text = outputArea.value;
+                if (!text.trim()) {
+                    showToast('⚠️ 没有可复制的内容');
+                    return;
+                }
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('✅ 已复制到剪贴板！');
+                }).catch(() => {
+                    // 降级方案
+                    outputArea.select();
+                    document.execCommand('copy');
+                    showToast('✅ 已复制到剪贴板！');
+                });
+            });
+
+            btnDownload.addEventListener('click', () => {
+                const text = outputArea.value;
+                if (!text.trim()) {
+                    showToast('⚠️ 没有可下载的内容');
+                    return;
+                }
+                const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = '双色球红球识别结果_' + new Date().toISOString().slice(0, 10) + '.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('✅ 下载完成！');
+            });
+
+            // ==================== 初始化 ====================
+            updateUI();
+            renderFileList();
+
+            // 页面加载时预初始化OCR
+            setTimeout(() => {
+                initTesseract().catch(() => {
+                    workerHint.textContent = '⚠️ OCR引擎加载失败，点击开始识别时会重试';
+                    workerHint.style.color = 'var(--danger)';
+                });
+            }, 500);
+
+            // ==================== 键盘快捷键 ====================
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !isProcessing && allFiles.length > 0) {
+                    e.preventDefault();
+                    processAllFiles();
+                }
+            });
+
+            console.log('🎱 双色球彩票红球识别工具已就绪');
+            console.log('   - 支持图片和PDF上传');
+            console.log('   - 使用Tesseract.js进行OCR识别');
+            console.log('   - 自动识别单式、复式、胆拖');
+            console.log('   - 自动识别倍数并展开输出');
+            console.log('   - 数字1-9自动补零为01-09');
+            console.log('   💡 提示：Ctrl+Enter 快速开始识别');
+        })();
+    </script>
 </body>
 </html>
