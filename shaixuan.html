@@ -2,930 +2,184 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>双色球彩票红球识别工具 · 稳定版</title>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js">
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3/build/pdf.min.js">
-    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>彩票识别上传</title>
     <style>
-        :root {
-            --bg: #f0f4f8;
-            --card-bg: #ffffff;
-            --primary: #1a73e8;
-            --primary-hover: #1557b0;
-            --danger: #d93025;
-            --success: #188038;
-            --warning: #e6a817;
-            --text: #202124;
-            --text-secondary: #5f6368;
-            --border: #dadce0;
-            --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            --radius: 12px;
-            --transition: 0.2s ease;
-            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Microsoft YaHei Mono', monospace;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, sans-serif; 
+            background: #f5f5f5; 
+            padding: 20px;
+            max-width: 100vw;
         }
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        .container { max-width: 500px; margin: 0 auto; }
+        h1 { font-size: 20px; text-align: center; margin-bottom: 20px; color: #333; }
+        
+        .batch-box {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
-        }
-        .app-container {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 20px 16px 40px;
-        }
-        .app-header {
-            text-align: center;
-            padding: 24px 0 16px;
-        }
-        .app-header .icon-wrap {
-            display: inline-block;
-            width: 56px;
-            height: 56px;
-            background: linear-gradient(135deg, #e63946, #ff6b6b);
-            border-radius: 50%;
-            font-size: 30px;
-            line-height: 56px;
-            margin-bottom: 8px;
-            box-shadow: 0 4px 14px rgba(230, 57, 70, 0.3);
-        }
-        .app-header h1 {
-            font-size: 1.6rem;
-            font-weight: 700;
-            letter-spacing: -0.3px;
-        }
-        .app-header .subtitle {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            margin-top: 2px;
-        }
-        .card {
-            background: var(--card-bg);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            padding: 20px 24px;
-            margin-bottom: 16px;
-            border: 1px solid var(--border);
-        }
-        .card-title {
-            font-size: 1.05rem;
+        .batch-title {
+            font-size: 16px;
             font-weight: 600;
+            color: #e74c3c;
             margin-bottom: 12px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        .card-title .badge {
-            font-size: 0.75rem;
-            background: #e8f0fe;
-            color: var(--primary);
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-weight: 500;
+        .batch-title::before {
+            content: '';
+            width: 4px;
+            height: 18px;
+            background: #e74c3c;
+            border-radius: 2px;
         }
-        .upload-zone {
-            border: 2px dashed var(--border);
-            border-radius: var(--radius);
-            padding: 40px 24px;
-            text-align: center;
-            cursor: pointer;
-            transition: all var(--transition);
-            background: #fafbfc;
-            position: relative;
-        }
-        .upload-zone:hover,
-        .upload-zone.drag-over {
-            border-color: var(--primary);
-            background: #f0f5ff;
-            box-shadow: 0 0 0 4px rgba(26, 115, 232, 0.06);
-        }
-        .upload-zone .upload-icon {
-            font-size: 48px;
-            margin-bottom: 10px;
-            display: block;
-        }
-        .upload-zone .upload-text {
-            font-weight: 600;
-            font-size: 1rem;
-        }
-        .upload-zone .upload-hint {
-            font-size: 0.82rem;
-            color: var(--text-secondary);
-            margin-top: 4px;
-        }
-        .upload-zone input[type="file"] {
-            position: absolute;
-            inset: 0;
-            opacity: 0;
-            cursor: pointer;
-        }
-        .file-list {
-            max-height: 360px;
-            overflow-y: auto;
-            margin-top: 10px;
-        }
-        .file-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 12px;
-            border-radius: 8px;
-            background: #fafbfc;
-            margin-bottom: 6px;
-            border: 1px solid #eee;
-            font-size: 0.9rem;
-        }
-        .file-item .thumb {
-            width: 44px;
-            height: 56px;
-            object-fit: cover;
-            border-radius: 4px;
-            border: 1px solid #e0e0e0;
-            flex-shrink: 0;
-            background: #fff;
-        }
-        .file-item .file-info {
-            flex: 1;
-            min-width: 0;
-        }
-        .file-item .file-name {
-            font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .file-item .file-meta {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-        }
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-        .status-pending {
-            background: #ccc;
-        }
-        .status-processing {
-            background: #f9ab00;
-            animation: pulse 0.8s infinite;
-        }
-        .status-done {
-            background: var(--success);
-        }
-        .status-error {
-            background: var(--danger);
-        }
-        @keyframes pulse {
-            0%,
-            100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0.3;
-            }
-        }
-        .btn-row {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 12px;
-        }
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 10px 20px;
-            border-radius: 24px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: all var(--transition);
-            white-space: nowrap;
-        }
-        .btn-primary {
-            background: var(--primary);
-            color: #fff;
-            box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3);
-        }
-        .btn-primary:hover:not(:disabled) {
-            background: var(--primary-hover);
-            box-shadow: 0 4px 14px rgba(26, 115, 232, 0.4);
-            transform: translateY(-1px);
-        }
-        .btn-primary:disabled {
-            background: #a8c7fa;
-            cursor: not-allowed;
-            box-shadow: none;
-            transform: none;
-        }
-        .btn-outline {
-            background: #fff;
-            color: var(--primary);
-            border: 2px solid var(--primary);
-        }
-        .btn-outline:hover {
-            background: #e8f0fe;
-        }
-        .btn-danger {
-            background: #fff;
-            color: var(--danger);
-            border: 2px solid var(--danger);
-        }
-        .btn-danger:hover {
-            background: #fce8e6;
-        }
-        .btn-copy {
-            background: #fff;
-            color: var(--success);
-            border: 2px solid var(--success);
-            font-family: var(--font-mono);
-        }
-        .btn-copy:hover {
-            background: #e6f4ea;
-        }
-        .progress-wrap {
-            margin-top: 12px;
-        }
-        .progress-bar-outer {
-            height: 8px;
-            background: #e8eaed;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        .progress-bar-inner {
-            height: 100%;
-            background: linear-gradient(90deg, #1a73e8, #4da3ff);
-            border-radius: 4px;
-            transition: width 0.3s ease;
-            width: 0%;
-        }
-        .progress-text {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin-top: 4px;
-            text-align: center;
-        }
-        .output-area {
+        
+        input[type="file"] {
             width: 100%;
-            min-height: 200px;
-            font-family: var(--font-mono);
-            font-size: 0.9rem;
-            padding: 14px 16px;
+            padding: 15px;
+            border: 2px dashed #ddd;
             border-radius: 8px;
-            border: 1px solid var(--border);
-            resize: vertical;
-            background: #fefefe;
-            line-height: 1.7;
+            font-size: 14px;
+            background: #fafafa;
         }
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #323232;
-            color: #fff;
-            padding: 12px 20px;
-            border-radius: 24px;
-            font-size: 0.85rem;
-            z-index: 9999;
-            animation: fadeInOut 2.2s ease forwards;
-            pointer-events: none;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        input[type="file"]:active { border-color: #e74c3c; background: #fff5f5; }
+        
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 12px;
         }
-        @keyframes fadeInOut {
-            0% {
-                opacity: 0;
-                transform: translateY(-16px);
-            }
-            12% {
-                opacity: 1;
-                transform: translateY(0);
-            }
-            80% {
-                opacity: 1;
-                transform: translateY(0);
-            }
-            100% {
-                opacity: 0;
-                transform: translateY(-12px);
-            }
+        .preview-grid img {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #eee;
         }
-        @media (max-width: 640px) {
-            .card {
-                padding: 14px 12px;
-            }
-            .upload-zone {
-                padding: 24px 12px;
-            }
+        .count-badge {
+            display: inline-block;
+            background: #e74c3c;
+            color: white;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            margin-left: 8px;
         }
+        
+        .tip {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #856404;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 17px;
+            font-weight: 600;
+            margin-top: 20px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .submit-btn:active { opacity: 0.9; transform: scale(0.98); }
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <div class="app-header">
-            <div class="icon-wrap">🎱</div>
-            <h1>双色球彩票红球识别工具</h1>
-            <p class="subtitle">上传彩票图片或PDF，自动识别红球号码、倍数、胆拖</p>
+    <div class="container">
+        <h1>🎱 双色球彩票识别</h1>
+        
+        <div class="tip">
+            ⚠️ iPhone限制：每批最多选<strong>100张</strong><br>
+            130张请分<strong>2批</strong>上传（如：70张 + 60张）
         </div>
-
-        <div class="card" id="uploadCard">
-            <div class="card-title">
-                📤 上传文件
-                <span class="badge" id="fileCountBadge">未选择文件</span>
+        
+        <!-- 第一批 -->
+        <div class="batch-box">
+            <div class="batch-title">
+                第一批 <span class="count-badge" id="count1">0张</span>
             </div>
-            <div class="upload-zone" id="uploadZone">
-                <span class="upload-icon">📁</span>
-                <div class="upload-text">点击选择文件或拖拽到此处</div>
-                <div class="upload-hint">支持 JPG / PNG / BMP / WEBP / PDF（图片可多选，PDF限一个）</div>
-                <input type="file" id="fileInput" accept="image/*,.pdf" multiple>
-            </div>
-            <div class="file-list" id="fileList"></div>
-            <div class="btn-row">
-                <button class="btn btn-outline" id="btnClearFiles">🗑️ 清空文件</button>
-                <button class="btn btn-primary" id="btnStartRecognition" disabled>
-                    🔍 开始识别（请先上传文件）
-                </button>
-                <span id="workerHint" style="font-size:0.82rem;color:var(--text-secondary);align-self:center;"></span>
-            </div>
-            <div class="progress-wrap" id="progressWrap" style="display:none;">
-                <div class="progress-bar-outer"><div class="progress-bar-inner" id="progressBar"></div></div>
-                <div class="progress-text" id="progressText">准备中...</div>
-            </div>
+            <input type="file" id="batch1" accept="image/*" multiple 
+                   onchange="handleFiles(this, 1)">
+            <div class="preview-grid" id="preview1"></div>
         </div>
-
-        <div class="card">
-            <div class="card-title">
-                📋 识别结果
-                <span class="badge" id="resultStats">等待识别</span>
+        
+        <!-- 第二批 -->
+        <div class="batch-box">
+            <div class="batch-title">
+                第二批 <span class="count-badge" id="count2">0张</span>
             </div>
-            <textarea class="output-area" id="outputArea" placeholder="识别结果将显示在这里..." readonly></textarea>
-            <div class="btn-row">
-                <button class="btn btn-copy" id="btnCopy" disabled>📋 一键复制全部结果</button>
-                <button class="btn btn-outline" id="btnDownload" disabled>💾 下载结果文本</button>
-                <span class="output-stats" id="outputStats" style="font-size:0.82rem;color:var(--text-secondary);"></span>
+            <input type="file" id="batch2" accept="image/*" multiple 
+                   onchange="handleFiles(this, 2)">
+            <div class="preview-grid" id="preview2"></div>
+        </div>
+        
+        <!-- 第三批（备用） -->
+        <div class="batch-box">
+            <div class="batch-title">
+                第三批（备用）<span class="count-badge" id="count3">0张</span>
             </div>
+            <input type="file" id="batch3" accept="image/*" multiple 
+                   onchange="handleFiles(this, 3)">
+            <div class="preview-grid" id="preview3"></div>
         </div>
-
-        <div class="card" style="font-size:0.82rem;color:var(--text-secondary);">
-            <strong>💡 说明：</strong>数字1-9自动补零为01-09；倍数自动展开为多行；胆拖格式为“胆:xx,xx，拖:xx,xx”；按图片顺序依次识别。
-        </div>
+        
+        <button class="submit-btn" onclick="submitAll()">
+            开始识别全部彩票
+        </button>
     </div>
 
     <script>
-        (function() {
-            // 全局错误捕获，防止闪退
-            window.onerror = function(msg, url, line, col, error) {
-                console.error('全局错误:', msg, 'at', url, line, col, error);
-                showToast('发生错误，请查看控制台(F12)');
-                return false;
-            };
-            window.addEventListener('unhandledrejection', function(event) {
-                console.error('未处理的Promise拒绝:', event.reason);
-                showToast('操作异常，请刷新后重试');
-                event.preventDefault();
+        const allFiles = {1: [], 2: [], 3: []};
+        
+        function handleFiles(input, batchNum) {
+            const files = Array.from(input.files);
+            allFiles[batchNum] = files;
+            
+            // 更新计数
+            document.getElementById('count' + batchNum).textContent = files.length + '张';
+            
+            // 预览（最多显示8张）
+            const preview = document.getElementById('preview' + batchNum);
+            preview.innerHTML = '';
+            files.slice(0, 8).forEach(file => {
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                preview.appendChild(img);
             });
-
-            const uploadZone = document.getElementById('uploadZone');
-            const fileInput = document.getElementById('fileInput');
-            const fileListEl = document.getElementById('fileList');
-            const fileCountBadge = document.getElementById('fileCountBadge');
-            const btnClearFiles = document.getElementById('btnClearFiles');
-            const btnStartRecognition = document.getElementById('btnStartRecognition');
-            const progressWrap = document.getElementById('progressWrap');
-            const progressBar = document.getElementById('progressBar');
-            const progressText = document.getElementById('progressText');
-            const outputArea = document.getElementById('outputArea');
-            const resultStats = document.getElementById('resultStats');
-            const btnCopy = document.getElementById('btnCopy');
-            const btnDownload = document.getElementById('btnDownload');
-            const outputStats = document.getElementById('outputStats');
-            const workerHint = document.getElementById('workerHint');
-
-            let allFiles = [];
-            let isProcessing = false;
-            let ocrWorker = null;
-            let tesseractReady = false;
-            let totalToProcess = 0;
-            let processedCount = 0;
-
-            function showToast(msg) {
-                const toast = document.createElement('div');
-                toast.className = 'toast';
-                toast.textContent = msg;
-                document.body.appendChild(toast);
-                setTimeout(() => toast.remove(), 2300);
+            
+            // 如果还有更多，显示"+N"
+            if (files.length > 8) {
+                const more = document.createElement('div');
+                more.style.cssText = 'display:flex;align-items:center;justify-content:center;background:#f0f0f0;border-radius:6px;font-size:14px;color:#666;';
+                more.textContent = '+' + (files.length - 8);
+                preview.appendChild(more);
             }
-
-            function formatFileSize(bytes) {
-                if (bytes < 1024) return bytes + ' B';
-                if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-                return (bytes / 1048576).toFixed(2) + ' MB';
+        }
+        
+        function submitAll() {
+            const total = [...allFiles[1], ...allFiles[2], ...allFiles[3]];
+            if (total.length === 0) {
+                alert('请至少选择一张图片');
+                return;
             }
-
-            function padZero(num) {
-                const n = parseInt(num, 10);
-                if (isNaN(n)) return String(num).trim();
-                if (n >= 1 && n <= 9) return '0' + n;
-                if (n >= 10 && n <= 33) return String(n);
-                return String(num).trim();
-            }
-
-            function isRedBall(num) {
-                const n = parseInt(num, 10);
-                return !isNaN(n) && n >= 1 && n <= 33;
-            }
-
-            function updateStartButton() {
-                btnStartRecognition.disabled = (allFiles.length === 0 || isProcessing);
-                if (allFiles.length === 0) {
-                    btnStartRecognition.textContent = '🔍 开始识别（请先上传文件）';
-                } else if (isProcessing) {
-                    btnStartRecognition.textContent = '⏳ 识别中...';
-                } else {
-                    btnStartRecognition.textContent = '🔍 开始识别';
-                }
-            }
-
-            function updateUI() {
-                const totalFiles = allFiles.length;
-                fileCountBadge.textContent = totalFiles === 0 ? '未选择文件' : `已选 ${totalFiles} 个文件`;
-                updateStartButton();
-                btnClearFiles.disabled = isProcessing;
-                if (totalFiles === 0) {
-                    fileListEl.innerHTML =
-                        '<div style="text-align:center;color:#999;padding:20px;">暂无文件，请上传彩票图片或PDF</div>';
-                }
-                if (tesseractReady && totalFiles > 0 && !isProcessing) {
-                    workerHint.textContent = '✅ OCR引擎就绪';
-                    workerHint.style.color = 'var(--success)';
-                } else if (!tesseractReady && totalFiles > 0) {
-                    workerHint.textContent = '⏳ OCR引擎加载中...';
-                    workerHint.style.color = 'var(--warning)';
-                } else {
-                    workerHint.textContent = '';
-                }
-            }
-
-            function renderFileList() {
-                if (allFiles.length === 0) {
-                    fileListEl.innerHTML =
-                        '<div style="text-align:center;color:#999;padding:20px;">暂无文件，请上传彩票图片或PDF</div>';
-                    return;
-                }
-                fileListEl.innerHTML = allFiles.map((f, i) => {
-                    const statusClass = 'status-' + f.status;
-                    let thumbHtml = '';
-                    if (f.type === 'image' && f.previewUrl) {
-                        thumbHtml = `<img class="thumb" src="${f.previewUrl}" alt="预览">`;
-                    } else if (f.type === 'pdf') {
-                        thumbHtml =
-                            '<div class="thumb" style="display:flex;align-items:center;justify-content:center;font-size:1.5rem;">📄</div>';
-                    } else {
-                        thumbHtml =
-                            '<div class="thumb" style="display:flex;align-items:center;justify-content:center;">🖼️</div>';
-                    }
-                    const statusLabel = f.status === 'pending' ? '等待中' : f.status === 'processing' ?
-                        '识别中...' : f.status === 'done' ? '已完成' : '失败';
-                    return `<div class="file-item">
-                        ${thumbHtml}
-                        <div class="file-info">
-                            <div class="file-name" title="${f.file.name}">${f.file.name}</div>
-                            <div class="file-meta">${formatFileSize(f.file.size)} · ${statusLabel}</div>
-                        </div>
-                        <div class="status-dot ${statusClass}"></div>
-                        <button class="btn-remove" data-index="${i}" title="移除" ${isProcessing ? 'disabled' : ''}>✕</button>
-                    </div>`;
-                }).join('');
-
-                fileListEl.querySelectorAll('.btn-remove').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const idx = parseInt(btn.dataset.index, 10);
-                        if (!isProcessing && idx >= 0 && idx < allFiles.length) {
-                            removeFile(idx);
-                        }
-                    });
-                });
-            }
-
-            function removeFile(index) {
-                const f = allFiles[index];
-                if (f.previewUrl && f.previewUrl.startsWith('blob:')) URL.revokeObjectURL(f.previewUrl);
-                allFiles.splice(index, 1);
-                renderFileList();
-                updateUI();
-                resetOutput();
-            }
-
-            function clearAllFiles() {
-                if (isProcessing) return;
-                allFiles.forEach(f => { if (f.previewUrl && f.previewUrl.startsWith('blob:')) URL.revokeObjectURL(
-                        f.previewUrl); });
-                allFiles = [];
-                fileInput.value = '';
-                renderFileList();
-                updateUI();
-                resetOutput();
-                progressWrap.style.display = 'none';
-            }
-
-            function resetOutput() {
-                outputArea.value = '';
-                resultStats.textContent = '等待识别';
-                btnCopy.disabled = true;
-                btnDownload.disabled = true;
-                outputStats.textContent = '';
-            }
-
-            function addFiles(files) {
-                console.log('添加文件，数量:', files.length);
-                for (const file of files) {
-                    console.log('处理文件:', file.name, '类型:', file.type);
-                    const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-                    const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|bmp|webp|gif|tiff?|heic|heif)$/i.test(
-                        file.name);
-
-                    if (isPDF) {
-                        if (allFiles.filter(f => f.type === 'pdf').length >= 1) {
-                            showToast('⚠️ PDF文件只允许上传一个');
-                            continue;
-                        }
-                        const previewUrl = URL.createObjectURL(file);
-                        allFiles.push({ file, type: 'pdf', previewUrl, status: 'pending', resultText: '' });
-                    } else if (isImage) {
-                        const previewUrl = URL.createObjectURL(file);
-                        allFiles.push({ file, type: 'image', previewUrl, status: 'pending', resultText: '' });
-                    } else {
-                        console.warn('未知文件类型，当作图片处理:', file.name);
-                        const previewUrl = URL.createObjectURL(file);
-                        allFiles.push({ file, type: 'image', previewUrl, status: 'pending', resultText: '' });
-                    }
-                }
-                console.log('当前文件列表长度:', allFiles.length);
-                renderFileList();
-                updateUI();
-                resetOutput();
-            }
-
-            uploadZone.addEventListener('click', (e) => {
-                if (e.target === fileInput) return;
-                fileInput.click();
-            });
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files && e.target.files.length > 0) {
-                    addFiles(Array.from(e.target.files));
-                    fileInput.value = '';
-                }
-            });
-            uploadZone.addEventListener('dragover', (e) => { e.preventDefault();
-                uploadZone.classList.add('drag-over'); });
-            uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
-            uploadZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadZone.classList.remove('drag-over');
-                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                    addFiles(Array.from(e.dataTransfer.files));
-                }
-            });
-            btnClearFiles.addEventListener('click', clearAllFiles);
-
-            async function initTesseract() {
-                if (tesseractReady && ocrWorker) return;
-                try {
-                    workerHint.textContent = '⏳ 加载OCR引擎...';
-                    ocrWorker = await Tesseract.createWorker('chi_sim', 1, {
-                        logger: m => {
-                            if (m.status === 'loading tesseract core' || m.status === 'loading language traineddata') {
-                                const pct = m.progress ? Math.round(m.progress * 100) : 0;
-                                workerHint.textContent = `⏳ 加载OCR引擎 ${pct}%...`;
-                            }
-                        }
-                    });
-                    await ocrWorker.setParameters({
-                        tessedit_pageseg_mode: '6',
-                        tessedit_char_whitelist: '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ()[]（）【】倍胆拖,:,.，',
-                    });
-                    tesseractReady = true;
-                    workerHint.textContent = '✅ OCR引擎就绪';
-                    updateUI();
-                } catch (err) {
-                    console.error('Tesseract初始化失败:', err);
-                    workerHint.textContent = '❌ OCR引擎加载失败';
-                    tesseractReady = false;
-                    throw err;
-                }
-            }
-            initTesseract().catch(() => {});
-
-            function preprocessImage(img) {
-                const canvas = document.createElement('canvas');
-                let w = img.naturalWidth || img.width;
-                let h = img.naturalHeight || img.height;
-                const MAX_WIDTH = 1200; // 更保守的最大宽度，防止内存溢出
-                const MAX_HEIGHT = 1600;
-                if (w > MAX_WIDTH || h > MAX_HEIGHT) {
-                    const ratio = Math.min(MAX_WIDTH / w, MAX_HEIGHT / h);
-                    w = Math.round(w * ratio);
-                    h = Math.round(h * ratio);
-                }
-                canvas.width = w;
-                canvas.height = h;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, w, h);
-                const imageData = ctx.getImageData(0, 0, w, h);
-                const data = imageData.data;
-                for (let i = 0; i < data.length; i += 4) {
-                    let gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-                    gray = ((gray - 128) * 1.4) + 128;
-                    gray = Math.max(0, Math.min(255, gray));
-                    data[i] = data[i + 1] = data[i + 2] = gray;
-                }
-                ctx.putImageData(imageData, 0, 0);
-                return canvas;
-            }
-
-            async function ocrImage(img) {
-                if (!tesseractReady) await initTesseract();
-                const processed = preprocessImage(img);
-                const result = await ocrWorker.recognize(processed);
-                return { text: result.data.text, lines: result.data.lines || [], words: result.data.words || [] };
-            }
-
-            async function processPDF(file) {
-                const arrayBuffer = await file.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-                const pages = [];
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    try {
-                        const page = await pdf.getPage(i);
-                        const viewport = page.getViewport({ scale: 1.5 }); // 降低分辨率以防内存问题
-                        const canvas = document.createElement('canvas');
-                        canvas.width = Math.min(viewport.width, 1200);
-                        canvas.height = Math.min(viewport.height, 1600);
-                        const ctx = canvas.getContext('2d');
-                        await page.render({ canvasContext: ctx, viewport }).promise;
-                        pages.push({ pageNum: i, canvas, dataUrl: canvas.toDataURL('image/png') });
-                    } catch (pageErr) {
-                        console.warn(`PDF第${i}页渲染失败:`, pageErr);
-                    }
-                }
-                return pages;
-            }
-
-            function parseLotteryNumbers(ocrResult) {
-                const text = ocrResult.text;
-                const lines = ocrResult.lines || [];
-                const sortedLines = [...lines].sort((a, b) => (a.bbox?.y0 || 0) - (b.bbox?.y0 || 0));
-                const results = [];
-                for (const line of sortedLines) {
-                    const parsed = parseLine(line.text || '');
-                    if (parsed) results.push(parsed);
-                }
-                if (results.length === 0) {
-                    const global = parseFullText(text);
-                    results.push(...global);
-                }
-                const unique = [];
-                const seen = new Set();
-                for (const r of results) {
-                    const key = r.redBalls.join(',') + '|' + r.type + '|' + (r.danBalls || []).join(',') + '|' + (r.tuoBalls ||
-                        []).join(',');
-                    if (!seen.has(key)) {
-                        seen.add(key);
-                        unique.push(r);
-                    }
-                }
-                return unique;
-            }
-
-            function parseLine(txt) {
-                if (!txt || !txt.trim()) return null;
-                const cleaned = txt.replace(/\s+/g, ' ').trim();
-                const dantuo = detectDanTuo(cleaned);
-                if (dantuo) return dantuo;
-                const nums = extractNumbers(cleaned);
-                const reds = nums.filter(isRedBall);
-                if (reds.length >= 5 && reds.length <= 20) {
-                    const mult = detectMultiplier(cleaned, nums, reds);
-                    return { redBalls: reds.map(padZero), type: reds.length === 6 ? 'single' : 'multiple', danBalls: null,
-                        tuoBalls: null, multiplier: mult };
-                }
-                return null;
-            }
-
-            function parseFullText(text) {
-                const results = [];
-                const seqs = extractNumberSequences(text);
-                for (const seq of seqs) {
-                    const reds = seq.filter(isRedBall);
-                    if (reds.length >= 5) {
-                        const mult = detectMultiplierGeneric(text);
-                        results.push({ redBalls: reds.map(padZero), type: reds.length === 6 ? 'single' : 'multiple',
-                            danBalls: null, tuoBalls: null, multiplier: mult });
-                    }
-                }
-                return results;
-            }
-
-            function detectDanTuo(text) {
-                const danPat = /胆[码\s]*[：:]\s*([\d\s,，、]+)/i;
-                const tuoPat = /拖[码\s]*[：:]\s*([\d\s,，、]+)/i;
-                let dan = null,
-                    tuo = null;
-                const dm = text.match(danPat);
-                if (dm) dan = extractNumbers(dm[1]).filter(isRedBall).map(padZero);
-                const tm = text.match(tuoPat);
-                if (tm) tuo = extractNumbers(tm[1]).filter(isRedBall).map(padZero);
-                if (dan && dan.length && tuo && tuo.length) {
-                    return { redBalls: [...dan, ...tuo], type: 'dantuo', danBalls: dan, tuoBalls: tuo,
-                        multiplier: detectMultiplierGeneric(text) };
-                }
-                return null;
-            }
-
-            function extractNumbers(txt) {
-                const m = txt.match(/\d+/g);
-                return m ? m.map(Number).filter(n => n > 0 && n < 100) : [];
-            }
-
-            function extractNumberSequences(txt) {
-                const parts = txt.split(/[^\d]+/);
-                const seqs = [];
-                let cur = [];
-                for (const p of parts) {
-                    const n = parseInt(p);
-                    if (!isNaN(n) && n > 0 && n < 100) cur.push(n);
-                    else { if (cur.length >= 5) seqs.push([...cur]);
-                        cur = []; }
-                }
-                if (cur.length >= 5) seqs.push([...cur]);
-                return seqs;
-            }
-
-            function detectMultiplier(line, allNums, reds) {
-                const other = allNums.filter(n => !reds.includes(n));
-                const brackets = [/[\(（]\s*(\d{1,3})\s*[\)）]/g, /[\【\[]\s*(\d{1,3})\s*[\】\]]/g];
-                for (const pat of brackets) { let m; while ((m = pat.exec(line)) !== null) { const v = parseInt(m[1]); if (v >=
-                            2 && v <= 200) return v; } }
-                const bei = line.match(/倍\s*[：:]?\s*(\d{1,3})/i);
-                if (bei) { const v = parseInt(bei[1]); if (v >= 2 && v <= 200) return v; }
-                for (const n of other) { if (n >= 2 && n <= 200 && n > 33) return n; }
-                return 1;
-            }
-
-            function detectMultiplierGeneric(text) {
-                const brackets = [/[\(（]\s*(\d{1,3})\s*[\)）]/g, /[\【\[]\s*(\d{1,3})\s*[\】\]]/g];
-                for (const pat of brackets) { let m; while ((m = pat.exec(text)) !== null) { const v = parseInt(m[1]); if (v >=
-                            2 && v <= 200) return v; } }
-                const bei = text.match(/倍\s*[：:]?\s*(\d{1,3})/i);
-                if (bei) { const v = parseInt(bei[1]); if (v >= 2 && v <= 200) return v; }
-                return 1;
-            }
-
-            function formatOutput(parsed) {
-                const lines = [];
-                for (const r of parsed) {
-                    let line = r.type === 'dantuo' ? '胆:' + r.danBalls.join(',') + '，拖:' + r.tuoBalls.join(',') : r.redBalls
-                        .join(',');
-                    const times = Math.max(1, r.multiplier || 1);
-                    for (let i = 0; i < times; i++) lines.push(line);
-                }
-                return lines.join('\n');
-            }
-
-            async function processAllFiles() {
-                if (isProcessing || allFiles.length === 0) return;
-                isProcessing = true;
-                updateUI();
-                progressWrap.style.display = 'block';
-                progressBar.style.width = '0%';
-                resetOutput();
-
-                // 统计总数
-                totalToProcess = allFiles.filter(f => f.type === 'image').length;
-                const pdfFile = allFiles.find(f => f.type === 'pdf');
-                if (pdfFile) {
-                    try {
-                        pdfFile.pdfPages = await processPDF(pdfFile.file);
-                        totalToProcess += pdfFile.pdfPages.length;
-                        pdfFile.status = 'pending';
-                    } catch (e) {
-                        console.error('PDF预处理失败:', e);
-                        pdfFile.status = 'error';
-                        showToast('PDF解析失败，已跳过');
-                    }
-                }
-                processedCount = 0;
-                const outputLines = [];
-
-                for (const fileObj of allFiles) {
-                    if (fileObj.type === 'image') {
-                        fileObj.status = 'processing';
-                        renderFileList();
-                        updateProgress();
-                        try {
-                            const img = await new Promise((res, rej) => {
-                                const i = new Image();
-                                i.onload = () => res(i);
-                                i.onerror = () => rej(new Error('图片加载失败'));
-                                i.src = fileObj.previewUrl;
-                            });
-                            const ocr = await ocrImage(img);
-                            const parsed = parseLotteryNumbers(ocr);
-                            const fmt = formatOutput(parsed);
-                            fileObj.resultText = fmt;
-                            fileObj.status = 'done';
-                            if (fmt) outputLines.push(fmt);
-                        } catch (err) {
-                            console.error(`识别失败: ${fileObj.file.name}`, err);
-                            fileObj.status = 'error';
-                            fileObj.resultText = '';
-                        }
-                        processedCount++;
-                    } else if (fileObj.type === 'pdf' && fileObj.pdfPages) {
-                        fileObj.status = 'processing';
-                        for (const page of fileObj.pdfPages) {
-                            try {
-                                const img = await new Promise((res, rej) => {
-                                    const i = new Image();
-                                    i.onload = () => res(i);
-                                    i.onerror = () => rej(new Error('页面加载失败'));
-                                    i.src = page.dataUrl;
-                                });
-                                const ocr = await ocrImage(img);
-                                const parsed = parseLotteryNumbers(ocr);
-                                const fmt = formatOutput(parsed);
-                                if (fmt) outputLines.push(fmt);
-                            } catch (pageErr) {
-                                console.warn(`PDF第${page.pageNum}页识别失败:`, pageErr);
-                            }
-                            processedCount++;
-                            updateProgress();
-                        }
-                        fileObj.status = 'done';
-                    }
-                    renderFileList();
-                }
-
-                const final = outputLines.join('\n');
-                outputArea.value = final;
-                resultStats.textContent = final ? `识别完成 · ${outputLines.length}行` : '未识别到号码';
-                btnCopy.disabled = !final;
-                btnDownload.disabled = !final;
-                outputStats.textContent = final ? `共 ${outputLines.length} 行号码` : '';
-                finishProcessing();
-            }
-
-            function updateProgress() {
-                if (totalToProcess === 0) return;
-                const pct = Math.round(processedCount / totalToProcess * 100);
-                progressBar.style.width = pct + '%';
-                progressText.textContent = `${processedCount} / ${totalToProcess} (${pct}%)`;
-            }
-
-            function finishProcessing() {
-                isProcessing = false;
-                updateUI();
-                if (totalToProcess > 0 && processedCount >= totalToProcess) {
-                    progressText.textContent = '全部完成！';
-                }
-            }
-
-            btnStartRecognition.addEventListener('click', processAllFiles);
-            btnCopy.addEventListener('click', () => {
-                const t = outputArea.value;
-                if (!t) return showToast('无内容');
-                navigator.clipboard.writeText(t).then(() => showToast('已复制到剪贴板')).catch(() => {
-                    outputArea.select();
-                    document.execCommand('copy');
-                    showToast('已复制到剪贴板');
-                });
-            });
-            btnDownload.addEventListener('click', () => {
-                const t = outputArea.value;
-                if (!t) return;
-                const blob = new Blob([t], { type: 'text/plain;charset=utf-8' });
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = '双色球红球_' + new Date().toISOString().slice(0, 10) + '.txt';
-                a.click();
-            });
-
-            updateUI();
-            renderFileList();
-            console.log('🎱 双色球识别工具已启动 - 稳定版');
-        })();
+            alert(`已选择 ${total.length} 张图片，准备识别...`);
+            // 这里可以将total发送到服务器
+            console.log('总图片数:', total.length);
+        }
     </script>
 </body>
 </html>
