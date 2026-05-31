@@ -3,64 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>双色球红球识别 · 精准过滤版</title>
+    <title>双色球一键精准识别</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
-        :root {
-            --primary: #e74c3c;
-            --bg: #f0f2f5;
-            --card: #fff;
-            --text: #2c3e50;
-            --radius: 14px;
-        }
+        :root { --primary: #e74c3c; --bg: #f0f2f5; --card: #fff; --text: #2c3e50; --radius: 14px; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
-            background: var(--bg);
-            padding: 16px;
-            padding-bottom: 40px;
-            min-height: 100vh;
-            -webkit-tap-highlight-color: transparent;
-            color: var(--text);
-        }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); padding: 16px; padding-bottom: 40px; min-height: 100vh; color: var(--text); }
         .container { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
         .header { text-align: center; }
         .header h1 { font-size: 22px; font-weight: 700; }
         .header .subtitle { font-size: 13px; color: #7f8c8d; margin-top: 4px; }
-        .info-banner {
-            background: #e8f5e9;
-            border-left: 4px solid #4caf50;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 13px;
-            color: #2e7d32;
-            line-height: 1.5;
-        }
-        .batch-box {
-            background: var(--card);
-            border-radius: var(--radius);
-            padding: 16px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-            border: 1.5px solid #e0e0e0;
-        }
+        .batch-box { background: var(--card); border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); border: 1.5px solid #e0e0e0; }
         .batch-title { font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
         .count-badge { background: #fce4e4; color: #c0392b; padding: 2px 10px; border-radius: 10px; font-size: 12px; margin-left: auto; }
-        .file-input-wrapper input[type="file"] {
-            width: 100%; padding: 12px; border: 2px dashed #ccc;
-            border-radius: 8px; background: #fafafa; font-size: 14px;
-        }
+        input[type="file"] { width: 100%; padding: 12px; border: 2px dashed #ccc; border-radius: 8px; background: #fafafa; font-size: 14px; }
         .preview-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
         .preview-grid .img-wrap { position: relative; aspect-ratio: 1; border-radius: 6px; overflow: hidden; border: 1px solid #eee; }
         .preview-grid img { width: 100%; height: 100%; object-fit: cover; }
         .img-index { position: absolute; top: 2px; left: 2px; background: rgba(0,0,0,0.7); color: #fff; font-size: 10px; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
         .more-indicator { display: flex; align-items: center; justify-content: center; aspect-ratio: 1; background: #f0f0f0; border-radius: 6px; font-size: 12px; color: #888; }
-        .submit-btn {
-            width: 100%; padding: 16px; background: #e74c3c; color: #fff;
-            border: none; border-radius: 14px; font-size: 17px; font-weight: 700;
-            cursor: pointer; transition: 0.2s; box-shadow: 0 4px 14px rgba(231,76,60,0.3);
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-        }
-        .submit-btn:disabled { background: #bbb; box-shadow: none; }
+        .submit-btn { width: 100%; padding: 16px; background: var(--primary); color: #fff; border: none; border-radius: 14px; font-size: 17px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .submit-btn:disabled { background: #bbb; }
         .spinner { display: none; width: 20px; height: 20px; border: 2.5px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
         .submit-btn.loading .spinner { display: inline-block; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -68,10 +31,10 @@
         .progress-overlay.active { display: flex; }
         .progress-card { background: #fff; border-radius: 18px; padding: 24px; width: 85%; max-width: 360px; text-align: center; }
         .progress-bar-outer { height: 8px; background: #e9ecef; border-radius: 8px; margin: 14px 0; }
-        .progress-bar-inner { height: 100%; background: #e74c3c; border-radius: 8px; width: 0%; transition: width 0.3s; }
+        .progress-bar-inner { height: 100%; background: var(--primary); border-radius: 8px; width: 0%; transition: width 0.3s; }
         .result-card { display: none; background: #fff; border-radius: var(--radius); padding: 18px; border: 2px solid #27ae60; margin-top: 8px; }
         .result-card.show { display: block; }
-        .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+        .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .copy-btn { padding: 8px 16px; background: #2ecc71; color: #fff; border: none; border-radius: 20px; font-weight: 600; cursor: pointer; }
         .result-textarea { width: 100%; height: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 14px; background: #fafafa; resize: vertical; }
         .result-count { font-size: 13px; color: #888; margin-top: 6px; }
@@ -80,34 +43,31 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎱 双色球红球识别</h1>
-            <p class="subtitle">严格过滤 · 去重排序 · 按图库顺序</p>
-        </div>
-        <div class="info-banner">
-            <strong>🔍 优化说明：</strong>只提取符合彩票格式的数字行，自动合并红球与蓝球/倍数行，输出已去重排序的号码。
+            <h1>🎱 双色球一键精准识别</h1>
+            <p class="subtitle">图像自动增强 · 严格过滤 · 去重排序</p>
         </div>
 
         <div class="batch-box"><div class="batch-title">第一批 <span class="count-badge" id="count1">0张</span></div>
-            <div class="file-input-wrapper"><input type="file" id="batch1" accept="image/*" multiple onchange="handleFiles(this,1)"></div>
+            <input type="file" id="batch1" accept="image/*" multiple onchange="handleFiles(this,1)">
             <div class="preview-grid" id="preview1"></div>
         </div>
         <div class="batch-box"><div class="batch-title">第二批 <span class="count-badge" id="count2">0张</span></div>
-            <div class="file-input-wrapper"><input type="file" id="batch2" accept="image/*" multiple onchange="handleFiles(this,2)"></div>
+            <input type="file" id="batch2" accept="image/*" multiple onchange="handleFiles(this,2)">
             <div class="preview-grid" id="preview2"></div>
         </div>
         <div class="batch-box"><div class="batch-title">第三批 <span class="count-badge" id="count3">0张</span></div>
-            <div class="file-input-wrapper"><input type="file" id="batch3" accept="image/*" multiple onchange="handleFiles(this,3)"></div>
+            <input type="file" id="batch3" accept="image/*" multiple onchange="handleFiles(this,3)">
             <div class="preview-grid" id="preview3"></div>
         </div>
 
         <button class="submit-btn" id="submitBtn" onclick="submitAll()">
             <span class="spinner"></span>
-            <span class="btn-text">🚀 开始识别</span>
+            <span class="btn-text">🚀 开始一键识别</span>
         </button>
 
         <div class="result-card" id="resultCard">
             <div class="result-header">
-                <h3>📋 最终号码</h3>
+                <h3>📋 最终号码（可直接复制）</h3>
                 <button class="copy-btn" onclick="copyResults()">📋 复制全部</button>
             </div>
             <textarea class="result-textarea" id="resultTextarea" readonly placeholder="识别结果将显示在这里..."></textarea>
@@ -117,7 +77,7 @@
 
     <div class="progress-overlay" id="progressOverlay">
         <div class="progress-card">
-            <div style="font-size:32px" id="progressIcon">⚡</div>
+            <div style="font-size:32px" id="progressIcon">🔍</div>
             <div style="font-weight:700;margin:8px 0" id="progressTitle">准备识别...</div>
             <div style="font-size:13px;color:#888" id="progressSubtitle"></div>
             <div class="progress-bar-outer"><div class="progress-bar-inner" id="progressBar"></div></div>
@@ -127,316 +87,197 @@
     </div>
 
     <script>
-        (function() {
-            const allFiles = {1:[],2:[],3:[]};
-            const objectURLs = {1:[],2:[],3:[]};
-            let isProcessing = false, cancelFlag = false;
-            let finalOutputLines = [];
-            const MAX_CONCURRENT = 3;
-            let workerPool = [];
+        const allFiles = {1:[],2:[],3:[]};
+        const objectURLs = {1:[],2:[],3:[]};
+        let isProcessing = false, cancelFlag = false;
+        let finalOutputLines = [];
 
-            const submitBtn = document.getElementById('submitBtn');
-            const progressOverlay = document.getElementById('progressOverlay');
-            const progressBar = document.getElementById('progressBar');
-            const progressPercent = document.getElementById('progressPercent');
-            const progressTitle = document.getElementById('progressTitle');
-            const progressSubtitle = document.getElementById('progressSubtitle');
-            const progressIcon = document.getElementById('progressIcon');
-            const resultCard = document.getElementById('resultCard');
-            const resultTextarea = document.getElementById('resultTextarea');
-            const resultCount = document.getElementById('resultCount');
-
-            function naturalCompare(a,b) {
-                const getNum = s => { const m = s.match(/(\d+)/g); return m ? m.map(Number) : [0]; };
-                const aN = getNum(a.name), bN = getNum(b.name);
-                for (let i=0; i<Math.max(aN.length, bN.length); i++) {
-                    if ((aN[i]||0) !== (bN[i]||0)) return (aN[i]||0) - (bN[i]||0);
-                }
-                return a.name.localeCompare(b.name);
+        function naturalCompare(a,b) {
+            const getNum = s => { const m = s.match(/(\d+)/g); return m ? m.map(Number) : [0]; };
+            const aN = getNum(a.name), bN = getNum(b.name);
+            for (let i=0; i<Math.max(aN.length, bN.length); i++) {
+                if ((aN[i]||0) !== (bN[i]||0)) return (aN[i]||0) - (bN[i]||0);
             }
+            return a.name.localeCompare(b.name);
+        }
 
-            window.handleFiles = function(input, batchNum) {
-                if (isProcessing) { alert('识别中，请稍候'); input.value=''; return; }
-                const files = Array.from(input.files);
-                if (objectURLs[batchNum].length) {
-                    objectURLs[batchNum].forEach(u => { try { URL.revokeObjectURL(u); } catch(e){} });
-                    objectURLs[batchNum] = [];
-                }
-                files.sort(naturalCompare);
-                allFiles[batchNum] = files;
-                document.getElementById('count'+batchNum).textContent = files.length+'张';
-                const preview = document.getElementById('preview'+batchNum);
-                preview.innerHTML = '';
-                for (let i=0; i<Math.min(files.length,8); i++) {
-                    const url = URL.createObjectURL(files[i]);
-                    objectURLs[batchNum].push(url);
-                    const wrap = document.createElement('div'); wrap.className='img-wrap';
-                    const img = document.createElement('img'); img.src=url; img.loading='lazy';
-                    const idx = document.createElement('span'); idx.className='img-index'; idx.textContent=i+1;
-                    wrap.append(img,idx); preview.append(wrap);
-                }
-                if (files.length>8) {
-                    const more = document.createElement('div'); more.className='more-indicator'; more.textContent='+'+ (files.length-8);
-                    preview.append(more);
-                }
-            };
-
-            async function createFastWorker() {
-                const worker = await Tesseract.createWorker('eng', 1, {});
-                await worker.setParameters({
-                    tessedit_char_whitelist: '0123456789,.- ()（）【】[]倍 数 胆 拖 :：\n',
-                    preserve_interword_spaces: '1',
-                    load_system_dawg: '0', load_freq_dawg: '0',
-                    load_unambig_dawg: '0', load_punc_dawg: '0',
-                    load_number_dawg: '0', load_fixed_length_dawgs: '0',
-                });
-                return worker;
+        window.handleFiles = function(input, batchNum) {
+            if (isProcessing) { alert('识别中，请稍候'); input.value=''; return; }
+            const files = Array.from(input.files);
+            if (objectURLs[batchNum].length) {
+                objectURLs[batchNum].forEach(u => { try { URL.revokeObjectURL(u); } catch(e){} });
+                objectURLs[batchNum] = [];
             }
-
-            async function recognizeImage(worker, file) {
-                const { data: { text } } = await worker.recognize(file);
-                return text;
+            files.sort(naturalCompare);
+            allFiles[batchNum] = files;
+            document.getElementById('count'+batchNum).textContent = files.length+'张';
+            const preview = document.getElementById('preview'+batchNum);
+            preview.innerHTML = '';
+            for (let i=0; i<Math.min(files.length,8); i++) {
+                const url = URL.createObjectURL(files[i]);
+                objectURLs[batchNum].push(url);
+                const wrap = document.createElement('div'); wrap.className='img-wrap';
+                const img = document.createElement('img'); img.src=url; img.loading='lazy';
+                const idx = document.createElement('span'); idx.className='img-index'; idx.textContent=i+1;
+                wrap.append(img,idx); preview.append(wrap);
             }
-
-            // 解析核心：先找出所有可能是彩票号码的行，然后合并相邻行
-            function parseLotteryTicket(ocrText) {
-                const lines = ocrText.split('\n').map(l => l.trim()).filter(l => l);
-                // 统一符号
-                const cleanLines = lines.map(l => l.replace(/（/g,'(').replace(/）/g,')').replace(/【/g,'[').replace(/】/g,']').replace(/：/g,':').replace(/，/g,',').replace(/\s+/g,' '));
-
-                // 存储提取的注信息
-                const tickets = [];
-                let currentRed = null; // 暂存可能的红球行
-                let currentMultiplier = 1;
-                let currentBlueCount = 1;
-
-                for (let i = 0; i < cleanLines.length; i++) {
-                    const line = cleanLines[i];
-                    // 胆拖独立处理
-                    const danTuo = parseDanTuo(line);
-                    if (danTuo) {
-                        tickets.push(danTuo);
-                        continue;
-                    }
-
-                    // 尝试匹配红球行（以 - 或 : 或 数字开头，包含6个以上1-33的数字）
-                    const reds = extractReds(line);
-                    if (reds.length >= 6) {
-                        // 如果之前有暂存的红球行，先处理掉（作为上一注，没有后续倍/蓝信息）
-                        if (currentRed) {
-                            tickets.push({
-                                reds: currentRed,
-                                multiplier: currentMultiplier,
-                                blueCount: currentBlueCount
-                            });
-                        }
-                        // 开始新一注
-                        currentRed = reds;
-                        currentMultiplier = extractMultiplier(line);
-                        currentBlueCount = extractBlueCount(line, reds.length);
-                    } else {
-                        // 可能是蓝球/倍数行，尝试与上一行红球合并
-                        const mult = extractMultiplier(line);
-                        if (mult > 1 || line.match(/[\d]{1,2}/)) {
-                            if (currentRed) {
-                                // 更新倍数或蓝球数
-                                currentMultiplier = mult > 1 ? mult : currentMultiplier;
-                                const blueNums = line.match(/\b\d{1,2}\b/g) || [];
-                                const blues = blueNums.filter(n => { const num=parseInt(n); return num>=1&&num<=16; });
-                                if (blues.length > 0) {
-                                    currentBlueCount = blues.length;
-                                }
-                                // 有时倍数和蓝球在一行：比如 "-06 [1451]"
-                                if (line.includes('[') || line.includes('(')) {
-                                    const bracketMult = line.match(/[\[\(](\d{1,3})[\]\)]/);
-                                    if (bracketMult) currentMultiplier = parseInt(bracketMult[1]);
-                                }
-                                // 处理完合并，存入
-                                tickets.push({
-                                    reds: currentRed,
-                                    multiplier: currentMultiplier,
-                                    blueCount: currentBlueCount
-                                });
-                                currentRed = null;
-                                currentMultiplier = 1;
-                                currentBlueCount = 1;
-                            }
-                        }
-                    }
-                }
-                // 处理最后剩下的红球
-                if (currentRed) {
-                    tickets.push({
-                        reds: currentRed,
-                        multiplier: currentMultiplier,
-                        blueCount: currentBlueCount
-                    });
-                }
-
-                // 生成输出行
-                const output = [];
-                for (const ticket of tickets) {
-                    const sortedReds = [...new Set(ticket.reds)].sort((a,b)=>a-b);
-                    if (sortedReds.length < 6) continue;
-                    const redsStr = sortedReds.map(n => String(n).padStart(2,'0')).join(',');
-                    const rows = ticket.multiplier * ticket.blueCount;
-                    for (let r = 0; r < rows; r++) {
-                        output.push(redsStr);
-                    }
-                }
-                return output;
+            if (files.length>8) {
+                const more = document.createElement('div'); more.className='more-indicator'; more.textContent='+'+ (files.length-8);
+                preview.append(more);
             }
+        };
 
-            function extractReds(line) {
-                // 匹配模式：以数字或-或:开头，后跟数字序列
-                const match = line.match(/^[:\-\d]*\s*(\d{1,2}\s+)+/);
-                if (!match) return [];
-                const numbers = line.match(/\b\d{1,2}\b/g) || [];
-                return numbers.map(Number).filter(n => n>=1 && n<=33);
-            }
-
-            function extractMultiplier(line) {
-                const patterns = [/[\[\(](\d{1,3})[\]\)]/, /倍数\s*[:：]?\s*(\d{1,3})/i, /(\d{1,3})\s*倍/i];
-                for (const p of patterns) {
-                    const m = line.match(p);
-                    if (m) return parseInt(m[1]);
-                }
-                return 1;
-            }
-
-            function extractBlueCount(line, redCount) {
-                const nums = line.match(/\b\d{1,2}\b/g) || [];
-                const reds = nums.map(Number).filter(n => n>=1 && n<=33);
-                if (reds.length > redCount) {
-                    const extra = reds.slice(redCount);
-                    return extra.filter(n => n>=1 && n<=16).length || 1;
-                }
-                return 1;
-            }
-
-            function parseDanTuo(line) {
-                const m = line.match(/胆\s*[:：]?\s*([\d,\s]+)\s*拖\s*[:：]?\s*([\d,\s]+)/i);
-                if (!m) return null;
-                const dan = m[1].split(/[, ]+/).filter(n => /^\d{1,2}$/.test(n)).map(Number).filter(n => n>=1 && n<=33);
-                const tuo = m[2].split(/[, ]+/).filter(n => /^\d{1,2}$/.test(n)).map(Number).filter(n => n>=1 && n<=33);
-                if (dan.length===0 || tuo.length===0) return null;
-                const sortedDan = [...new Set(dan)].sort((a,b)=>a-b);
-                const sortedTuo = [...new Set(tuo)].sort((a,b)=>a-b);
-                const mult = extractMultiplier(line);
-                const blue = extractBlueCount(line, 0); // 简单处理
-                const rows = mult * blue;
-                const danStr = `胆:${sortedDan.map(n=>String(n).padStart(2,'0')).join(',')}  拖:${sortedTuo.map(n=>String(n).padStart(2,'0')).join(',')}`;
-                const output = [];
-                for (let i=0; i<rows; i++) output.push(danStr);
-                return { output };
-            }
-
-            window.submitAll = async function() {
-                if (isProcessing) return;
-                const totalFiles = [...allFiles[1], ...allFiles[2], ...allFiles[3]];
-                if (totalFiles.length === 0) { alert('请至少选择一张图片'); return; }
-                if (!confirm(`即将识别 ${totalFiles.length} 张图片。\n请确保彩票号码区域清晰。\n预计耗时：${Math.ceil(totalFiles.length*2)}~${Math.ceil(totalFiles.length*4)}秒。`)) return;
-
-                isProcessing = true; cancelFlag = false;
-                finalOutputLines = [];
-                resultCard.classList.remove('show');
-                submitBtn.disabled = true; submitBtn.classList.add('loading');
-                document.querySelector('.btn-text').textContent = '识别中...';
-                progressOverlay.classList.add('active');
-                updateProgressUI(0, '⚡ 初始化引擎...', '创建3个工作线程', '🧠');
-
-                workerPool = [];
-                try {
-                    for (let i=0; i<MAX_CONCURRENT; i++) workerPool.push(await createFastWorker());
-                } catch (e) { alert('引擎初始化失败: '+e.message); resetUI(); return; }
-
-                const fileQueue = totalFiles.map((f,i)=>({file:f,index:i+1,name:f.name}));
-                let completed = 0;
-                const total = fileQueue.length;
-
-                const throttledProgress = () => {
-                    const pct = (completed/total)*100;
-                    updateProgressUI(pct, `已识别 ${completed}/${total}`, `并行处理中`, '⚡');
+        // 图像预处理：转为灰度并增强对比度，返回新的Blob
+        async function preprocessImage(file) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.filter = 'contrast(150%) grayscale(100%)';
+                    ctx.drawImage(img, 0, 0, img.width, img.height);
+                    canvas.toBlob(blob => {
+                        resolve(new File([blob], file.name, { type: 'image/png' }));
+                    }, 'image/png');
                 };
-
-                const processNext = async (worker) => {
-                    while (fileQueue.length>0 && !cancelFlag) {
-                        const task = fileQueue.shift();
-                        if (!task) break;
-                        try {
-                            const rawText = await recognizeImage(worker, task.file);
-                            const lines = parseLotteryTicket(rawText);
-                            if (lines.length>0) {
-                                finalOutputLines.push(...lines);
-                            }
-                        } catch (err) {}
-                        completed++;
-                        throttledProgress();
-                    }
-                };
-
-                const workers = workerPool.map(w => processNext(w));
-                await Promise.all(workers);
-
-                for (const w of workerPool) { try { await w.terminate(); } catch(e){} }
-                workerPool = [];
-
-                if (cancelFlag) {
-                    updateProgressUI(0, '⚠️ 已取消', '', '⚠️');
-                    await new Promise(r => setTimeout(r,1200));
-                } else {
-                    updateProgressUI(100, '🎉 识别完成！', `成功生成 ${finalOutputLines.length} 行号码`, '🎉');
-                    await new Promise(r => setTimeout(r,600));
-                    resultTextarea.value = finalOutputLines.join('\n');
-                    resultCount.textContent = `共 ${finalOutputLines.length} 行号码`;
-                    resultCard.classList.add('show');
-                    resultCard.scrollIntoView({ behavior: 'smooth' });
-                }
-                resetUI();
-            };
-
-            window.copyResults = function() {
-                if (!resultTextarea.value) return;
-                navigator.clipboard.writeText(resultTextarea.value).then(() => {
-                    const btn = document.querySelector('.copy-btn');
-                    btn.textContent = '✅ 已复制';
-                    setTimeout(() => btn.textContent = '📋 复制全部', 2000);
-                }).catch(() => {
-                    resultTextarea.select();
-                    document.execCommand('copy');
-                    alert('已复制到剪贴板');
-                });
-            };
-
-            window.cancelProcess = function() {
-                cancelFlag = true;
-                workerPool.forEach(w => { try { w.terminate(); } catch(e){} });
-            };
-
-            function updateProgressUI(pct, title, sub, icon) {
-                requestAnimationFrame(() => {
-                    progressBar.style.width = Math.round(pct)+'%';
-                    progressPercent.textContent = Math.round(pct);
-                    if (title) progressTitle.textContent = title;
-                    if (sub) progressSubtitle.textContent = sub;
-                    if (icon) progressIcon.textContent = icon;
-                });
-            }
-
-            function resetUI() {
-                progressOverlay.classList.remove('active');
-                isProcessing = false; cancelFlag = false;
-                submitBtn.disabled = false; submitBtn.classList.remove('loading');
-                document.querySelector('.btn-text').textContent = '🚀 开始识别';
-            }
-
-            window.addEventListener('beforeunload', () => {
-                [1,2,3].forEach(bn => {
-                    if (objectURLs[bn]) objectURLs[bn].forEach(u => { try { URL.revokeObjectURL(u); } catch(e){} });
-                });
-                workerPool.forEach(w => { try { w.terminate(); } catch(e){} });
+                img.onerror = reject;
+                img.src = URL.createObjectURL(file);
             });
-        })();
+        }
+
+        async function createWorker() {
+            const worker = await Tesseract.createWorker('eng', 1, {
+                logger: () => {} // 静默
+            });
+            await worker.setParameters({
+                tessedit_char_whitelist: '0123456789,.- ()（）【】[]倍 数 胆 拖 :：\n',
+                preserve_interword_spaces: '1',
+            });
+            return worker;
+        }
+
+        // 核心解析：只提取以特定符号开头的行中的红球
+        function parseLotteryText(ocrText) {
+            const lines = ocrText.split('\n').map(l => l.trim()).filter(l => l);
+            const results = [];
+            for (const line of lines) {
+                // 胆拖优先
+                const dtMatch = line.match(/胆\s*[:：]?\s*([\d,\s]+)\s*拖\s*[:：]?\s*([\d,\s]+)/i);
+                if (dtMatch) {
+                    const dan = dtMatch[1].split(/[, ]+/).filter(n => /^\d{1,2}$/.test(n) && +n<=33).map(Number);
+                    const tuo = dtMatch[2].split(/[, ]+/).filter(n => /^\d{1,2}$/.test(n) && +n<=33).map(Number);
+                    if (dan.length && tuo.length) {
+                        const mult = extractMultiplier(line);
+                        const blue = extractBlueCount(line);
+                        const rows = mult * blue;
+                        const danStr = '胆:' + [...new Set(dan)].sort((a,b)=>a-b).map(n=>String(n).padStart(2,'0')).join(',') + '  拖:' + [...new Set(tuo)].sort((a,b)=>a-b).map(n=>String(n).padStart(2,'0')).join(',');
+                        for (let i=0; i<rows; i++) results.push(danStr);
+                    }
+                    continue;
+                }
+
+                // 仅处理以 - 或 : 开头的行（这些是号码标识行）
+                if (!/^[-:]/.test(line)) continue;
+
+                const numbers = line.match(/\b\d{1,2}\b/g) || [];
+                const reds = numbers.map(Number).filter(n => n>=1 && n<=33);
+                if (reds.length >= 6) {
+                    const unique = [...new Set(reds)].sort((a,b)=>a-b);
+                    const redsStr = unique.slice(0,6).map(n=>String(n).padStart(2,'0')).join(',');
+                    const mult = extractMultiplier(line);
+                    const blue = extractBlueCount(line);
+                    const total = mult * blue;
+                    for (let i=0; i<total; i++) results.push(redsStr);
+                }
+            }
+            return results;
+        }
+
+        function extractMultiplier(line) {
+            const m = line.match(/[\[\(](\d{1,3})[\]\)]/) || line.match(/(\d{1,3})\s*倍/);
+            return m ? parseInt(m[1]) : 1;
+        }
+
+        function extractBlueCount(line) {
+            const nums = line.match(/\b\d{1,2}\b/g) || [];
+            const afterSix = nums.slice(6);
+            return afterSix.filter(n => +n>=1 && +n<=16).length || 1;
+        }
+
+        window.submitAll = async function() {
+            if (isProcessing) return;
+            const totalFiles = [...allFiles[1], ...allFiles[2], ...allFiles[3]];
+            if (totalFiles.length === 0) { alert('请选择图片'); return; }
+
+            isProcessing = true; cancelFlag = false;
+            finalOutputLines = [];
+            document.getElementById('resultCard').classList.remove('show');
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true; submitBtn.classList.add('loading');
+            document.querySelector('.btn-text').textContent = '识别中...';
+            const progressOverlay = document.getElementById('progressOverlay');
+            progressOverlay.classList.add('active');
+            updateProgress(0, '🧠 引擎加载中...', '', '🧠');
+
+            const worker = await createWorker();
+            try {
+                for (let i = 0; i < totalFiles.length; i++) {
+                    if (cancelFlag) break;
+                    const file = totalFiles[i];
+                    updateProgress((i/totalFiles.length)*100, `识别第 ${i+1}/${totalFiles.length} 张`, file.name, '🔎');
+                    const enhanced = await preprocessImage(file);
+                    const { data: { text } } = await worker.recognize(enhanced);
+                    const lines = parseLotteryText(text);
+                    finalOutputLines.push(...lines);
+                }
+            } finally {
+                await worker.terminate();
+            }
+
+            if (cancelFlag) {
+                updateProgress(0, '⚠️ 已取消', '', '⚠️');
+            } else {
+                updateProgress(100, '🎉 识别完成！', `共生成 ${finalOutputLines.length} 行号码`, '✅');
+                document.getElementById('resultTextarea').value = finalOutputLines.join('\n');
+                document.getElementById('resultCount').textContent = `共 ${finalOutputLines.length} 行`;
+                document.getElementById('resultCard').classList.add('show');
+                document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth' });
+            }
+
+            progressOverlay.classList.remove('active');
+            isProcessing = false; submitBtn.disabled = false; submitBtn.classList.remove('loading');
+            document.querySelector('.btn-text').textContent = '🚀 开始一键识别';
+        };
+
+        window.copyResults = () => {
+            const ta = document.getElementById('resultTextarea');
+            if (!ta.value) return;
+            navigator.clipboard.writeText(ta.value).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = '✅ 已复制';
+                setTimeout(() => btn.textContent = '📋 复制全部', 2000);
+            });
+        };
+
+        window.cancelProcess = () => { cancelFlag = true; };
+
+        function updateProgress(pct, title, sub, icon) {
+            requestAnimationFrame(() => {
+                document.getElementById('progressBar').style.width = Math.round(pct)+'%';
+                document.getElementById('progressPercent').textContent = Math.round(pct);
+                if (title) document.getElementById('progressTitle').textContent = title;
+                if (sub) document.getElementById('progressSubtitle').textContent = sub;
+                if (icon) document.getElementById('progressIcon').textContent = icon;
+            });
+        }
+
+        window.addEventListener('beforeunload', () => {
+            [1,2,3].forEach(bn => {
+                if (objectURLs[bn]) objectURLs[bn].forEach(u => { try { URL.revokeObjectURL(u); } catch(e){} });
+            });
+        });
     </script>
 </body>
 </html>
