@@ -2,910 +2,481 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>彩票识别上传</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>彩票识别 · 真实OCR版（无需API）</title>
+    <!-- 引入 Tesseract.js 离线OCR引擎 -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         :root {
             --primary: #e74c3c;
-            --primary-dark: #c0392b;
             --bg: #f0f2f5;
             --card: #ffffff;
             --text: #2c3e50;
-            --text-secondary: #7f8c8d;
-            --border: #e0e0e0;
-            --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
             --radius: 14px;
-            --radius-sm: 8px;
-            --transition: 0.2s ease;
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
             background: var(--bg);
             padding: 16px;
             padding-bottom: 40px;
-            max-width: 100vw;
             min-height: 100vh;
             -webkit-tap-highlight-color: transparent;
-            -webkit-font-smoothing: antialiased;
             color: var(--text);
         }
+        .container { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+        .header { text-align: center; }
+        .header h1 { font-size: 22px; font-weight: 700; }
+        .header .subtitle { font-size: 13px; color: #7f8c8d; margin-top: 4px; }
 
-        .container {
-            max-width: 520px;
-            margin: 0 auto;
-        }
-
-        /* 头部 */
-        .header {
-            text-align: center;
-            margin-bottom: 18px;
-        }
-        .header h1 {
-            font-size: 22px;
-            font-weight: 700;
-            color: var(--text);
-            letter-spacing: -0.3px;
-        }
-        .header .subtitle {
+        .warning-banner {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 12px;
+            border-radius: 8px;
             font-size: 13px;
-            color: var(--text-secondary);
-            margin-top: 4px;
-        }
-
-        /* 提示卡片 */
-        .tip-card {
-            background: #fffdf5;
-            border: 1px solid #f0e6b8;
-            border-left: 4px solid #f0c040;
-            padding: 14px 16px;
-            border-radius: var(--radius-sm);
-            font-size: 13px;
-            color: #6b5e1e;
-            line-height: 1.7;
-            margin-bottom: 16px;
+            color: #2e7d32;
             display: flex;
-            align-items: flex-start;
-            gap: 10px;
+            align-items: center;
+            gap: 8px;
         }
-        .tip-card .tip-icon {
-            font-size: 20px;
-            flex-shrink: 0;
-            line-height: 1;
+        .warning-banner.demo {
+            background: #fff3cd;
+            border-left-color: #f39c12;
+            color: #856404;
         }
-        .tip-card strong {
-            color: #c0392b;
+        .mode-switch {
+            display: flex;
+            background: #e9ecef;
+            border-radius: 20px;
+            padding: 3px;
+        }
+        .mode-btn {
+            flex: 1;
+            text-align: center;
+            padding: 8px 0;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 18px;
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            color: #666;
+            transition: 0.2s;
+        }
+        .mode-btn.active {
+            background: #fff;
+            color: #e74c3c;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
 
-        /* 批次卡片 */
         .batch-box {
             background: var(--card);
             border-radius: var(--radius);
-            padding: 18px 16px;
-            margin-bottom: 14px;
-            box-shadow: var(--shadow);
-            transition: var(--transition);
-            border: 1.5px solid transparent;
+            padding: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+            border: 1.5px solid #e0e0e0;
         }
-        .batch-box.has-files {
-            border-color: #d5e8d4;
-            background: #fafff9;
-        }
-        .batch-title {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--text);
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            letter-spacing: -0.2px;
-        }
-        .batch-title .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--primary);
-            flex-shrink: 0;
-        }
+        .batch-title { font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
         .count-badge {
-            display: inline-flex;
-            align-items: center;
-            background: #fce4e4;
-            color: #c0392b;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-left: auto;
-            white-space: nowrap;
-            transition: var(--transition);
-        }
-        .batch-box.has-files .count-badge {
-            background: #d4edda;
-            color: #1e7e34;
-        }
-
-        /* 文件输入 */
-        .file-input-wrapper {
-            position: relative;
-            width: 100%;
+            background: #fce4e4; color: #c0392b; padding: 2px 10px;
+            border-radius: 10px; font-size: 12px; margin-left: auto;
         }
         .file-input-wrapper input[type="file"] {
-            width: 100%;
-            padding: 14px 12px;
-            border: 2px dashed #d5d8dc;
-            border-radius: var(--radius-sm);
-            font-size: 14px;
-            background: #fafbfc;
-            cursor: pointer;
-            transition: var(--transition);
-            -webkit-appearance: none;
-            color: #555;
-            min-height: 50px;
+            width: 100%; padding: 12px; border: 2px dashed #ccc;
+            border-radius: 8px; background: #fafafa; font-size: 14px;
         }
-        .file-input-wrapper input[type="file"]:active {
-            border-color: var(--primary);
-            background: #fff5f5;
-            transform: scale(0.985);
-        }
-        .file-input-wrapper input[type="file"]::file-selector-button {
-            display: none;
-        }
-        .file-input-placeholder {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            font-size: 14px;
-            color: #999;
-            text-align: center;
-            white-space: nowrap;
-        }
-        .batch-box.has-files .file-input-placeholder {
-            opacity: 0.5;
-        }
+        .preview-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+        .preview-grid .img-wrap { position: relative; aspect-ratio: 1; border-radius: 6px; overflow: hidden; border: 1px solid #eee; }
+        .preview-grid img { width: 100%; height: 100%; object-fit: cover; }
+        .img-index { position: absolute; top: 2px; left: 2px; background: rgba(0,0,0,0.7); color: #fff; font-size: 10px; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .more-indicator { display: flex; align-items: center; justify-content: center; aspect-ratio: 1; background: #f0f0f0; border-radius: 6px; font-size: 12px; color: #888; }
 
-        /* 预览网格 */
-        .preview-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            margin-top: 12px;
-        }
-        .preview-grid .img-wrap {
-            position: relative;
-            aspect-ratio: 1;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1.5px solid #eee;
-            background: #f9f9f9;
-        }
-        .preview-grid img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-        .preview-grid .img-index {
-            position: absolute;
-            top: 3px;
-            left: 3px;
-            background: rgba(0, 0, 0, 0.7);
-            color: #fff;
-            font-size: 10px;
-            font-weight: 700;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            letter-spacing: 0;
-        }
-        .preview-grid .more-indicator {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            aspect-ratio: 1;
-            background: #f0f0f0;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            color: #888;
-            border: 1.5px dashed #ddd;
-        }
-
-        /* 提交按钮 */
         .submit-btn {
-            width: 100%;
-            padding: 16px;
-            background: var(--primary);
-            color: #fff;
-            border: none;
-            border-radius: var(--radius);
-            font-size: 17px;
-            font-weight: 700;
-            margin-top: 6px;
-            cursor: pointer;
-            letter-spacing: 0.3px;
-            transition: var(--transition);
-            -webkit-tap-highlight-color: transparent;
-            box-shadow: 0 4px 14px rgba(231, 76, 60, 0.3);
-            position: relative;
-            overflow: hidden;
+            width: 100%; padding: 16px; background: #e74c3c; color: #fff;
+            border: none; border-radius: 14px; font-size: 17px; font-weight: 700;
+            cursor: pointer; transition: 0.2s; box-shadow: 0 4px 14px rgba(231,76,60,0.3);
         }
-        .submit-btn:active {
-            opacity: 0.92;
-            transform: scale(0.975);
-            box-shadow: 0 2px 8px rgba(231, 76, 60, 0.25);
-        }
-        .submit-btn:disabled {
-            background: #bbb;
-            box-shadow: none;
-            cursor: not-allowed;
-            transform: none;
-            opacity: 0.7;
-        }
-        .submit-btn .btn-text {
-            position: relative;
-            z-index: 1;
-        }
-        .submit-btn .spinner-inline {
-            display: none;
-            width: 20px;
-            height: 20px;
-            border: 2.5px solid rgba(255, 255, 255, 0.3);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-            margin-right: 8px;
-            vertical-align: middle;
-        }
-        .submit-btn.loading .spinner-inline {
-            display: inline-block;
-        }
-        .submit-btn.loading .btn-text {
-            vertical-align: middle;
-        }
+        .submit-btn:disabled { background: #bbb; box-shadow: none; }
+        .spinner-inline { display: none; width: 20px; height: 20px; border: 2.5px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 8px; vertical-align: middle; }
+        .submit-btn.loading .spinner-inline { display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
+        .progress-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1000; justify-content: center; align-items: center; }
+        .progress-overlay.active { display: flex; }
+        .progress-card { background: #fff; border-radius: 18px; padding: 24px; width: 85%; max-width: 360px; text-align: center; }
+        .progress-bar-outer { height: 8px; background: #e9ecef; border-radius: 8px; margin: 14px 0; }
+        .progress-bar-inner { height: 100%; background: #e74c3c; border-radius: 8px; width: 0%; transition: width 0.3s; }
 
-        /* 进度条覆盖层 */
-        .progress-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.55);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            animation: fadeIn 0.2s ease;
-        }
-        .progress-overlay.active {
-            display: flex;
-        }
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
-        }
-
-        .progress-card {
-            background: #fff;
-            border-radius: 18px;
-            padding: 28px 24px 22px;
-            width: 88%;
-            max-width: 380px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-            text-align: center;
-            animation: slideUp 0.3s ease;
-        }
-        @keyframes slideUp {
-            from {
-                transform: translateY(30px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-        .progress-card .progress-icon {
-            font-size: 40px;
-            margin-bottom: 10px;
-            transition: 0.3s;
-        }
-        .progress-card .progress-title {
-            font-size: 17px;
-            font-weight: 700;
-            color: #2c3e50;
-            margin-bottom: 6px;
-        }
-        .progress-card .progress-subtitle {
-            font-size: 13px;
-            color: #888;
-            margin-bottom: 16px;
-            min-height: 18px;
-        }
-        .progress-bar-outer {
-            width: 100%;
-            height: 10px;
-            background: #e9ecef;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 8px;
-        }
-        .progress-bar-inner {
-            height: 100%;
-            background: linear-gradient(90deg, #e74c3c, #f39c12, #2ecc71);
-            background-size: 200% 100%;
-            border-radius: 10px;
-            transition: width 0.35s ease;
-            width: 0%;
-            animation: shimmer 2s infinite;
-        }
-        @keyframes shimmer {
-            0% {
-                background-position: 200% 0;
-            }
-            100% {
-                background-position: -200% 0;
-            }
-        }
-        .progress-percent {
-            font-size: 28px;
-            font-weight: 800;
-            color: #2c3e50;
-            letter-spacing: -1px;
-        }
-        .progress-percent .unit {
-            font-size: 16px;
-            font-weight: 500;
-            color: #888;
-        }
-        .progress-card .cancel-btn {
-            margin-top: 14px;
-            padding: 10px 20px;
-            border: 1.5px solid #ddd;
-            background: #fff;
-            border-radius: 20px;
-            font-size: 14px;
-            color: #888;
-            cursor: pointer;
-            transition: var(--transition);
-            -webkit-tap-highlight-color: transparent;
-        }
-        .progress-card .cancel-btn:active {
-            background: #f5f5f5;
-            border-color: #ccc;
-        }
-        .progress-card.done .progress-icon {
-            animation: bounce 0.6s ease;
-        }
-        @keyframes bounce {
-            0%,
-            100% {
-                transform: translateY(0);
-            }
-            30% {
-                transform: translateY(-15px);
-            }
-            50% {
-                transform: translateY(0);
-            }
-            70% {
-                transform: translateY(-6px);
-            }
-        }
+        .result-card { display: none; background: #fff; border-radius: var(--radius); padding: 18px; border: 2px solid #27ae60; margin-top: 8px; }
+        .result-card.show { display: block; }
+        .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+        .copy-btn { padding: 8px 16px; background: #2ecc71; color: #fff; border: none; border-radius: 20px; font-weight: 600; cursor: pointer; }
+        .result-textarea { width: 100%; height: 250px; border: 1px solid #ddd; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 13px; background: #fafafa; resize: vertical; }
+        .result-count { font-size: 13px; color: #888; margin-top: 6px; }
+        .mode-label { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-left: 8px; }
+        .mode-label.real { background: #d4edda; color: #155724; }
+        .mode-label.demo { background: #fff3cd; color: #856404; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- 头部 -->
         <div class="header">
             <h1>🎱 双色球彩票识别</h1>
-            <p class="subtitle">批量上传 · 智能OCR识别 · 按图库顺序处理</p>
+            <p class="subtitle">真实OCR识别 · 按图库顺序 · 结果可复制</p>
         </div>
 
-        <!-- 提示 -->
-        <div class="tip-card">
-            <span class="tip-icon">💡</span>
-            <div>
-                <strong>📸 顺序保证：</strong>图片将<strong>按您图库中的顺序</strong>依次识别（与照片App显示顺序一致）。<br>
-                <strong>⚠️ iPhone限制：</strong>每批最多选<strong>100张</strong>，130张请分<strong>2批</strong>（如70张+60张）。<br>
-                <strong>🔴 注意：</strong>分批时请按图库顺序依次选取，确保整体顺序正确。
-            </div>
+        <!-- 模式切换 -->
+        <div class="mode-switch" id="modeSwitch">
+            <button class="mode-btn active" data-mode="real">🔍 真实识别</button>
+            <button class="mode-btn" data-mode="demo">🎲 模拟演示</button>
+        </div>
+        <div class="warning-banner" id="warningBanner">
+            <span>🧠</span> <strong>真实OCR识别：</strong>使用本地引擎直接读取彩票图片，识别可能需要几秒/张，请耐心等待。首次使用会下载语言包（约4MB），需保持网络。
         </div>
 
-        <!-- 第一批 -->
-        <div class="batch-box" id="batchBox1">
-            <div class="batch-title">
-                <span class="dot"></span> 第一批
-                <span class="count-badge" id="count1">0张</span>
-            </div>
-            <div class="file-input-wrapper">
-                <input type="file" id="batch1" accept="image/*" multiple
-                onchange="handleFiles(this, 1)">
-                <span class="file-input-placeholder">📁 点击选择图片（可多选）</span>
-            </div>
+        <!-- 批次上传 -->
+        <div class="batch-box"><div class="batch-title">第一批 <span class="count-badge" id="count1">0张</span></div>
+            <div class="file-input-wrapper"><input type="file" id="batch1" accept="image/*" multiple onchange="handleFiles(this,1)"></div>
             <div class="preview-grid" id="preview1"></div>
         </div>
-
-        <!-- 第二批 -->
-        <div class="batch-box" id="batchBox2">
-            <div class="batch-title">
-                <span class="dot"></span> 第二批
-                <span class="count-badge" id="count2">0张</span>
-            </div>
-            <div class="file-input-wrapper">
-                <input type="file" id="batch2" accept="image/*" multiple
-                onchange="handleFiles(this, 2)">
-                <span class="file-input-placeholder">📁 点击选择图片（可多选）</span>
-            </div>
+        <div class="batch-box"><div class="batch-title">第二批 <span class="count-badge" id="count2">0张</span></div>
+            <div class="file-input-wrapper"><input type="file" id="batch2" accept="image/*" multiple onchange="handleFiles(this,2)"></div>
             <div class="preview-grid" id="preview2"></div>
         </div>
-
-        <!-- 第三批备用 -->
-        <div class="batch-box" id="batchBox3">
-            <div class="batch-title">
-                <span class="dot"></span> 第三批（备用）
-                <span class="count-badge" id="count3">0张</span>
-            </div>
-            <div class="file-input-wrapper">
-                <input type="file" id="batch3" accept="image/*" multiple
-                onchange="handleFiles(this, 3)">
-                <span class="file-input-placeholder">📁 点击选择图片（可多选）</span>
-            </div>
+        <div class="batch-box"><div class="batch-title">第三批 <span class="count-badge" id="count3">0张</span></div>
+            <div class="file-input-wrapper"><input type="file" id="batch3" accept="image/*" multiple onchange="handleFiles(this,3)"></div>
             <div class="preview-grid" id="preview3"></div>
         </div>
 
-        <!-- 提交按钮 -->
         <button class="submit-btn" id="submitBtn" onclick="submitAll()">
-            <span class="spinner-inline"></span>
-            <span class="btn-text">🚀 开始识别全部彩票</span>
+            <span class="spinner-inline"></span><span class="btn-text">🚀 开始识别全部彩票</span>
         </button>
+
+        <!-- 识别结果展示 -->
+        <div class="result-card" id="resultCard">
+            <div class="result-header">
+                <h3>📋 识别结果 <span class="mode-label real" id="resultModeLabel">真实OCR</span></h3>
+                <button class="copy-btn" onclick="copyResults()">📋 复制全部</button>
+            </div>
+            <textarea class="result-textarea" id="resultTextarea" readonly placeholder="识别结果将显示在这里..."></textarea>
+            <div class="result-count" id="resultCount"></div>
+        </div>
     </div>
 
-    <!-- 进度条覆盖层 -->
+    <!-- 进度弹窗 -->
     <div class="progress-overlay" id="progressOverlay">
-        <div class="progress-card" id="progressCard">
-            <div class="progress-icon" id="progressIcon">🔍</div>
-            <div class="progress-title" id="progressTitle">准备识别...</div>
-            <div class="progress-subtitle" id="progressSubtitle">正在整理文件顺序</div>
-            <div class="progress-bar-outer">
-                <div class="progress-bar-inner" id="progressBar"></div>
-            </div>
-            <div class="progress-percent">
-                <span id="progressPercent">0</span><span class="unit">%</span>
-            </div>
-            <button class="cancel-btn" id="cancelBtn" onclick="cancelProcess()">✕ 取消</button>
+        <div class="progress-card">
+            <div style="font-size:32px" id="progressIcon">🔍</div>
+            <div style="font-weight:700;margin:8px 0" id="progressTitle">准备识别...</div>
+            <div style="font-size:13px;color:#888" id="progressSubtitle"></div>
+            <div class="progress-bar-outer"><div class="progress-bar-inner" id="progressBar"></div></div>
+            <div style="font-size:24px;font-weight:800"><span id="progressPercent">0</span>%</div>
+            <button style="margin-top:12px;padding:8px 20px;border:1px solid #ddd;background:#fff;border-radius:20px" onclick="cancelProcess()">✕ 取消</button>
         </div>
     </div>
 
     <script>
-        (function() {
-            // ============ 全局状态 ============
-            const allFiles = { 1: [], 2: [], 3: [] };
-            // 存储每个批次的 ObjectURL，用于释放
-            const objectURLs = { 1: [], 2: [], 3: [] };
-            let isProcessing = false;
-            let cancelFlag = false;
+        // ==================== 全局状态 ====================
+        const allFiles = {1:[],2:[],3:[]};
+        const objectURLs = {1:[],2:[],3:[]};
+        let isProcessing = false;
+        let cancelFlag = false;
+        let currentResults = [];
+        let currentMode = 'real'; // 'real' 或 'demo'
 
-            // ============ DOM 引用 ============
-            const submitBtn = document.getElementById('submitBtn');
-            const progressOverlay = document.getElementById('progressOverlay');
-            const progressBar = document.getElementById('progressBar');
-            const progressPercent = document.getElementById('progressPercent');
-            const progressTitle = document.getElementById('progressTitle');
-            const progressSubtitle = document.getElementById('progressSubtitle');
-            const progressIcon = document.getElementById('progressIcon');
-            const progressCard = document.getElementById('progressCard');
-            const cancelBtn = document.getElementById('cancelBtn');
+        // DOM 元素
+        const submitBtn = document.getElementById('submitBtn');
+        const progressOverlay = document.getElementById('progressOverlay');
+        const progressBar = document.getElementById('progressBar');
+        const progressPercent = document.getElementById('progressPercent');
+        const progressTitle = document.getElementById('progressTitle');
+        const progressSubtitle = document.getElementById('progressSubtitle');
+        const progressIcon = document.getElementById('progressIcon');
+        const resultCard = document.getElementById('resultCard');
+        const resultTextarea = document.getElementById('resultTextarea');
+        const resultCount = document.getElementById('resultCount');
+        const resultModeLabel = document.getElementById('resultModeLabel');
+        const warningBanner = document.getElementById('warningBanner');
 
-            // ============ 工具函数：自然排序（用于文件名） ============
-            function naturalCompare(a, b) {
-                // 提取文件名中的数字进行自然排序
-                const getNum = (str) => {
-                    const match = str.match(/(\d+)/g);
-                    return match ? match.map(Number) : [0];
-                };
-                const aNums = getNum(a.name);
-                const bNums = getNum(b.name);
-                const maxLen = Math.max(aNums.length, bNums.length);
-                for (let i = 0; i < maxLen; i++) {
-                    const na = aNums[i] || 0;
-                    const nb = bNums[i] || 0;
-                    if (na !== nb) return na - nb;
-                }
-                return a.name.localeCompare(b.name);
-            }
-
-            // ============ 处理文件选择 ============
-            function handleFiles(input, batchNum) {
-                if (isProcessing) {
-                    alert('正在处理中，请等待完成后再选择文件。');
-                    input.value = '';
-                    return;
-                }
-
-                const files = Array.from(input.files);
-
-                // 释放该批次之前的 ObjectURL
-                if (objectURLs[batchNum].length > 0) {
-                    objectURLs[batchNum].forEach(url => {
-                        try { URL.revokeObjectURL(url); } catch (e) { /* 忽略 */ }
-                    });
-                    objectURLs[batchNum] = [];
-                }
-
-                // 按文件名自然排序，保持图库顺序（iOS 文件通常命名为 IMG_XXXX）
-                // 如果不需要排序，可以注释掉下面这行，保持原始选择顺序
-                files.sort(naturalCompare);
-
-                allFiles[batchNum] = files;
-
-                // 更新计数
-                const countEl = document.getElementById('count' + batchNum);
-                countEl.textContent = files.length + '张';
-
-                // 更新批次卡片状态
-                const batchBox = document.getElementById('batchBox' + batchNum);
-                if (files.length > 0) {
-                    batchBox.classList.add('has-files');
-                } else {
-                    batchBox.classList.remove('has-files');
-                }
-
-                // 更新预览（最多8张 + 序号）
-                const preview = document.getElementById('preview' + batchNum);
-                preview.innerHTML = '';
-
-                const previewCount = Math.min(files.length, 8);
-                for (let i = 0; i < previewCount; i++) {
-                    const url = URL.createObjectURL(files[i]);
-                    objectURLs[batchNum].push(url);
-
-                    const wrap = document.createElement('div');
-                    wrap.className = 'img-wrap';
-
-                    const img = document.createElement('img');
-                    img.src = url;
-                    img.alt = files[i].name;
-                    img.loading = 'lazy'; // 延迟加载减少内存压力
-                    img.decoding = 'async'; // 异步解码
-
-                    const indexLabel = document.createElement('span');
-                    indexLabel.className = 'img-index';
-                    indexLabel.textContent = i + 1;
-
-                    wrap.appendChild(img);
-                    wrap.appendChild(indexLabel);
-                    preview.appendChild(wrap);
-                }
-
-                // 显示 "+N" 指示器
-                if (files.length > 8) {
-                    const more = document.createElement('div');
-                    more.className = 'more-indicator';
-                    more.textContent = '+' + (files.length - 8);
-                    preview.appendChild(more);
-                }
-
-                // 清理 input 以便可以重新选择相同文件
-                // （仅在需要时，这里保留以便用户可以重新选择）
-            }
-
-            // ============ 更新进度条 ============
-            function updateProgress(percent, title, subtitle, icon) {
-                // 使用 requestAnimationFrame 确保平滑更新
-                requestAnimationFrame(() => {
-                    progressBar.style.width = Math.round(percent) + '%';
-                    progressPercent.textContent = Math.round(percent);
-                    if (title) progressTitle.textContent = title;
-                    if (subtitle) progressSubtitle.textContent = subtitle;
-                    if (icon) progressIcon.textContent = icon;
-                });
-            }
-
-            // ============ 模拟单批识别（替换为真实API调用） ============
-            async function processBatchMock(batchFiles, startIndex, totalCount) {
-                // 模拟网络请求和OCR处理的延迟
-                const delay = 400 + Math.random() * 600; // 400-1000ms
-                await new Promise(resolve => setTimeout(resolve, delay));
-
-                // 检查取消标志
-                if (cancelFlag) throw new Error('用户取消');
-
-                // 模拟识别结果：为每个文件生成随机双色球号码
-                const results = batchFiles.map((file, i) => {
-                    const redBalls = [];
-                    const pool = Array.from({ length: 33 }, (_, i) => i + 1);
-                    for (let r = 0; r < 6; r++) {
-                        const idx = Math.floor(Math.random() * pool.length);
-                        redBalls.push(pool.splice(idx, 1)[0]);
-                    }
-                    redBalls.sort((a, b) => a - b);
-                    const blueBall = Math.floor(Math.random() * 16) + 1;
-                    return {
-                        index: startIndex + i + 1,
-                        fileName: file.name,
-                        redBalls: redBalls,
-                        blueBall: blueBall,
-                        rawText: `红球: ${redBalls.join(', ')}  蓝球: ${blueBall}`,
-                    };
-                });
-
-                return results;
-            }
-
-            // ============ 真实API调用模板（取消注释并配置后使用） ============
-            /*
-            async function processBatchReal(batchFiles, startIndex, totalCount) {
-              const formData = new FormData();
-              batchFiles.forEach((file, i) => {
-                formData.append('images', file, file.name);
-              });
-              formData.append('batch_start_index', startIndex);
-              formData.append('total_count', totalCount);
-              formData.append('lottery_type', 'double_color_ball');
-              
-              const response = await fetch('https://your-ocr-api.com/recognize', {
-                method: 'POST',
-                body: formData,
-                // 注意：不要设置 Content-Type，浏览器会自动设置 multipart/form-data
-              });
-              
-              if (!response.ok) {
-                throw new Error(`服务器错误: ${response.status}`);
-              }
-              
-              const data = await response.json();
-              if (cancelFlag) throw new Error('用户取消');
-              return data.results;
-            }
-            */
-
-            // ============ 提交处理 ============
-            async function submitAll() {
-                if (isProcessing) return;
-
-                // 合并所有批次的文件（保持批次顺序：1 → 2 → 3）
-                const totalFiles = [...allFiles[1], ...allFiles[2], ...allFiles[3]];
-
-                if (totalFiles.length === 0) {
-                    // 轻微震动提示
-                    shakeElement(submitBtn);
-                    alert('请至少选择一张彩票图片');
-                    return;
-                }
-
-                // 确认对话框
-                const confirmed = confirm(
-                    `即将识别 ${totalFiles.length} 张彩票图片\n\n` +
-                    `📸 图片将按图库顺序依次处理\n` +
-                    `⏱ 预计耗时：${Math.ceil(totalFiles.length / 10) * 2}~${Math.ceil(totalFiles.length / 10) * 5} 秒\n\n` +
-                    `确认开始？`
-                );
-                if (!confirmed) return;
-
-                // 开始处理
-                isProcessing = true;
-                cancelFlag = false;
-                submitBtn.disabled = true;
-                submitBtn.classList.add('loading');
-                document.querySelector('.submit-btn .btn-text').textContent = '处理中...';
-
-                // 显示进度条
-                progressOverlay.classList.add('active');
-                progressCard.classList.remove('done');
-                cancelBtn.style.display = 'inline-block';
-                updateProgress(0, '🔍 准备识别...', `正在整理 ${totalFiles.length} 张图片的顺序`, '📋');
-
-                // 收集所有识别结果
-                const allResults = [];
-                const BATCH_SIZE = 10; // 每批处理10张（可根据实际情况调整）
-                const totalBatches = Math.ceil(totalFiles.length / BATCH_SIZE);
-
-                try {
-                    // 短暂延迟让UI更新
-                    await new Promise(r => setTimeout(r, 300));
-
-                    for (let batchIdx = 0; batchIdx < totalBatches; batchIdx++) {
-                        if (cancelFlag) break;
-
-                        const start = batchIdx * BATCH_SIZE;
-                        const end = Math.min(start + BATCH_SIZE, totalFiles.length);
-                        const batchFiles = totalFiles.slice(start, end);
-                        const batchNumber = batchIdx + 1;
-
-                        // 更新进度（10%-90% 分配给各批次）
-                        const basePercent = 10 + (batchIdx / totalBatches) * 80;
-                        updateProgress(
-                            basePercent,
-                            `🔍 正在识别第 ${batchNumber}/${totalBatches} 批`,
-                            `处理第 ${start + 1}-${end} 张（共 ${totalFiles.length} 张）`,
-                            '🔍'
-                        );
-
-                        // 调用识别处理（模拟或真实API）
-                        const batchResults = await processBatchMock(batchFiles, start, totalFiles.length);
-                        // 使用真实API时替换为：
-                        // const batchResults = await processBatchReal(batchFiles, start, totalFiles.length);
-
-                        allResults.push(...batchResults);
-
-                        // 批次完成后的进度
-                        const afterPercent = 10 + ((batchIdx + 1) / totalBatches) * 80;
-                        updateProgress(
-                            afterPercent,
-                            `✅ 第 ${batchNumber}/${totalBatches} 批完成`,
-                            `已识别 ${end} / ${totalFiles.length} 张`,
-                            '✅'
-                        );
-
-                        // 批次间短暂间隔，避免内存压力
-                        if (batchIdx < totalBatches - 1) {
-                            await new Promise(r => setTimeout(r, 200));
-                        }
-                    }
-
-                    if (cancelFlag) {
-                        updateProgress(0, '⚠️ 已取消', '识别过程被用户中断', '⚠️');
-                        progressCard.classList.add('done');
-                        cancelBtn.style.display = 'none';
-                        await new Promise(r => setTimeout(r, 1500));
-                    } else {
-                        // 完成
-                        updateProgress(100, '🎉 识别完成！', `成功识别 ${allResults.length} 张彩票`, '🎉');
-                        progressBar.style.width = '100%';
-                        progressPercent.textContent = '100';
-                        progressCard.classList.add('done');
-                        cancelBtn.style.display = 'none';
-
-                        // 短暂展示完成状态
-                        await new Promise(r => setTimeout(r, 1200));
-
-                        // 输出结果到控制台（实际使用中可展示在页面或发送到服务器）
-                        console.log('========== 识别结果 ==========');
-                        console.log(`总计: ${allResults.length} 张`);
-                        allResults.forEach(r => {
-                            console.log(`[${r.index}] ${r.fileName}: ${r.rawText}`);
-                        });
-                        console.log('==============================');
-
-                        // 弹窗显示简要结果
-                        const sampleSize = Math.min(5, allResults.length);
-                        let resultPreview = allResults.slice(0, sampleSize)
-                            .map(r => `📄 [${r.index}] ${r.rawText}`)
-                            .join('\n');
-                        if (allResults.length > sampleSize) {
-                            resultPreview += `\n\n... 共 ${allResults.length} 张，完整结果请查看控制台`;
-                        }
-
-                        alert(
-                            `🎉 识别完成！共处理 ${allResults.length} 张彩票\n\n` +
-                            `📋 前${sampleSize}张结果预览：\n${resultPreview}\n\n` +
-                            `💡 完整结果已输出到浏览器控制台\n` +
-                            `（可在Safari设置中开启Web检查器查看）`
-                        );
-                    }
-
-                } catch (error) {
-                    if (error.message === '用户取消') {
-                        updateProgress(0, '⚠️ 已取消', '识别过程被中断', '⚠️');
-                        progressCard.classList.add('done');
-                        cancelBtn.style.display = 'none';
-                        await new Promise(r => setTimeout(r, 1500));
-                    } else {
-                        console.error('识别出错:', error);
-                        updateProgress(0, '❌ 出错了', error.message || '请重试', '❌');
-                        progressCard.classList.add('done');
-                        cancelBtn.style.display = 'none';
-                        await new Promise(r => setTimeout(r, 2000));
-                        alert('识别过程中出现错误：\n' + (error.message || '未知错误') + '\n\n请检查网络连接后重试。');
-                    }
-                } finally {
-                    // 清理状态
-                    progressOverlay.classList.remove('active');
-                    isProcessing = false;
-                    cancelFlag = false;
-                    submitBtn.disabled = false;
-                    submitBtn.classList.remove('loading');
-                    document.querySelector('.submit-btn .btn-text').textContent = '🚀 开始识别全部彩票';
-                    progressBar.style.width = '0%';
-                    progressPercent.textContent = '0';
-                    progressCard.classList.remove('done');
-                    cancelBtn.style.display = 'inline-block';
-                }
-            }
-
-            // ============ 取消处理 ============
-            function cancelProcess() {
-                if (isProcessing) {
-                    cancelFlag = true;
-                    cancelBtn.textContent = '取消中...';
-                    cancelBtn.disabled = true;
-                }
-            }
-
-            // ============ 震动反馈（视觉） ============
-            function shakeElement(el) {
-                el.style.animation = 'none';
-                el.offsetHeight; // 触发回流
-                el.style.animation = 'shake 0.5s ease';
-                setTimeout(() => { el.style.animation = ''; }, 500);
-            }
-
-            // 添加shake动画
-            const shakeStyle = document.createElement('style');
-            shakeStyle.textContent = `
-              @keyframes shake {
-                0%,100% { transform: translateX(0); }
-                20% { transform: translateX(-8px); }
-                40% { transform: translateX(8px); }
-                60% { transform: translateX(-5px); }
-                80% { transform: translateX(5px); }
-              }
-            `;
-            document.head.appendChild(shakeStyle);
-
-            // ============ 暴露到全局作用域 ============
-            window.handleFiles = handleFiles;
-            window.submitAll = submitAll;
-            window.cancelProcess = cancelProcess;
-
-            // ============ 页面卸载时清理所有 ObjectURL ============
-            window.addEventListener('beforeunload', () => {
-                [1, 2, 3].forEach(batchNum => {
-                    if (objectURLs[batchNum]) {
-                        objectURLs[batchNum].forEach(url => {
-                            try { URL.revokeObjectURL(url); } catch (e) { /* 忽略 */ }
-                        });
-                        objectURLs[batchNum] = [];
-                    }
-                });
+        // 模式切换
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentMode = this.dataset.mode;
+                updateWarningBanner();
+                resultCard.classList.remove('show');
+                resultModeLabel.textContent = currentMode === 'real' ? '真实OCR' : '模拟数据';
+                resultModeLabel.className = `mode-label ${currentMode === 'real' ? 'real' : 'demo'}`;
             });
+        });
 
-            // ============ 内存压力预警（iOS Safari 在内存紧张时会触发） ============
-            if (typeof window.addEventListener === 'function') {
-                // 监听页面可见性变化，在隐藏时清理不必要的资源
-                document.addEventListener('visibilitychange', () => {
-                    if (document.hidden && !isProcessing) {
-                        // 页面隐藏时，可以清理预览URL以节省内存
-                        // 但保留文件引用以便恢复
-                        [1, 2, 3].forEach(batchNum => {
-                            if (objectURLs[batchNum] && objectURLs[batchNum].length > 8) {
-                                // 只保留前8个URL，其余释放
-                                const toRelease = objectURLs[batchNum].splice(8);
-                                toRelease.forEach(url => {
-                                    try { URL.revokeObjectURL(url); } catch (e) { /* 忽略 */ }
-                                });
+        function updateWarningBanner() {
+            if (currentMode === 'real') {
+                warningBanner.innerHTML = '<span>🧠</span> <strong>真实OCR识别：</strong>使用本地引擎直接读取彩票图片，识别可能需要几秒/张，请耐心等待。首次使用会下载语言包（约4MB），需保持网络。';
+                warningBanner.className = 'warning-banner';
+            } else {
+                warningBanner.innerHTML = '<span>🎲</span> <strong>模拟演示模式：</strong>上传任何图片都会生成随机号码，仅用于测试流程。真实识别请切换回「真实识别」。';
+                warningBanner.className = 'warning-banner demo';
+            }
+        }
+
+        // 自然排序
+        function naturalCompare(a,b) {
+            const getNum = s => { const m = s.match(/(\d+)/g); return m ? m.map(Number) : [0]; };
+            const aN = getNum(a.name), bN = getNum(b.name);
+            for (let i=0; i<Math.max(aN.length, bN.length); i++) {
+                if ((aN[i]||0) !== (bN[i]||0)) return (aN[i]||0) - (bN[i]||0);
+            }
+            return a.name.localeCompare(b.name);
+        }
+
+        window.handleFiles = function(input, batchNum) {
+            if (isProcessing) { alert('处理中，请等待'); input.value=''; return; }
+            const files = Array.from(input.files);
+            if (objectURLs[batchNum].length) {
+                objectURLs[batchNum].forEach(u => { try { URL.revokeObjectURL(u); } catch(e){} });
+                objectURLs[batchNum] = [];
+            }
+            files.sort(naturalCompare);
+            allFiles[batchNum] = files;
+            document.getElementById('count'+batchNum).textContent = files.length+'张';
+            const preview = document.getElementById('preview'+batchNum);
+            preview.innerHTML = '';
+            for (let i=0; i<Math.min(files.length,8); i++) {
+                const url = URL.createObjectURL(files[i]);
+                objectURLs[batchNum].push(url);
+                const wrap = document.createElement('div'); wrap.className='img-wrap';
+                const img = document.createElement('img'); img.src=url; img.loading='lazy';
+                const idx = document.createElement('span'); idx.className='img-index'; idx.textContent=i+1;
+                wrap.append(img,idx); preview.append(wrap);
+            }
+            if (files.length>8) {
+                const more = document.createElement('div'); more.className='more-indicator'; more.textContent='+'+ (files.length-8);
+                preview.append(more);
+            }
+        };
+
+        // ==================== 真实OCR识别（Tesseract.js） ====================
+        async function realOCR(imageFile, progressCallback) {
+            // 创建一个worker，使用英语识别（数字识别效果好，包体积小）
+            const worker = await Tesseract.createWorker('eng', 1, {
+                logger: m => {
+                    if (m.status === 'recognizing text' && progressCallback) {
+                        progressCallback(m.progress || 0);
+                    }
+                }
+            });
+            // 设置参数优化数字识别
+            await worker.setParameters({
+                tessedit_char_whitelist: '0123456789,.- ',
+                preserve_interword_spaces: '1',
+            });
+            const { data: { text } } = await worker.recognize(imageFile);
+            await worker.terminate();
+            return text.trim();
+        }
+
+        // ==================== 模拟演示识别 ====================
+        async function demoOCR(imageFile, progressCallback) {
+            // 模拟识别延迟
+            const delay = 200 + Math.random() * 400;
+            await new Promise(r => setTimeout(r, delay));
+            if (progressCallback) progressCallback(1);
+            const red = [];
+            const pool = Array.from({length:33},(_,i)=>i+1);
+            for (let i=0;i<6;i++) {
+                const idx = Math.floor(Math.random()*pool.length);
+                red.push(pool.splice(idx,1)[0]);
+            }
+            red.sort((a,b)=>a-b);
+            const blue = Math.floor(Math.random()*16)+1;
+            return `红球: ${red.join(', ')}  蓝球: ${blue}`;
+        }
+
+        // ==================== 解析OCR文本提取双色球号码 ====================
+        function parseLotteryNumbers(rawText) {
+            // 提取所有两位数字（01-99），但只保留01-33作为红球候选，01-16作为蓝球候选
+            const numbers = rawText.match(/\b\d{1,2}\b/g) || [];
+            const redCandidates = [];
+            const blueCandidates = [];
+            numbers.forEach(numStr => {
+                const n = parseInt(numStr, 10);
+                if (n >= 1 && n <= 33) redCandidates.push(n);
+                if (n >= 1 && n <= 16) blueCandidates.push(n);
+            });
+            // 去重红球，取前6个
+            const redBalls = [...new Set(redCandidates)].slice(0, 6);
+            // 蓝球从剩余中取第一个在1-16范围内的
+            const blueBall = blueCandidates.length > 0 ? blueCandidates[0] : null;
+            if (redBalls.length === 6 && blueBall) {
+                return { redBalls, blueBall, rawText };
+            }
+            // 如果不足，尝试宽松匹配
+            return { redBalls: redBalls.slice(0,6), blueBall: blueBall || (blueCandidates[0] || '?'), rawText };
+        }
+
+        // ==================== 提交处理 ====================
+        window.submitAll = async function() {
+            if (isProcessing) return;
+            const totalFiles = [...allFiles[1], ...allFiles[2], ...allFiles[3]];
+            if (totalFiles.length === 0) {
+                alert('请至少选择一张彩票图片');
+                return;
+            }
+            const timeEstimate = currentMode === 'real' ? Math.ceil(totalFiles.length * 3) + '~' + Math.ceil(totalFiles.length * 8) + ' 秒' : '几秒';
+            if (!confirm(`即将识别 ${totalFiles.length} 张彩票（${currentMode==='real'?'真实OCR':'模拟演示'}）\n预计耗时：${timeEstimate}\n\n确认开始？`)) return;
+
+            isProcessing = true;
+            cancelFlag = false;
+            currentResults = [];
+            resultCard.classList.remove('show');
+            submitBtn.disabled = true;
+            submitBtn.classList.add('loading');
+            document.querySelector('.submit-btn .btn-text').textContent = '处理中...';
+
+            // 进度弹窗
+            progressOverlay.classList.add('active');
+            updateProgressUI(0, '🔍 准备识别...', `正在加载OCR引擎（${currentMode==='real'?'真实':'模拟'}）`, '🧠');
+
+            try {
+                // 短暂延迟让UI更新
+                await new Promise(r => setTimeout(r, 300));
+
+                const BATCH_SIZE = currentMode === 'real' ? 5 : 10; // 真实模式减少并发
+                const totalBatches = Math.ceil(totalFiles.length / BATCH_SIZE);
+                let overallProgress = 0;
+
+                for (let batchIdx = 0; batchIdx < totalBatches; batchIdx++) {
+                    if (cancelFlag) break;
+                    const start = batchIdx * BATCH_SIZE;
+                    const end = Math.min(start + BATCH_SIZE, totalFiles.length);
+                    const batchFiles = totalFiles.slice(start, end);
+
+                    updateProgressUI(
+                        Math.round((batchIdx / totalBatches) * 100),
+                        `识别第 ${batchIdx+1}/${totalBatches} 批`,
+                        `处理第 ${start+1}-${end} 张（共 ${totalFiles.length} 张）`,
+                        '🔍'
+                    );
+
+                    for (let i = 0; i < batchFiles.length; i++) {
+                        if (cancelFlag) break;
+                        const file = batchFiles[i];
+                        const globalIndex = start + i + 1;
+                        // 单张识别进度回调
+                        let lastProgress = 0;
+                        const fileProgressFn = (prog) => {
+                            // 更新子进度（0-1）
+                            const totalProgress = ((batchIdx * BATCH_SIZE + i + prog) / totalFiles.length) * 100;
+                            if (totalProgress - overallProgress > 0.5) {
+                                overallProgress = totalProgress;
+                                updateProgressUI(Math.round(overallProgress), `识别第 ${globalIndex} 张`, file.name, '🔎');
                             }
+                        };
+
+                        let rawText = '';
+                        try {
+                            if (currentMode === 'demo') {
+                                rawText = await demoOCR(file, fileProgressFn);
+                            } else {
+                                rawText = await realOCR(file, fileProgressFn);
+                            }
+                        } catch (e) {
+                            rawText = `[识别错误: ${e.message}]`;
+                        }
+
+                        const parsed = parseLotteryNumbers(rawText);
+                        currentResults.push({
+                            index: globalIndex,
+                            fileName: file.name,
+                            redBalls: parsed.redBalls,
+                            blueBall: parsed.blueBall,
+                            rawText: rawText,
                         });
                     }
-                });
-            }
 
-            console.log('✅ 双色球彩票识别工具已就绪');
-            console.log('📸 图片将按图库顺序（文件名自然排序）依次识别');
-            console.log('🔧 每批处理10张，共支持3个批次选择器');
-            console.log('💡 提示：可在代码中切换 processBatchMock / processBatchReal');
-        })();
+                    // 批次完成
+                    updateProgressUI(
+                        Math.round(((batchIdx+1) / totalBatches) * 100),
+                        `第 ${batchIdx+1}/${totalBatches} 批完成`,
+                        `已识别 ${end} 张`,
+                        '✅'
+                    );
+                    if (batchIdx < totalBatches - 1) await new Promise(r => setTimeout(r, 150));
+                }
+
+                if (cancelFlag) {
+                    updateProgressUI(0, '⚠️ 已取消', '', '⚠️');
+                    await new Promise(r => setTimeout(r, 1200));
+                } else {
+                    updateProgressUI(100, '🎉 识别完成！', `成功识别 ${currentResults.length} 张`, '🎉');
+                    await new Promise(r => setTimeout(r, 600));
+                    displayResults(currentResults);
+                }
+            } catch (error) {
+                console.error(error);
+                updateProgressUI(0, '❌ 出错', error.message, '❌');
+                await new Promise(r => setTimeout(r, 2000));
+                alert('识别过程出错：' + error.message);
+            } finally {
+                progressOverlay.classList.remove('active');
+                isProcessing = false;
+                cancelFlag = false;
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('loading');
+                document.querySelector('.submit-btn .btn-text').textContent = '🚀 开始识别全部彩票';
+            }
+        };
+
+        function updateProgressUI(percent, title, subtitle, icon) {
+            requestAnimationFrame(() => {
+                progressBar.style.width = percent + '%';
+                progressPercent.textContent = percent;
+                if (title) progressTitle.textContent = title;
+                if (subtitle) progressSubtitle.textContent = subtitle;
+                if (icon) progressIcon.textContent = icon;
+            });
+        }
+
+        function displayResults(results) {
+            const text = results.map(r => {
+                const redStr = r.redBalls.length === 6 ? r.redBalls.join(', ') : (r.redBalls.join(', ') || '?');
+                const blueStr = r.blueBall || '?';
+                return `[${r.index}] ${r.fileName}\n红球: ${redStr}  蓝球: ${blueStr}\n原始识别: ${r.rawText}`;
+            }).join('\n\n');
+            resultTextarea.value = text;
+            resultCount.textContent = `共 ${results.length} 张彩票识别结果`;
+            resultModeLabel.textContent = currentMode === 'real' ? '真实OCR' : '模拟数据';
+            resultModeLabel.className = `mode-label ${currentMode === 'real' ? 'real' : 'demo'}`;
+            resultCard.classList.add('show');
+            resultCard.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        window.copyResults = function() {
+            if (!resultTextarea.value) return;
+            navigator.clipboard.writeText(resultTextarea.value).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = '✅ 已复制';
+                setTimeout(() => btn.textContent = '📋 复制全部', 2000);
+            }).catch(() => {
+                resultTextarea.select();
+                document.execCommand('copy');
+                alert('已复制到剪贴板');
+            });
+        };
+
+        window.cancelProcess = function() {
+            cancelFlag = true;
+        };
+
+        // 清理资源
+        window.addEventListener('beforeunload', () => {
+            [1,2,3].forEach(bn => {
+                if (objectURLs[bn]) objectURLs[bn].forEach(u => { try { URL.revokeObjectURL(u); } catch(e){} });
+            });
+        });
     </script>
 </body>
 </html>
