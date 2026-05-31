@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>双色球红球精准识别 · 去重排序</title>
+    <title>双色球红球识别 · 精准过滤版</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         :root {
             --primary: #e74c3c;
             --bg: #f0f2f5;
-            --card: #ffffff;
+            --card: #fff;
             --text: #2c3e50;
             --radius: 14px;
         }
@@ -80,11 +80,11 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎱 双色球红球精准识别</h1>
-            <p class="subtitle">去重排序 · 倍数/胆拖 · 严格按图库顺序</p>
+            <h1>🎱 双色球红球识别</h1>
+            <p class="subtitle">严格过滤 · 去重排序 · 按图库顺序</p>
         </div>
         <div class="info-banner">
-            <strong>🔍 输出规则：</strong>每注号码自动去重、从小到大排序，数字用两位格式。倍数或蓝球数正确生成对应行数。
+            <strong>🔍 优化说明：</strong>只提取符合彩票格式的数字行，自动合并红球与蓝球/倍数行，输出已去重排序的号码。
         </div>
 
         <div class="batch-box"><div class="batch-title">第一批 <span class="count-badge" id="count1">0张</span></div>
@@ -102,15 +102,15 @@
 
         <button class="submit-btn" id="submitBtn" onclick="submitAll()">
             <span class="spinner"></span>
-            <span class="btn-text">🚀 开始精准识别</span>
+            <span class="btn-text">🚀 开始识别</span>
         </button>
 
         <div class="result-card" id="resultCard">
             <div class="result-header">
-                <h3>📋 最终号码（去重排序）</h3>
+                <h3>📋 最终号码</h3>
                 <button class="copy-btn" onclick="copyResults()">📋 复制全部</button>
             </div>
-            <textarea class="result-textarea" id="resultTextarea" readonly placeholder="识别完成后，这里将只显示号码行..."></textarea>
+            <textarea class="result-textarea" id="resultTextarea" readonly placeholder="识别结果将显示在这里..."></textarea>
             <div class="result-count" id="resultCount"></div>
         </div>
     </div>
@@ -198,92 +198,144 @@
                 return text;
             }
 
-            // ========== 新解析逻辑：去重排序，只提取有效红球行 ==========
-            function parseRedBallsFromText(ocrText) {
-                const results = [];
-                // 预处理
-                let text = ocrText.replace(/（/g,'(').replace(/）/g,')').replace(/【/g,'[').replace(/】/g,']').replace(/：/g,':').replace(/，/g,',').replace(/\s+/g,' ');
-                const lines = text.split('\n').map(l => l.trim()).filter(l => l.length>0);
+            // 解析核心：先找出所有可能是彩票号码的行，然后合并相邻行
+            function parseLotteryTicket(ocrText) {
+                const lines = ocrText.split('\n').map(l => l.trim()).filter(l => l);
+                // 统一符号
+                const cleanLines = lines.map(l => l.replace(/（/g,'(').replace(/）/g,')').replace(/【/g,'[').replace(/】/g,']').replace(/：/g,':').replace(/，/g,',').replace(/\s+/g,' '));
 
-                for (const line of lines) {
-                    // 胆拖识别
-                    const danTuoMatch = line.match(/胆\s*[:：]?\s*([\d,\s]+)\s*拖\s*[:：]?\s*([\d,\s]+)/i);
-                    if (danTuoMatch) {
-                        const danNumbers = danTuoMatch[1].split(/[, ]+/).filter(n => /^\d{1,2}$/.test(n) && parseInt(n)>=1 && parseInt(n)<=33);
-                        const tuoNumbers = danTuoMatch[2].split(/[, ]+/).filter(n => /^\d{1,2}$/.test(n) && parseInt(n)>=1 && parseInt(n)<=33);
-                        if (danNumbers.length >= 1 && tuoNumbers.length >= 1) {
-                            // 去重排序
-                            const danSorted = [...new Set(danNumbers)].sort((a,b)=>parseInt(a)-parseInt(b));
-                            const tuoSorted = [...new Set(tuoNumbers)].sort((a,b)=>parseInt(a)-parseInt(b));
-                            const multiplier = extractMultiplier(line);
-                            const blueCount = extractBlueCount(line);
-                            const totalRows = multiplier * blueCount;
-                            const danStr = `胆:${danSorted.map(n=>String(n).padStart(2,'0')).join(',')}  拖:${tuoSorted.map(n=>String(n).padStart(2,'0')).join(',')}`;
-                            for (let i=0; i<totalRows; i++) {
-                                results.push(danStr);
-                            }
-                        }
+                // 存储提取的注信息
+                const tickets = [];
+                let currentRed = null; // 暂存可能的红球行
+                let currentMultiplier = 1;
+                let currentBlueCount = 1;
+
+                for (let i = 0; i < cleanLines.length; i++) {
+                    const line = cleanLines[i];
+                    // 胆拖独立处理
+                    const danTuo = parseDanTuo(line);
+                    if (danTuo) {
+                        tickets.push(danTuo);
                         continue;
                     }
 
-                    // 提取所有2位以内数字
-                    const allNumbers = line.match(/\b\d{1,2}\b/g) || [];
-                    const validNumbers = allNumbers.filter(n => {
-                        const num = parseInt(n);
-                        return num >= 1 && num <= 33;
-                    });
-                    // 至少需要6个红球，并且整行不能有太多非数字字符（避免时间/流水号）
-                    if (validNumbers.length >= 6) {
-                        // 去重
-                        const uniqueNumbers = [...new Set(validNumbers)];
-                        if (uniqueNumbers.length >= 6) {
-                            // 排序
-                            const sorted = uniqueNumbers.slice(0,6).sort((a,b)=>parseInt(a)-parseInt(b));
-                            const redsStr = sorted.map(n=>String(n).padStart(2,'0')).join(',');
-                            const multiplier = extractMultiplier(line);
-                            const blueCount = extractBlueCount(line);
-                            const totalRows = multiplier * blueCount;
-                            for (let i=0; i<totalRows; i++) {
-                                results.push(redsStr);
+                    // 尝试匹配红球行（以 - 或 : 或 数字开头，包含6个以上1-33的数字）
+                    const reds = extractReds(line);
+                    if (reds.length >= 6) {
+                        // 如果之前有暂存的红球行，先处理掉（作为上一注，没有后续倍/蓝信息）
+                        if (currentRed) {
+                            tickets.push({
+                                reds: currentRed,
+                                multiplier: currentMultiplier,
+                                blueCount: currentBlueCount
+                            });
+                        }
+                        // 开始新一注
+                        currentRed = reds;
+                        currentMultiplier = extractMultiplier(line);
+                        currentBlueCount = extractBlueCount(line, reds.length);
+                    } else {
+                        // 可能是蓝球/倍数行，尝试与上一行红球合并
+                        const mult = extractMultiplier(line);
+                        if (mult > 1 || line.match(/[\d]{1,2}/)) {
+                            if (currentRed) {
+                                // 更新倍数或蓝球数
+                                currentMultiplier = mult > 1 ? mult : currentMultiplier;
+                                const blueNums = line.match(/\b\d{1,2}\b/g) || [];
+                                const blues = blueNums.filter(n => { const num=parseInt(n); return num>=1&&num<=16; });
+                                if (blues.length > 0) {
+                                    currentBlueCount = blues.length;
+                                }
+                                // 有时倍数和蓝球在一行：比如 "-06 [1451]"
+                                if (line.includes('[') || line.includes('(')) {
+                                    const bracketMult = line.match(/[\[\(](\d{1,3})[\]\)]/);
+                                    if (bracketMult) currentMultiplier = parseInt(bracketMult[1]);
+                                }
+                                // 处理完合并，存入
+                                tickets.push({
+                                    reds: currentRed,
+                                    multiplier: currentMultiplier,
+                                    blueCount: currentBlueCount
+                                });
+                                currentRed = null;
+                                currentMultiplier = 1;
+                                currentBlueCount = 1;
                             }
                         }
                     }
                 }
-                return results;
+                // 处理最后剩下的红球
+                if (currentRed) {
+                    tickets.push({
+                        reds: currentRed,
+                        multiplier: currentMultiplier,
+                        blueCount: currentBlueCount
+                    });
+                }
+
+                // 生成输出行
+                const output = [];
+                for (const ticket of tickets) {
+                    const sortedReds = [...new Set(ticket.reds)].sort((a,b)=>a-b);
+                    if (sortedReds.length < 6) continue;
+                    const redsStr = sortedReds.map(n => String(n).padStart(2,'0')).join(',');
+                    const rows = ticket.multiplier * ticket.blueCount;
+                    for (let r = 0; r < rows; r++) {
+                        output.push(redsStr);
+                    }
+                }
+                return output;
+            }
+
+            function extractReds(line) {
+                // 匹配模式：以数字或-或:开头，后跟数字序列
+                const match = line.match(/^[:\-\d]*\s*(\d{1,2}\s+)+/);
+                if (!match) return [];
+                const numbers = line.match(/\b\d{1,2}\b/g) || [];
+                return numbers.map(Number).filter(n => n>=1 && n<=33);
             }
 
             function extractMultiplier(line) {
-                const patterns = [
-                    /[\[\(](\d{1,3})[\]\)]/,
-                    /倍数\s*[:：]?\s*(\d{1,3})/i,
-                    /(\d{1,3})\s*倍/i
-                ];
-                for (const pat of patterns) {
-                    const m = line.match(pat);
+                const patterns = [/[\[\(](\d{1,3})[\]\)]/, /倍数\s*[:：]?\s*(\d{1,3})/i, /(\d{1,3})\s*倍/i];
+                for (const p of patterns) {
+                    const m = line.match(p);
                     if (m) return parseInt(m[1]);
                 }
                 return 1;
             }
 
-            function extractBlueCount(line) {
-                // 如果红球后面还有1-16的数字，视为蓝球数量
-                const allNums = line.match(/\b\d{1,2}\b/g) || [];
-                const validReds = allNums.filter(n => { const num=parseInt(n); return num>=1&&num<=33; });
-                // 多出6个的数字，若在1-16范围内则可能为蓝球
-                if (validReds.length > 6) {
-                    const extra = validReds.slice(6);
-                    const blueNums = extra.filter(n => { const num=parseInt(n); return num>=1&&num<=16; });
-                    return Math.max(1, blueNums.length);
+            function extractBlueCount(line, redCount) {
+                const nums = line.match(/\b\d{1,2}\b/g) || [];
+                const reds = nums.map(Number).filter(n => n>=1 && n<=33);
+                if (reds.length > redCount) {
+                    const extra = reds.slice(redCount);
+                    return extra.filter(n => n>=1 && n<=16).length || 1;
                 }
                 return 1;
+            }
+
+            function parseDanTuo(line) {
+                const m = line.match(/胆\s*[:：]?\s*([\d,\s]+)\s*拖\s*[:：]?\s*([\d,\s]+)/i);
+                if (!m) return null;
+                const dan = m[1].split(/[, ]+/).filter(n => /^\d{1,2}$/.test(n)).map(Number).filter(n => n>=1 && n<=33);
+                const tuo = m[2].split(/[, ]+/).filter(n => /^\d{1,2}$/.test(n)).map(Number).filter(n => n>=1 && n<=33);
+                if (dan.length===0 || tuo.length===0) return null;
+                const sortedDan = [...new Set(dan)].sort((a,b)=>a-b);
+                const sortedTuo = [...new Set(tuo)].sort((a,b)=>a-b);
+                const mult = extractMultiplier(line);
+                const blue = extractBlueCount(line, 0); // 简单处理
+                const rows = mult * blue;
+                const danStr = `胆:${sortedDan.map(n=>String(n).padStart(2,'0')).join(',')}  拖:${sortedTuo.map(n=>String(n).padStart(2,'0')).join(',')}`;
+                const output = [];
+                for (let i=0; i<rows; i++) output.push(danStr);
+                return { output };
             }
 
             window.submitAll = async function() {
                 if (isProcessing) return;
                 const totalFiles = [...allFiles[1], ...allFiles[2], ...allFiles[3]];
                 if (totalFiles.length === 0) { alert('请至少选择一张图片'); return; }
-                const est = Math.ceil(totalFiles.length * 2) + '~' + Math.ceil(totalFiles.length * 4) + '秒';
-                if (!confirm(`即将识别 ${totalFiles.length} 张图片。\n预计耗时：${est}\n\n切换App或锁屏后继续。确认开始？`)) return;
+                if (!confirm(`即将识别 ${totalFiles.length} 张图片。\n请确保彩票号码区域清晰。\n预计耗时：${Math.ceil(totalFiles.length*2)}~${Math.ceil(totalFiles.length*4)}秒。`)) return;
 
                 isProcessing = true; cancelFlag = false;
                 finalOutputLines = [];
@@ -295,37 +347,27 @@
 
                 workerPool = [];
                 try {
-                    for (let i=0; i<MAX_CONCURRENT; i++) {
-                        workerPool.push(await createFastWorker());
-                    }
-                } catch (e) { alert('引擎初始化失败: ' + e.message); resetUI(); return; }
+                    for (let i=0; i<MAX_CONCURRENT; i++) workerPool.push(await createFastWorker());
+                } catch (e) { alert('引擎初始化失败: '+e.message); resetUI(); return; }
 
-                const fileQueue = totalFiles.map((f, i) => ({ file: f, index: i+1, name: f.name }));
+                const fileQueue = totalFiles.map((f,i)=>({file:f,index:i+1,name:f.name}));
                 let completed = 0;
                 const total = fileQueue.length;
 
                 const throttledProgress = () => {
-                    const pct = (completed / total) * 100;
+                    const pct = (completed/total)*100;
                     updateProgressUI(pct, `已识别 ${completed}/${total}`, `并行处理中`, '⚡');
                 };
 
                 const processNext = async (worker) => {
-                    while (fileQueue.length > 0 && !cancelFlag) {
+                    while (fileQueue.length>0 && !cancelFlag) {
                         const task = fileQueue.shift();
                         if (!task) break;
                         try {
                             const rawText = await recognizeImage(worker, task.file);
-                            const lines = parseRedBallsFromText(rawText);
-                            if (lines.length > 0) {
+                            const lines = parseLotteryTicket(rawText);
+                            if (lines.length>0) {
                                 finalOutputLines.push(...lines);
-                            } else {
-                                // 宽松处理：若完全没有提取到，尝试整行数字去重排序
-                                const allNums = rawText.match(/\b\d{1,2}\b/g) || [];
-                                const reds = [...new Set(allNums.filter(n => { const num=parseInt(n); return num>=1&&num<=33; }))]
-                                    .sort((a,b)=>parseInt(a)-parseInt(b)).slice(0,6);
-                                if (reds.length === 6) {
-                                    finalOutputLines.push(reds.map(n=>String(n).padStart(2,'0')).join(','));
-                                }
                             }
                         } catch (err) {}
                         completed++;
@@ -341,12 +383,12 @@
 
                 if (cancelFlag) {
                     updateProgressUI(0, '⚠️ 已取消', '', '⚠️');
-                    await new Promise(r => setTimeout(r, 1200));
+                    await new Promise(r => setTimeout(r,1200));
                 } else {
                     updateProgressUI(100, '🎉 识别完成！', `成功生成 ${finalOutputLines.length} 行号码`, '🎉');
-                    await new Promise(r => setTimeout(r, 600));
+                    await new Promise(r => setTimeout(r,600));
                     resultTextarea.value = finalOutputLines.join('\n');
-                    resultCount.textContent = `共 ${finalOutputLines.length} 行号码（已去重排序）`;
+                    resultCount.textContent = `共 ${finalOutputLines.length} 行号码`;
                     resultCard.classList.add('show');
                     resultCard.scrollIntoView({ behavior: 'smooth' });
                 }
@@ -373,7 +415,7 @@
 
             function updateProgressUI(pct, title, sub, icon) {
                 requestAnimationFrame(() => {
-                    progressBar.style.width = Math.round(pct) + '%';
+                    progressBar.style.width = Math.round(pct)+'%';
                     progressPercent.textContent = Math.round(pct);
                     if (title) progressTitle.textContent = title;
                     if (sub) progressSubtitle.textContent = sub;
@@ -385,7 +427,7 @@
                 progressOverlay.classList.remove('active');
                 isProcessing = false; cancelFlag = false;
                 submitBtn.disabled = false; submitBtn.classList.remove('loading');
-                document.querySelector('.btn-text').textContent = '🚀 开始精准识别';
+                document.querySelector('.btn-text').textContent = '🚀 开始识别';
             }
 
             window.addEventListener('beforeunload', () => {
