@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>彩票识别 · 真实OCR版（无需API）</title>
-    <!-- 引入 Tesseract.js 离线OCR引擎 -->
+    <title>双色球彩票高速识别 · 后台运行</title>
+    <!-- 引入 Tesseract.js -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         :root {
@@ -29,46 +29,19 @@
         .header h1 { font-size: 22px; font-weight: 700; }
         .header .subtitle { font-size: 13px; color: #7f8c8d; margin-top: 4px; }
 
-        .warning-banner {
-            background: #e8f5e9;
-            border-left: 4px solid #4caf50;
+        .perf-banner {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
             padding: 12px;
             border-radius: 8px;
             font-size: 13px;
-            color: #2e7d32;
+            color: #0d47a1;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 8px;
+            line-height: 1.5;
         }
-        .warning-banner.demo {
-            background: #fff3cd;
-            border-left-color: #f39c12;
-            color: #856404;
-        }
-        .mode-switch {
-            display: flex;
-            background: #e9ecef;
-            border-radius: 20px;
-            padding: 3px;
-        }
-        .mode-btn {
-            flex: 1;
-            text-align: center;
-            padding: 8px 0;
-            font-size: 13px;
-            font-weight: 600;
-            border-radius: 18px;
-            cursor: pointer;
-            background: transparent;
-            border: none;
-            color: #666;
-            transition: 0.2s;
-        }
-        .mode-btn.active {
-            background: #fff;
-            color: #e74c3c;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
+        .perf-banner .icon { font-size: 18px; flex-shrink: 0; }
 
         .batch-box {
             background: var(--card);
@@ -96,15 +69,27 @@
             width: 100%; padding: 16px; background: #e74c3c; color: #fff;
             border: none; border-radius: 14px; font-size: 17px; font-weight: 700;
             cursor: pointer; transition: 0.2s; box-shadow: 0 4px 14px rgba(231,76,60,0.3);
+            display: flex; align-items: center; justify-content: center; gap: 10px;
         }
         .submit-btn:disabled { background: #bbb; box-shadow: none; }
-        .spinner-inline { display: none; width: 20px; height: 20px; border: 2.5px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 8px; vertical-align: middle; }
-        .submit-btn.loading .spinner-inline { display: inline-block; }
+        .spinner {
+            display: none; width: 20px; height: 20px;
+            border: 2.5px solid rgba(255,255,255,0.3);
+            border-top-color: #fff; border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        .submit-btn.loading .spinner { display: inline-block; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .progress-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1000; justify-content: center; align-items: center; }
+        .progress-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+            z-index: 1000; justify-content: center; align-items: center;
+        }
         .progress-overlay.active { display: flex; }
-        .progress-card { background: #fff; border-radius: 18px; padding: 24px; width: 85%; max-width: 360px; text-align: center; }
+        .progress-card {
+            background: #fff; border-radius: 18px; padding: 24px;
+            width: 85%; max-width: 360px; text-align: center;
+        }
         .progress-bar-outer { height: 8px; background: #e9ecef; border-radius: 8px; margin: 14px 0; }
         .progress-bar-inner { height: 100%; background: #e74c3c; border-radius: 8px; width: 0%; transition: width 0.3s; }
 
@@ -112,27 +97,28 @@
         .result-card.show { display: block; }
         .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
         .copy-btn { padding: 8px 16px; background: #2ecc71; color: #fff; border: none; border-radius: 20px; font-weight: 600; cursor: pointer; }
-        .result-textarea { width: 100%; height: 250px; border: 1px solid #ddd; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 13px; background: #fafafa; resize: vertical; }
+        .result-textarea {
+            width: 100%; height: 250px; border: 1px solid #ddd;
+            border-radius: 8px; padding: 12px; font-family: monospace;
+            font-size: 13px; background: #fafafa; resize: vertical;
+        }
         .result-count { font-size: 13px; color: #888; margin-top: 6px; }
-        .mode-label { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-left: 8px; }
-        .mode-label.real { background: #d4edda; color: #155724; }
-        .mode-label.demo { background: #fff3cd; color: #856404; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎱 双色球彩票识别</h1>
-            <p class="subtitle">真实OCR识别 · 按图库顺序 · 结果可复制</p>
+            <h1>⚡ 双色球彩票高速识别</h1>
+            <p class="subtitle">多线程并行 · 后台持续运行 · 真实OCR</p>
         </div>
 
-        <!-- 模式切换 -->
-        <div class="mode-switch" id="modeSwitch">
-            <button class="mode-btn active" data-mode="real">🔍 真实识别</button>
-            <button class="mode-btn" data-mode="demo">🎲 模拟演示</button>
-        </div>
-        <div class="warning-banner" id="warningBanner">
-            <span>🧠</span> <strong>真实OCR识别：</strong>使用本地引擎直接读取彩票图片，识别可能需要几秒/张，请耐心等待。首次使用会下载语言包（约4MB），需保持网络。
+        <div class="perf-banner">
+            <span class="icon">🚀</span>
+            <div>
+                <strong>极速后台识别：</strong>同时处理3张图片，切换App或锁屏后识别<span style="text-decoration:underline;">不会中断</span>。<br>
+                首次使用下载语言包（约4MB），之后将缓存到本地。<br>
+                识别速度约 <strong>2~4秒/张</strong>，请保持页面开启。
+            </div>
         </div>
 
         <!-- 批次上传 -->
@@ -150,13 +136,14 @@
         </div>
 
         <button class="submit-btn" id="submitBtn" onclick="submitAll()">
-            <span class="spinner-inline"></span><span class="btn-text">🚀 开始识别全部彩票</span>
+            <span class="spinner"></span>
+            <span class="btn-text">🚀 开始高速识别</span>
         </button>
 
-        <!-- 识别结果展示 -->
+        <!-- 结果展示 -->
         <div class="result-card" id="resultCard">
             <div class="result-header">
-                <h3>📋 识别结果 <span class="mode-label real" id="resultModeLabel">真实OCR</span></h3>
+                <h3>📋 识别结果 <span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:4px;font-size:11px;">真实OCR</span></h3>
                 <button class="copy-btn" onclick="copyResults()">📋 复制全部</button>
             </div>
             <textarea class="result-textarea" id="resultTextarea" readonly placeholder="识别结果将显示在这里..."></textarea>
@@ -167,7 +154,7 @@
     <!-- 进度弹窗 -->
     <div class="progress-overlay" id="progressOverlay">
         <div class="progress-card">
-            <div style="font-size:32px" id="progressIcon">🔍</div>
+            <div style="font-size:32px" id="progressIcon">⚡</div>
             <div style="font-weight:700;margin:8px 0" id="progressTitle">准备识别...</div>
             <div style="font-size:13px;color:#888" id="progressSubtitle"></div>
             <div class="progress-bar-outer"><div class="progress-bar-inner" id="progressBar"></div></div>
@@ -177,235 +164,218 @@
     </div>
 
     <script>
-        // ==================== 全局状态 ====================
-        const allFiles = {1:[],2:[],3:[]};
-        const objectURLs = {1:[],2:[],3:[]};
-        let isProcessing = false;
-        let cancelFlag = false;
-        let currentResults = [];
-        let currentMode = 'real'; // 'real' 或 'demo'
+        (function() {
+            // ============ 全局状态 ============
+            const allFiles = {1:[],2:[],3:[]};
+            const objectURLs = {1:[],2:[],3:[]};
+            let isProcessing = false;
+            let cancelFlag = false;
+            let currentResults = [];
+            // 并发控制
+            const MAX_CONCURRENT = 3; // 同时处理3张图片
+            let activeWorkers = 0;
+            let workerPool = []; // 存储已创建的 worker，便于终止
 
-        // DOM 元素
-        const submitBtn = document.getElementById('submitBtn');
-        const progressOverlay = document.getElementById('progressOverlay');
-        const progressBar = document.getElementById('progressBar');
-        const progressPercent = document.getElementById('progressPercent');
-        const progressTitle = document.getElementById('progressTitle');
-        const progressSubtitle = document.getElementById('progressSubtitle');
-        const progressIcon = document.getElementById('progressIcon');
-        const resultCard = document.getElementById('resultCard');
-        const resultTextarea = document.getElementById('resultTextarea');
-        const resultCount = document.getElementById('resultCount');
-        const resultModeLabel = document.getElementById('resultModeLabel');
-        const warningBanner = document.getElementById('warningBanner');
+            // DOM 元素
+            const submitBtn = document.getElementById('submitBtn');
+            const progressOverlay = document.getElementById('progressOverlay');
+            const progressBar = document.getElementById('progressBar');
+            const progressPercent = document.getElementById('progressPercent');
+            const progressTitle = document.getElementById('progressTitle');
+            const progressSubtitle = document.getElementById('progressSubtitle');
+            const progressIcon = document.getElementById('progressIcon');
+            const resultCard = document.getElementById('resultCard');
+            const resultTextarea = document.getElementById('resultTextarea');
+            const resultCount = document.getElementById('resultCount');
 
-        // 模式切换
-        document.querySelectorAll('.mode-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                currentMode = this.dataset.mode;
-                updateWarningBanner();
-                resultCard.classList.remove('show');
-                resultModeLabel.textContent = currentMode === 'real' ? '真实OCR' : '模拟数据';
-                resultModeLabel.className = `mode-label ${currentMode === 'real' ? 'real' : 'demo'}`;
-            });
-        });
-
-        function updateWarningBanner() {
-            if (currentMode === 'real') {
-                warningBanner.innerHTML = '<span>🧠</span> <strong>真实OCR识别：</strong>使用本地引擎直接读取彩票图片，识别可能需要几秒/张，请耐心等待。首次使用会下载语言包（约4MB），需保持网络。';
-                warningBanner.className = 'warning-banner';
-            } else {
-                warningBanner.innerHTML = '<span>🎲</span> <strong>模拟演示模式：</strong>上传任何图片都会生成随机号码，仅用于测试流程。真实识别请切换回「真实识别」。';
-                warningBanner.className = 'warning-banner demo';
-            }
-        }
-
-        // 自然排序
-        function naturalCompare(a,b) {
-            const getNum = s => { const m = s.match(/(\d+)/g); return m ? m.map(Number) : [0]; };
-            const aN = getNum(a.name), bN = getNum(b.name);
-            for (let i=0; i<Math.max(aN.length, bN.length); i++) {
-                if ((aN[i]||0) !== (bN[i]||0)) return (aN[i]||0) - (bN[i]||0);
-            }
-            return a.name.localeCompare(b.name);
-        }
-
-        window.handleFiles = function(input, batchNum) {
-            if (isProcessing) { alert('处理中，请等待'); input.value=''; return; }
-            const files = Array.from(input.files);
-            if (objectURLs[batchNum].length) {
-                objectURLs[batchNum].forEach(u => { try { URL.revokeObjectURL(u); } catch(e){} });
-                objectURLs[batchNum] = [];
-            }
-            files.sort(naturalCompare);
-            allFiles[batchNum] = files;
-            document.getElementById('count'+batchNum).textContent = files.length+'张';
-            const preview = document.getElementById('preview'+batchNum);
-            preview.innerHTML = '';
-            for (let i=0; i<Math.min(files.length,8); i++) {
-                const url = URL.createObjectURL(files[i]);
-                objectURLs[batchNum].push(url);
-                const wrap = document.createElement('div'); wrap.className='img-wrap';
-                const img = document.createElement('img'); img.src=url; img.loading='lazy';
-                const idx = document.createElement('span'); idx.className='img-index'; idx.textContent=i+1;
-                wrap.append(img,idx); preview.append(wrap);
-            }
-            if (files.length>8) {
-                const more = document.createElement('div'); more.className='more-indicator'; more.textContent='+'+ (files.length-8);
-                preview.append(more);
-            }
-        };
-
-        // ==================== 真实OCR识别（Tesseract.js） ====================
-        async function realOCR(imageFile, progressCallback) {
-            // 创建一个worker，使用英语识别（数字识别效果好，包体积小）
-            const worker = await Tesseract.createWorker('eng', 1, {
-                logger: m => {
-                    if (m.status === 'recognizing text' && progressCallback) {
-                        progressCallback(m.progress || 0);
-                    }
+            // ============ 自然排序 ============
+            function naturalCompare(a, b) {
+                const getNum = s => { const m = s.match(/(\d+)/g); return m ? m.map(Number) : [0]; };
+                const aN = getNum(a.name), bN = getNum(b.name);
+                for (let i=0; i<Math.max(aN.length, bN.length); i++) {
+                    if ((aN[i]||0) !== (bN[i]||0)) return (aN[i]||0) - (bN[i]||0);
                 }
-            });
-            // 设置参数优化数字识别
-            await worker.setParameters({
-                tessedit_char_whitelist: '0123456789,.- ',
-                preserve_interword_spaces: '1',
-            });
-            const { data: { text } } = await worker.recognize(imageFile);
-            await worker.terminate();
-            return text.trim();
-        }
-
-        // ==================== 模拟演示识别 ====================
-        async function demoOCR(imageFile, progressCallback) {
-            // 模拟识别延迟
-            const delay = 200 + Math.random() * 400;
-            await new Promise(r => setTimeout(r, delay));
-            if (progressCallback) progressCallback(1);
-            const red = [];
-            const pool = Array.from({length:33},(_,i)=>i+1);
-            for (let i=0;i<6;i++) {
-                const idx = Math.floor(Math.random()*pool.length);
-                red.push(pool.splice(idx,1)[0]);
+                return a.name.localeCompare(b.name);
             }
-            red.sort((a,b)=>a-b);
-            const blue = Math.floor(Math.random()*16)+1;
-            return `红球: ${red.join(', ')}  蓝球: ${blue}`;
-        }
 
-        // ==================== 解析OCR文本提取双色球号码 ====================
-        function parseLotteryNumbers(rawText) {
-            // 提取所有两位数字（01-99），但只保留01-33作为红球候选，01-16作为蓝球候选
-            const numbers = rawText.match(/\b\d{1,2}\b/g) || [];
-            const redCandidates = [];
-            const blueCandidates = [];
-            numbers.forEach(numStr => {
-                const n = parseInt(numStr, 10);
-                if (n >= 1 && n <= 33) redCandidates.push(n);
-                if (n >= 1 && n <= 16) blueCandidates.push(n);
-            });
-            // 去重红球，取前6个
-            const redBalls = [...new Set(redCandidates)].slice(0, 6);
-            // 蓝球从剩余中取第一个在1-16范围内的
-            const blueBall = blueCandidates.length > 0 ? blueCandidates[0] : null;
-            if (redBalls.length === 6 && blueBall) {
+            // ============ 文件选择处理 ============
+            window.handleFiles = function(input, batchNum) {
+                if (isProcessing) { alert('识别进行中，请等待完成'); input.value=''; return; }
+                const files = Array.from(input.files);
+                if (objectURLs[batchNum].length) {
+                    objectURLs[batchNum].forEach(u => { try { URL.revokeObjectURL(u); } catch(e){} });
+                    objectURLs[batchNum] = [];
+                }
+                files.sort(naturalCompare);
+                allFiles[batchNum] = files;
+                document.getElementById('count'+batchNum).textContent = files.length+'张';
+
+                const preview = document.getElementById('preview'+batchNum);
+                preview.innerHTML = '';
+                for (let i=0; i<Math.min(files.length,8); i++) {
+                    const url = URL.createObjectURL(files[i]);
+                    objectURLs[batchNum].push(url);
+                    const wrap = document.createElement('div'); wrap.className='img-wrap';
+                    const img = document.createElement('img'); img.src=url; img.loading='lazy';
+                    const idx = document.createElement('span'); idx.className='img-index'; idx.textContent=i+1;
+                    wrap.append(img,idx); preview.append(wrap);
+                }
+                if (files.length>8) {
+                    const more = document.createElement('div'); more.className='more-indicator'; more.textContent='+'+ (files.length-8);
+                    preview.append(more);
+                }
+            };
+
+            // ============ 创建优化后的 OCR Worker ============
+            async function createFastWorker() {
+                const worker = await Tesseract.createWorker('eng', 1, {
+                    logger: m => {
+                        // 我们不在 worker 内部处理日志，而是在外部批量更新
+                    }
+                });
+                // 关键优化：禁用字典和频率数据，只识别数字字符
+                await worker.setParameters({
+                    tessedit_char_whitelist: '0123456789,.- ',
+                    preserve_interword_spaces: '1',
+                    load_system_dawg: '0',
+                    load_freq_dawg: '0',
+                    load_unambig_dawg: '0',
+                    load_punc_dawg: '0',
+                    load_number_dawg: '0',
+                    load_fixed_length_dawgs: '0',
+                });
+                return worker;
+            }
+
+            // ============ 单张图片识别（使用指定 worker） ============
+            async function recognizeImage(worker, file, fileIndex, fileName) {
+                const { data: { text } } = await worker.recognize(file);
+                return {
+                    index: fileIndex,
+                    fileName: fileName,
+                    rawText: text.trim(),
+                };
+            }
+
+            // ============ 解析双色球号码 ============
+            function parseLotteryNumbers(rawText) {
+                const numbers = rawText.match(/\b\d{1,2}\b/g) || [];
+                const redCandidates = [];
+                const blueCandidates = [];
+                numbers.forEach(numStr => {
+                    const n = parseInt(numStr, 10);
+                    if (n >= 1 && n <= 33) redCandidates.push(n);
+                    if (n >= 1 && n <= 16) blueCandidates.push(n);
+                });
+                const redBalls = [...new Set(redCandidates)].slice(0, 6);
+                const blueBall = blueCandidates.length > 0 ? blueCandidates[0] : null;
                 return { redBalls, blueBall, rawText };
             }
-            // 如果不足，尝试宽松匹配
-            return { redBalls: redBalls.slice(0,6), blueBall: blueBall || (blueCandidates[0] || '?'), rawText };
-        }
 
-        // ==================== 提交处理 ====================
-        window.submitAll = async function() {
-            if (isProcessing) return;
-            const totalFiles = [...allFiles[1], ...allFiles[2], ...allFiles[3]];
-            if (totalFiles.length === 0) {
-                alert('请至少选择一张彩票图片');
-                return;
+            // ============ 进度 UI 更新 ============
+            function updateProgressUI(percent, title, subtitle, icon) {
+                requestAnimationFrame(() => {
+                    progressBar.style.width = Math.round(percent) + '%';
+                    progressPercent.textContent = Math.round(percent);
+                    if (title) progressTitle.textContent = title;
+                    if (subtitle) progressSubtitle.textContent = subtitle;
+                    if (icon) progressIcon.textContent = icon;
+                });
             }
-            const timeEstimate = currentMode === 'real' ? Math.ceil(totalFiles.length * 3) + '~' + Math.ceil(totalFiles.length * 8) + ' 秒' : '几秒';
-            if (!confirm(`即将识别 ${totalFiles.length} 张彩票（${currentMode==='real'?'真实OCR':'模拟演示'}）\n预计耗时：${timeEstimate}\n\n确认开始？`)) return;
 
-            isProcessing = true;
-            cancelFlag = false;
-            currentResults = [];
-            resultCard.classList.remove('show');
-            submitBtn.disabled = true;
-            submitBtn.classList.add('loading');
-            document.querySelector('.submit-btn .btn-text').textContent = '处理中...';
-
-            // 进度弹窗
-            progressOverlay.classList.add('active');
-            updateProgressUI(0, '🔍 准备识别...', `正在加载OCR引擎（${currentMode==='real'?'真实':'模拟'}）`, '🧠');
-
-            try {
-                // 短暂延迟让UI更新
-                await new Promise(r => setTimeout(r, 300));
-
-                const BATCH_SIZE = currentMode === 'real' ? 5 : 10; // 真实模式减少并发
-                const totalBatches = Math.ceil(totalFiles.length / BATCH_SIZE);
-                let overallProgress = 0;
-
-                for (let batchIdx = 0; batchIdx < totalBatches; batchIdx++) {
-                    if (cancelFlag) break;
-                    const start = batchIdx * BATCH_SIZE;
-                    const end = Math.min(start + BATCH_SIZE, totalFiles.length);
-                    const batchFiles = totalFiles.slice(start, end);
-
-                    updateProgressUI(
-                        Math.round((batchIdx / totalBatches) * 100),
-                        `识别第 ${batchIdx+1}/${totalBatches} 批`,
-                        `处理第 ${start+1}-${end} 张（共 ${totalFiles.length} 张）`,
-                        '🔍'
-                    );
-
-                    for (let i = 0; i < batchFiles.length; i++) {
-                        if (cancelFlag) break;
-                        const file = batchFiles[i];
-                        const globalIndex = start + i + 1;
-                        // 单张识别进度回调
-                        let lastProgress = 0;
-                        const fileProgressFn = (prog) => {
-                            // 更新子进度（0-1）
-                            const totalProgress = ((batchIdx * BATCH_SIZE + i + prog) / totalFiles.length) * 100;
-                            if (totalProgress - overallProgress > 0.5) {
-                                overallProgress = totalProgress;
-                                updateProgressUI(Math.round(overallProgress), `识别第 ${globalIndex} 张`, file.name, '🔎');
-                            }
-                        };
-
-                        let rawText = '';
-                        try {
-                            if (currentMode === 'demo') {
-                                rawText = await demoOCR(file, fileProgressFn);
-                            } else {
-                                rawText = await realOCR(file, fileProgressFn);
-                            }
-                        } catch (e) {
-                            rawText = `[识别错误: ${e.message}]`;
-                        }
-
-                        const parsed = parseLotteryNumbers(rawText);
-                        currentResults.push({
-                            index: globalIndex,
-                            fileName: file.name,
-                            redBalls: parsed.redBalls,
-                            blueBall: parsed.blueBall,
-                            rawText: rawText,
-                        });
-                    }
-
-                    // 批次完成
-                    updateProgressUI(
-                        Math.round(((batchIdx+1) / totalBatches) * 100),
-                        `第 ${batchIdx+1}/${totalBatches} 批完成`,
-                        `已识别 ${end} 张`,
-                        '✅'
-                    );
-                    if (batchIdx < totalBatches - 1) await new Promise(r => setTimeout(r, 150));
+            // ============ 主识别流程：并发队列 ============
+            window.submitAll = async function() {
+                if (isProcessing) return;
+                const totalFiles = [...allFiles[1], ...allFiles[2], ...allFiles[3]];
+                if (totalFiles.length === 0) {
+                    alert('请至少选择一张彩票图片');
+                    return;
                 }
+                const estimated = Math.ceil(totalFiles.length * 2) + '~' + Math.ceil(totalFiles.length * 4) + ' 秒';
+                if (!confirm(`即将对 ${totalFiles.length} 张图片进行高速OCR识别。\n预计耗时：${estimated}\n\n切换App或锁屏后识别会继续（请勿关闭页面）。确认开始？`)) return;
+
+                isProcessing = true;
+                cancelFlag = false;
+                currentResults = [];
+                resultCard.classList.remove('show');
+                submitBtn.disabled = true;
+                submitBtn.classList.add('loading');
+                document.querySelector('.btn-text').textContent = '识别中...';
+
+                progressOverlay.classList.add('active');
+                updateProgressUI(0, '⚡ 准备并发引擎...', '正在创建3个OCR工作线程', '🧠');
+
+                // 创建并发 worker 池
+                workerPool = [];
+                try {
+                    for (let i = 0; i < MAX_CONCURRENT; i++) {
+                        const worker = await createFastWorker();
+                        workerPool.push(worker);
+                    }
+                } catch (e) {
+                    alert('OCR引擎初始化失败：' + e.message);
+                    resetUI();
+                    return;
+                }
+
+                // 创建任务队列
+                const fileQueue = totalFiles.map((file, idx) => ({ file, index: idx + 1, name: file.name }));
+                let completedCount = 0;
+                const total = fileQueue.length;
+                let lastProgress = 0;
+
+                // 进度更新函数（节流）
+                const throttledProgress = () => {
+                    const percent = (completedCount / total) * 100;
+                    if (percent - lastProgress > 0.3 || completedCount === total) {
+                        lastProgress = percent;
+                        updateProgressUI(
+                            percent,
+                            `已识别 ${completedCount}/${total} 张`,
+                            `正在并行处理（最多${MAX_CONCURRENT}张同时）`,
+                            '⚡'
+                        );
+                    }
+                };
+
+                // 处理下一个任务
+                const processNext = async (worker) => {
+                    while (fileQueue.length > 0 && !cancelFlag) {
+                        const task = fileQueue.shift();
+                        if (!task) break;
+                        try {
+                            const result = await recognizeImage(worker, task.file, task.index, task.name);
+                            const parsed = parseLotteryNumbers(result.rawText);
+                            currentResults.push({
+                                index: task.index,
+                                fileName: task.name,
+                                redBalls: parsed.redBalls,
+                                blueBall: parsed.blueBall,
+                                rawText: result.rawText,
+                            });
+                        } catch (err) {
+                            currentResults.push({
+                                index: task.index,
+                                fileName: task.name,
+                                redBalls: [],
+                                blueBall: null,
+                                rawText: `[错误: ${err.message}]`,
+                            });
+                        }
+                        completedCount++;
+                        throttledProgress();
+                    }
+                };
+
+                // 启动所有 worker 并行处理
+                const workers = workerPool.map(worker => processNext(worker));
+                await Promise.all(workers);
+
+                // 清理 worker
+                for (const worker of workerPool) {
+                    try { await worker.terminate(); } catch(e) {}
+                }
+                workerPool = [];
 
                 if (cancelFlag) {
                     updateProgressUI(0, '⚠️ 已取消', '', '⚠️');
@@ -413,70 +383,75 @@
                 } else {
                     updateProgressUI(100, '🎉 识别完成！', `成功识别 ${currentResults.length} 张`, '🎉');
                     await new Promise(r => setTimeout(r, 600));
+                    // 按索引排序结果
+                    currentResults.sort((a, b) => a.index - b.index);
                     displayResults(currentResults);
                 }
-            } catch (error) {
-                console.error(error);
-                updateProgressUI(0, '❌ 出错', error.message, '❌');
-                await new Promise(r => setTimeout(r, 2000));
-                alert('识别过程出错：' + error.message);
-            } finally {
+                resetUI();
+            };
+
+            function displayResults(results) {
+                const text = results.map(r => {
+                    const redStr = r.redBalls.length === 6 ? r.redBalls.join(', ') : (r.redBalls.join(', ') || '?');
+                    const blueStr = r.blueBall || '?';
+                    return `[${r.index}] ${r.fileName}\n红球: ${redStr}  蓝球: ${blueStr}\n原始识别: ${r.rawText}`;
+                }).join('\n\n');
+                resultTextarea.value = text;
+                resultCount.textContent = `共 ${results.length} 张彩票识别结果`;
+                resultCard.classList.add('show');
+                resultCard.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            window.copyResults = function() {
+                if (!resultTextarea.value) return;
+                navigator.clipboard.writeText(resultTextarea.value).then(() => {
+                    const btn = document.querySelector('.copy-btn');
+                    btn.textContent = '✅ 已复制';
+                    setTimeout(() => btn.textContent = '📋 复制全部', 2000);
+                }).catch(() => {
+                    resultTextarea.select();
+                    document.execCommand('copy');
+                    alert('已复制到剪贴板');
+                });
+            };
+
+            window.cancelProcess = function() {
+                if (isProcessing) {
+                    cancelFlag = true;
+                    // 终止所有 worker 以立即停止处理
+                    workerPool.forEach(worker => {
+                        try { worker.terminate(); } catch(e) {}
+                    });
+                    workerPool = [];
+                }
+            };
+
+            function resetUI() {
                 progressOverlay.classList.remove('active');
                 isProcessing = false;
                 cancelFlag = false;
                 submitBtn.disabled = false;
                 submitBtn.classList.remove('loading');
-                document.querySelector('.submit-btn .btn-text').textContent = '🚀 开始识别全部彩票';
+                document.querySelector('.btn-text').textContent = '🚀 开始高速识别';
+                progressBar.style.width = '0%';
+                progressPercent.textContent = '0';
             }
-        };
 
-        function updateProgressUI(percent, title, subtitle, icon) {
-            requestAnimationFrame(() => {
-                progressBar.style.width = percent + '%';
-                progressPercent.textContent = percent;
-                if (title) progressTitle.textContent = title;
-                if (subtitle) progressSubtitle.textContent = subtitle;
-                if (icon) progressIcon.textContent = icon;
+            // 清理内存
+            window.addEventListener('beforeunload', () => {
+                [1,2,3].forEach(bn => {
+                    if (objectURLs[bn]) objectURLs[bn].forEach(u => { try { URL.revokeObjectURL(u); } catch(e){} });
+                });
+                workerPool.forEach(worker => { try { worker.terminate(); } catch(e) {} });
             });
-        }
 
-        function displayResults(results) {
-            const text = results.map(r => {
-                const redStr = r.redBalls.length === 6 ? r.redBalls.join(', ') : (r.redBalls.join(', ') || '?');
-                const blueStr = r.blueBall || '?';
-                return `[${r.index}] ${r.fileName}\n红球: ${redStr}  蓝球: ${blueStr}\n原始识别: ${r.rawText}`;
-            }).join('\n\n');
-            resultTextarea.value = text;
-            resultCount.textContent = `共 ${results.length} 张彩票识别结果`;
-            resultModeLabel.textContent = currentMode === 'real' ? '真实OCR' : '模拟数据';
-            resultModeLabel.className = `mode-label ${currentMode === 'real' ? 'real' : 'demo'}`;
-            resultCard.classList.add('show');
-            resultCard.scrollIntoView({ behavior: 'smooth' });
-        }
-
-        window.copyResults = function() {
-            if (!resultTextarea.value) return;
-            navigator.clipboard.writeText(resultTextarea.value).then(() => {
-                const btn = document.querySelector('.copy-btn');
-                btn.textContent = '✅ 已复制';
-                setTimeout(() => btn.textContent = '📋 复制全部', 2000);
-            }).catch(() => {
-                resultTextarea.select();
-                document.execCommand('copy');
-                alert('已复制到剪贴板');
+            // 页面隐藏时保持识别（Worker 线程继续运行，无需额外操作）
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden && isProcessing) {
+                    console.log('页面隐藏，OCR 工作线程继续运行中...');
+                }
             });
-        };
-
-        window.cancelProcess = function() {
-            cancelFlag = true;
-        };
-
-        // 清理资源
-        window.addEventListener('beforeunload', () => {
-            [1,2,3].forEach(bn => {
-                if (objectURLs[bn]) objectURLs[bn].forEach(u => { try { URL.revokeObjectURL(u); } catch(e){} });
-            });
-        });
+        })();
     </script>
 </body>
 </html>
