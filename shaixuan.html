@@ -1,61 +1,254 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>双色球一键精准识别</title>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <title>双色球一键精准识别 · 全文本扫描</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js">
+    </script>
     <style>
-        :root { --primary: #e74c3c; --bg: #f0f2f5; --card: #fff; --text: #2c3e50; --radius: 14px; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); padding: 16px; padding-bottom: 40px; min-height: 100vh; color: var(--text); }
-        .container { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
-        .header { text-align: center; }
-        .header h1 { font-size: 22px; font-weight: 700; }
-        .header .subtitle { font-size: 13px; color: #7f8c8d; margin-top: 4px; }
-        .batch-box { background: var(--card); border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); border: 1.5px solid #e0e0e0; }
-        .batch-title { font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
-        .count-badge { background: #fce4e4; color: #c0392b; padding: 2px 10px; border-radius: 10px; font-size: 12px; margin-left: auto; }
-        input[type="file"] { width: 100%; padding: 12px; border: 2px dashed #ccc; border-radius: 8px; background: #fafafa; font-size: 14px; }
-        .preview-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
-        .preview-grid .img-wrap { position: relative; aspect-ratio: 1; border-radius: 6px; overflow: hidden; border: 1px solid #eee; }
-        .preview-grid img { width: 100%; height: 100%; object-fit: cover; }
-        .img-index { position: absolute; top: 2px; left: 2px; background: rgba(0,0,0,0.7); color: #fff; font-size: 10px; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-        .more-indicator { display: flex; align-items: center; justify-content: center; aspect-ratio: 1; background: #f0f0f0; border-radius: 6px; font-size: 12px; color: #888; }
-        .submit-btn { width: 100%; padding: 16px; background: var(--primary); color: #fff; border: none; border-radius: 14px; font-size: 17px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .submit-btn:disabled { background: #bbb; }
-        .spinner { display: none; width: 20px; height: 20px; border: 2.5px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
-        .submit-btn.loading .spinner { display: inline-block; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .progress-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1000; justify-content: center; align-items: center; }
-        .progress-overlay.active { display: flex; }
-        .progress-card { background: #fff; border-radius: 18px; padding: 24px; width: 85%; max-width: 360px; text-align: center; }
-        .progress-bar-outer { height: 8px; background: #e9ecef; border-radius: 8px; margin: 14px 0; }
-        .progress-bar-inner { height: 100%; background: var(--primary); border-radius: 8px; width: 0%; transition: width 0.3s; }
-        .result-card { display: none; background: #fff; border-radius: var(--radius); padding: 18px; border: 2px solid #27ae60; margin-top: 8px; }
-        .result-card.show { display: block; }
-        .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .copy-btn { padding: 8px 16px; background: #2ecc71; color: #fff; border: none; border-radius: 20px; font-weight: 600; cursor: pointer; }
-        .result-textarea { width: 100%; height: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 14px; background: #fafafa; resize: vertical; }
-        .result-count { font-size: 13px; color: #888; margin-top: 6px; }
+        :root {
+            --primary: #e74c3c;
+            --bg: #f0f2f5;
+            --card: #fff;
+            --text: #2c3e50;
+            --radius: 14px;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, sans-serif;
+            background: var(--bg);
+            padding: 16px;
+            padding-bottom: 40px;
+            min-height: 100vh;
+            color: var(--text);
+        }
+        .container {
+            max-width: 520px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .header {
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 22px;
+            font-weight: 700;
+        }
+        .header .subtitle {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-top: 4px;
+        }
+        .batch-box {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+            border: 1.5px solid #e0e0e0;
+        }
+        .batch-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .count-badge {
+            background: #fce4e4;
+            color: #c0392b;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            margin-left: auto;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            background: #fafafa;
+            font-size: 14px;
+        }
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-top: 10px;
+        }
+        .preview-grid .img-wrap {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #eee;
+        }
+        .preview-grid img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .img-index {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            font-size: 10px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .more-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1;
+            background: #f0f0f0;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #888;
+        }
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .submit-btn:disabled {
+            background: #bbb;
+        }
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2.5px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        .submit-btn.loading .spinner {
+            display: inline-block;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .progress-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .progress-overlay.active {
+            display: flex;
+        }
+        .progress-card {
+            background: #fff;
+            border-radius: 18px;
+            padding: 24px;
+            width: 85%;
+            max-width: 360px;
+            text-align: center;
+        }
+        .progress-bar-outer {
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 8px;
+            margin: 14px 0;
+        }
+        .progress-bar-inner {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 8px;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .result-card {
+            display: none;
+            background: #fff;
+            border-radius: var(--radius);
+            padding: 18px;
+            border: 2px solid #27ae60;
+            margin-top: 8px;
+        }
+        .result-card.show {
+            display: block;
+        }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .copy-btn {
+            padding: 8px 16px;
+            background: #2ecc71;
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .result-textarea {
+            width: 100%;
+            height: 300px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 14px;
+            background: #fafafa;
+            resize: vertical;
+        }
+        .result-count {
+            font-size: 13px;
+            color: #888;
+            margin-top: 6px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🎱 双色球一键精准识别</h1>
-            <p class="subtitle">图像自动增强 · 严格过滤 · 去重排序</p>
+            <p class="subtitle">全文本扫描 · 去重排序 · 倍数蓝球正确</p>
         </div>
 
-        <div class="batch-box"><div class="batch-title">第一批 <span class="count-badge" id="count1">0张</span></div>
+        <div class="batch-box">
+            <div class="batch-title">第一批 <span class="count-badge" id="count1">0张</span></div>
             <input type="file" id="batch1" accept="image/*" multiple onchange="handleFiles(this,1)">
             <div class="preview-grid" id="preview1"></div>
         </div>
-        <div class="batch-box"><div class="batch-title">第二批 <span class="count-badge" id="count2">0张</span></div>
+        <div class="batch-box">
+            <div class="batch-title">第二批 <span class="count-badge" id="count2">0张</span></div>
             <input type="file" id="batch2" accept="image/*" multiple onchange="handleFiles(this,2)">
             <div class="preview-grid" id="preview2"></div>
         </div>
-        <div class="batch-box"><div class="batch-title">第三批 <span class="count-badge" id="count3">0张</span></div>
+        <div class="batch-box">
+            <div class="batch-title">第三批 <span class="count-badge" id="count3">0张</span></div>
             <input type="file" id="batch3" accept="image/*" multiple onchange="handleFiles(this,3)">
             <div class="preview-grid" id="preview3"></div>
         </div>
@@ -89,45 +282,55 @@
     <script>
         const allFiles = {1:[],2:[],3:[]};
         const objectURLs = {1:[],2:[],3:[]};
-        let isProcessing = false, cancelFlag = false;
+        let isProcessing = false,
+            cancelFlag = false;
         let finalOutputLines = [];
 
-        function naturalCompare(a,b) {
+        function naturalCompare(a, b) {
             const getNum = s => { const m = s.match(/(\d+)/g); return m ? m.map(Number) : [0]; };
-            const aN = getNum(a.name), bN = getNum(b.name);
-            for (let i=0; i<Math.max(aN.length, bN.length); i++) {
-                if ((aN[i]||0) !== (bN[i]||0)) return (aN[i]||0) - (bN[i]||0);
+            const aN = getNum(a.name),
+                bN = getNum(b.name);
+            for (let i = 0; i < Math.max(aN.length, bN.length); i++) {
+                if ((aN[i] || 0) !== (bN[i] || 0)) return (aN[i] || 0) - (bN[i] || 0);
             }
             return a.name.localeCompare(b.name);
         }
 
         window.handleFiles = function(input, batchNum) {
-            if (isProcessing) { alert('识别中，请稍候'); input.value=''; return; }
+            if (isProcessing) { alert('识别中，请稍候'); input.value = ''; return; }
             const files = Array.from(input.files);
             if (objectURLs[batchNum].length) {
-                objectURLs[batchNum].forEach(u => { try { URL.revokeObjectURL(u); } catch(e){} });
+                objectURLs[batchNum].forEach(u => { try { URL.revokeObjectURL(u); } catch (e) {} });
                 objectURLs[batchNum] = [];
             }
             files.sort(naturalCompare);
             allFiles[batchNum] = files;
-            document.getElementById('count'+batchNum).textContent = files.length+'张';
-            const preview = document.getElementById('preview'+batchNum);
+            document.getElementById('count' + batchNum).textContent = files.length + '张';
+            const preview = document.getElementById('preview' + batchNum);
             preview.innerHTML = '';
-            for (let i=0; i<Math.min(files.length,8); i++) {
+            for (let i = 0; i < Math.min(files.length, 8); i++) {
                 const url = URL.createObjectURL(files[i]);
                 objectURLs[batchNum].push(url);
-                const wrap = document.createElement('div'); wrap.className='img-wrap';
-                const img = document.createElement('img'); img.src=url; img.loading='lazy';
-                const idx = document.createElement('span'); idx.className='img-index'; idx.textContent=i+1;
-                wrap.append(img,idx); preview.append(wrap);
+                const wrap = document.createElement('div');
+                wrap.className = 'img-wrap';
+                const img = document.createElement('img');
+                img.src = url;
+                img.loading = 'lazy';
+                const idx = document.createElement('span');
+                idx.className = 'img-index';
+                idx.textContent = i + 1;
+                wrap.append(img, idx);
+                preview.append(wrap);
             }
-            if (files.length>8) {
-                const more = document.createElement('div'); more.className='more-indicator'; more.textContent='+'+ (files.length-8);
+            if (files.length > 8) {
+                const more = document.createElement('div');
+                more.className = 'more-indicator';
+                more.textContent = '+' + (files.length - 8);
                 preview.append(more);
             }
         };
 
-        // 图像预处理：转为灰度并增强对比度，返回新的Blob
+        // 图像预处理：增强对比度，转为灰度，提高OCR准确率
         async function preprocessImage(file) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
@@ -148,62 +351,106 @@
         }
 
         async function createWorker() {
-            const worker = await Tesseract.createWorker('eng', 1, {
-                logger: () => {} // 静默
-            });
+            const worker = await Tesseract.createWorker('eng', 1, { logger: () => {} });
             await worker.setParameters({
                 tessedit_char_whitelist: '0123456789,.- ()（）【】[]倍 数 胆 拖 :：\n',
                 preserve_interword_spaces: '1',
+                load_system_dawg: '0',
+                load_freq_dawg: '0',
+                load_unambig_dawg: '0',
+                load_punc_dawg: '0',
+                load_number_dawg: '0',
+                load_fixed_length_dawgs: '0',
             });
             return worker;
         }
 
-        // 核心解析：只提取以特定符号开头的行中的红球
-        function parseLotteryText(ocrText) {
-            const lines = ocrText.split('\n').map(l => l.trim()).filter(l => l);
-            const results = [];
-            for (const line of lines) {
-                // 胆拖优先
-                const dtMatch = line.match(/胆\s*[:：]?\s*([\d,\s]+)\s*拖\s*[:：]?\s*([\d,\s]+)/i);
-                if (dtMatch) {
-                    const dan = dtMatch[1].split(/[, ]+/).filter(n => /^\d{1,2}$/.test(n) && +n<=33).map(Number);
-                    const tuo = dtMatch[2].split(/[, ]+/).filter(n => /^\d{1,2}$/.test(n) && +n<=33).map(Number);
-                    if (dan.length && tuo.length) {
-                        const mult = extractMultiplier(line);
-                        const blue = extractBlueCount(line);
-                        const rows = mult * blue;
-                        const danStr = '胆:' + [...new Set(dan)].sort((a,b)=>a-b).map(n=>String(n).padStart(2,'0')).join(',') + '  拖:' + [...new Set(tuo)].sort((a,b)=>a-b).map(n=>String(n).padStart(2,'0')).join(',');
-                        for (let i=0; i<rows; i++) results.push(danStr);
+        // 核心：从全文提取所有数字组，并解析倍数/蓝球
+        function parseAllGroups(ocrText) {
+            // 统一符号
+            let text = ocrText.replace(/（/g, '(').replace(/）/g, ')').replace(/【/g, '[').replace(/】/g, ']').replace(/：/g, ':').replace(/，/g, ',').replace(/\s+/g, ' ');
+
+            // 提取所有2位数字序列
+            const allNumbers = text.match(/\b\d{1,2}\b/g) || [];
+            // 将数字按非数字分隔符分组（比如逗号、空格、括号等）
+            const groups = [];
+            let currentGroup = [];
+            // 遍历text，当遇到数字时加入当前组，遇到非数字且长度>=6时保存组并开始新组
+            // 但为了简单，我们按连续数字序列分组
+            const tokens = text.split(/(\b\d{1,2}\b)/);
+            let collecting = false;
+            for (const token of tokens) {
+                if (/^\d{1,2}$/.test(token)) {
+                    currentGroup.push(parseInt(token));
+                    collecting = true;
+                } else {
+                    if (collecting && currentGroup.length >= 6) {
+                        groups.push({
+                            numbers: currentGroup.slice(),
+                            suffix: token.trim() // 后续可能包含倍数/蓝球信息
+                        });
+                        currentGroup = [];
+                        collecting = false;
+                    } else if (collecting && currentGroup.length < 6) {
+                        // 小于6个数字，丢弃
+                        currentGroup = [];
+                        collecting = false;
                     }
-                    continue;
-                }
-
-                // 仅处理以 - 或 : 开头的行（这些是号码标识行）
-                if (!/^[-:]/.test(line)) continue;
-
-                const numbers = line.match(/\b\d{1,2}\b/g) || [];
-                const reds = numbers.map(Number).filter(n => n>=1 && n<=33);
-                if (reds.length >= 6) {
-                    const unique = [...new Set(reds)].sort((a,b)=>a-b);
-                    const redsStr = unique.slice(0,6).map(n=>String(n).padStart(2,'0')).join(',');
-                    const mult = extractMultiplier(line);
-                    const blue = extractBlueCount(line);
-                    const total = mult * blue;
-                    for (let i=0; i<total; i++) results.push(redsStr);
                 }
             }
+            if (currentGroup.length >= 6) {
+                groups.push({ numbers: currentGroup.slice(), suffix: '' });
+            }
+
+            // 解析每个组，提取倍数和蓝球数
+            const results = [];
+            for (const group of groups) {
+                // 红球取前6个（有些组可能更多，多余的数字视为蓝球）
+                const reds = group.numbers.slice(0, 6);
+                const extra = group.numbers.slice(6);
+                let multiplier = 1;
+                let blueCount = 1;
+
+                // 从后缀或额外数字中提取倍数
+                const suffix = group.suffix;
+                const multMatch = suffix.match(/[\[\(](\d{1,3})[\]\)]/) || suffix.match(/(\d{1,3})\s*倍/);
+                if (multMatch) multiplier = parseInt(multMatch[1]);
+
+                // 蓝球数量：额外数字中在1-16的数量
+                if (extra.length > 0) {
+                    const blues = extra.filter(n => n >= 1 && n <= 16);
+                    if (blues.length > 0) blueCount = blues.length;
+                } else {
+                    // 也许后缀里有蓝球数字（如 "-06 [14]" 中的14可能是倍数，也可能是蓝球，但倍数已提取）
+                    // 这里简单处理
+                }
+
+                // 去重排序红球
+                const uniqueReds = [...new Set(reds)].sort((a, b) => a - b);
+                if (uniqueReds.length < 6) continue; // 不足6个跳过
+                const redsStr = uniqueReds.map(n => String(n).padStart(2, '0')).join(',');
+                const totalRows = multiplier * blueCount;
+                for (let i = 0; i < totalRows; i++) {
+                    results.push(redsStr);
+                }
+            }
+
+            // 胆拖处理：全文查找胆拖模式
+            const danTuoRegex = /胆\s*[:：]?\s*([\d,\s]+)\s*拖\s*[:：]?\s*([\d,\s]+)/gi;
+            let dtMatch;
+            while ((dtMatch = danTuoRegex.exec(text)) !== null) {
+                const danNums = dtMatch[1].split(/[, ]+/).filter(n => /^\d{1,2}$/.test(n) && +n <= 33).map(Number);
+                const tuoNums = dtMatch[2].split(/[, ]+/).filter(n => /^\d{1,2}$/.test(n) && +n <= 33).map(Number);
+                if (danNums.length && tuoNums.length) {
+                    const danUnique = [...new Set(danNums)].sort((a, b) => a - b);
+                    const tuoUnique = [...new Set(tuoNums)].sort((a, b) => a - b);
+                    const danStr = '胆:' + danUnique.map(n => String(n).padStart(2, '0')).join(',') + '  拖:' + tuoUnique.map(n => String(n).padStart(2, '0')).join(',');
+                    // 倍数和蓝球？胆拖行通常也有，但简单起见默认1倍1蓝球，可从附近文本找
+                    results.push(danStr);
+                }
+            }
+
             return results;
-        }
-
-        function extractMultiplier(line) {
-            const m = line.match(/[\[\(](\d{1,3})[\]\)]/) || line.match(/(\d{1,3})\s*倍/);
-            return m ? parseInt(m[1]) : 1;
-        }
-
-        function extractBlueCount(line) {
-            const nums = line.match(/\b\d{1,2}\b/g) || [];
-            const afterSix = nums.slice(6);
-            return afterSix.filter(n => +n>=1 && +n<=16).length || 1;
         }
 
         window.submitAll = async function() {
@@ -211,11 +458,13 @@
             const totalFiles = [...allFiles[1], ...allFiles[2], ...allFiles[3]];
             if (totalFiles.length === 0) { alert('请选择图片'); return; }
 
-            isProcessing = true; cancelFlag = false;
+            isProcessing = true;
+            cancelFlag = false;
             finalOutputLines = [];
             document.getElementById('resultCard').classList.remove('show');
             const submitBtn = document.getElementById('submitBtn');
-            submitBtn.disabled = true; submitBtn.classList.add('loading');
+            submitBtn.disabled = true;
+            submitBtn.classList.add('loading');
             document.querySelector('.btn-text').textContent = '识别中...';
             const progressOverlay = document.getElementById('progressOverlay');
             progressOverlay.classList.add('active');
@@ -226,10 +475,10 @@
                 for (let i = 0; i < totalFiles.length; i++) {
                     if (cancelFlag) break;
                     const file = totalFiles[i];
-                    updateProgress((i/totalFiles.length)*100, `识别第 ${i+1}/${totalFiles.length} 张`, file.name, '🔎');
+                    updateProgress((i / totalFiles.length) * 100, `识别第 ${i+1}/${totalFiles.length} 张`, file.name, '🔎');
                     const enhanced = await preprocessImage(file);
                     const { data: { text } } = await worker.recognize(enhanced);
-                    const lines = parseLotteryText(text);
+                    const lines = parseAllGroups(text);
                     finalOutputLines.push(...lines);
                 }
             } finally {
@@ -247,7 +496,9 @@
             }
 
             progressOverlay.classList.remove('active');
-            isProcessing = false; submitBtn.disabled = false; submitBtn.classList.remove('loading');
+            isProcessing = false;
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('loading');
             document.querySelector('.btn-text').textContent = '🚀 开始一键识别';
         };
 
@@ -265,7 +516,7 @@
 
         function updateProgress(pct, title, sub, icon) {
             requestAnimationFrame(() => {
-                document.getElementById('progressBar').style.width = Math.round(pct)+'%';
+                document.getElementById('progressBar').style.width = Math.round(pct) + '%';
                 document.getElementById('progressPercent').textContent = Math.round(pct);
                 if (title) document.getElementById('progressTitle').textContent = title;
                 if (sub) document.getElementById('progressSubtitle').textContent = sub;
@@ -274,8 +525,8 @@
         }
 
         window.addEventListener('beforeunload', () => {
-            [1,2,3].forEach(bn => {
-                if (objectURLs[bn]) objectURLs[bn].forEach(u => { try { URL.revokeObjectURL(u); } catch(e){} });
+            [1, 2, 3].forEach(bn => {
+                if (objectURLs[bn]) objectURLs[bn].forEach(u => { try { URL.revokeObjectURL(u); } catch (e) {} });
             });
         });
     </script>
