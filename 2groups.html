@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>双数字组合频率统计器 - 1至33 (含特定组合分析)</title>
+    <title>双数字组合频率统计器 - 1至33 (支持记住分析组合)</title>
     <style>
         :root {
             --bg: #f0f4f8;
@@ -85,7 +85,7 @@
 <div class="app-container">
     <div style="text-align:center; padding: 8px 0;">
         <h1 style="font-size: 24px; font-weight: 800;">🎯 双数字组合频率统计器</h1>
-        <p style="color: #8899aa; font-size: 13px;">1—33任选2个 · 共528组 · 支持分析特定组合</p>
+        <p style="color: #8899aa; font-size: 13px;">1—33任选2个 · 共528组 · 分析组合可记忆</p>
     </div>
 
     <!-- 输入卡片 -->
@@ -141,7 +141,7 @@
 <div class="modal-overlay" id="analysisModal">
     <div class="modal-dialog">
         <h3>🔍 分析特定6数字组合</h3>
-        <p style="color:var(--text-secondary); font-size:14px; margin-bottom:12px;">输入一组号码（如 01,02,03,04,05,06），分析其内部双数字及单数字在当前统计中的频率与排名。</p>
+        <p style="color:var(--text-secondary); font-size:14px; margin-bottom:12px;">输入一组号码（如 01,02,03,04,05,06），分析其内部双数字及单数字在当前统计中的频率与排名。下次打开将记住上次组合。</p>
         <div class="modal-input-row">
             <input type="text" id="analysisInput" placeholder="例如：01,02,03,04,05,06">
             <button class="btn btn-primary btn-sm" onclick="runAnalysis()">分析</button>
@@ -199,6 +199,9 @@
         let lastResults = null;
         let lastSingleFreq = null;
         let toastTimer = null;
+
+        // 记忆上次分析输入的组合
+        let lastAnalysisInput = '';
 
         function showToast(msg, type='') {
             if(toastTimer) clearTimeout(toastTimer);
@@ -347,9 +350,17 @@
                 showToast('请先完成统计', 'error');
                 return;
             }
-            analysisInput.value = '';
+            // 如果上次分析过，则填充上次的输入，否则清空
+            if (lastAnalysisInput) {
+                analysisInput.value = lastAnalysisInput;
+            } else {
+                analysisInput.value = '';
+            }
             analysisError.textContent = '';
-            analysisResult.style.display = 'none';
+            // 如果有上次的分析结果，保留显示；否则隐藏结果区域
+            if (!window._analysisData) {
+                analysisResult.style.display = 'none';
+            }
             analysisModal.classList.add('active');
             analysisInput.focus();
         };
@@ -358,7 +369,6 @@
             analysisModal.classList.remove('active');
         };
 
-        // 点击模态外部关闭
         analysisModal.addEventListener('click', function(e) {
             if (e.target === analysisModal) closeAnalysisModal();
         });
@@ -394,6 +404,8 @@
                 analysisError.textContent = '格式错误：需要6个不重复的1-33数字，用逗号分隔。';
                 return;
             }
+            // 记住本次输入
+            lastAnalysisInput = inputVal;
             analysisError.textContent = '';
 
             // 双数字分析
@@ -402,14 +414,12 @@
                 for (let j = i + 1; j < combo.length; j++) {
                     const a = combo[i], b = combo[j];
                     const display = fmtPair(a,b);
-                    // 在lastResults中查找
                     const found = lastResults.find(r => r.display === display);
                     const count = found ? found.count : 0;
                     const rank = found ? (lastResults.indexOf(found) + 1) : '-';
                     pairList.push({ display, count, rank });
                 }
             }
-            // 按排名升序（排名数字越小越好）
             pairList.sort((a,b) => {
                 const ra = typeof a.rank === 'number' ? a.rank : Infinity;
                 const rb = typeof b.rank === 'number' ? b.rank : Infinity;
@@ -448,8 +458,6 @@
             singleAnalysisTable.innerHTML = singleHtml;
 
             analysisResult.style.display = 'block';
-
-            // 存储分析数据供复制使用
             window._analysisData = { pairList, singleList };
         };
 
@@ -478,6 +486,9 @@
             resultCard.style.display = 'none';
             singleFreqCard.style.display = 'none';
             lastResults = lastSingleFreq = null;
+            // 清除记忆的分析组合
+            lastAnalysisInput = '';
+            window._analysisData = null;
             showToast('已清空');
         };
 
