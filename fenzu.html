@@ -216,19 +216,20 @@
   </h1>
 
   <div class="input-area">
-    <label>📋 输入组合（支持逗号、点号、空格分隔）</label>
+    <label>📋 输入组合（支持逗号、点号、空格分隔，胆拖可跨空行）</label>
     <textarea id="comboInput" placeholder="单式/复式：1,2,3,4,5,6
 或用点号：5.15.20.25.29.30
 胆拖：胆:15,22,32 拖:01,05,07,10,18,26,27
-胆拖分行：
+胆拖分行（允许中间有空行）：
 胆:05,16,20,26,27
+
 拖:08,12,13,28,29,32
 ..."></textarea>
     <div class="hint">
       <span>✅ 分隔符：<code>,</code> <code>.</code> <code>空格</code> 均可</span>
       <span>✅ 胆拖：<code>胆:15,22,32 拖:01,05,07</code></span>
       <span>⚠️ 数字必须1-33，单式至少6个数字</span>
-      <span>🔁 重复统计输出两位数格式 (01~09)</span>
+      <span>🔁 重复统计两位数格式，英文逗号</span>
     </div>
   </div>
 
@@ -316,40 +317,43 @@
 
   function preprocessLines(rawLines) {
     const merged = [];
-    let pendingDan = null;
-
-    for (let i = 0; i < rawLines.length; i++) {
+    let i = 0;
+    while (i < rawLines.length) {
       const line = rawLines[i].trim();
-      if (!line) continue;
+      if (!line) { i++; continue; }
 
       if (isDantuoSameLine(line)) {
-        if (pendingDan) { merged.push(pendingDan); pendingDan = null; }
         merged.push(line);
+        i++;
         continue;
       }
 
       if (isDanLine(line)) {
-        if (pendingDan) { merged.push(pendingDan); }
-        pendingDan = line;
-        continue;
-      }
-
-      if (isTuoLine(line)) {
-        if (pendingDan) {
-          const tuoContent = line.replace(/^拖\s*[:：]\s*/i, '');
-          merged.push(pendingDan + ' ' + tuoContent);
-          pendingDan = null;
+        // 寻找紧接着的拖行（跳过空行）
+        let j = i + 1;
+        while (j < rawLines.length && rawLines[j].trim() === '') {
+          j++;
+        }
+        if (j < rawLines.length && isTuoLine(rawLines[j].trim())) {
+          const tuoContent = rawLines[j].trim().replace(/^拖\s*[:：]\s*/i, '');
+          merged.push(line + ' ' + tuoContent);
+          i = j + 1;
         } else {
           merged.push(line);
+          i++;
         }
         continue;
       }
 
-      if (pendingDan) { merged.push(pendingDan); pendingDan = null; }
-      merged.push(line);
-    }
+      if (isTuoLine(line)) {
+        merged.push(line);
+        i++;
+        continue;
+      }
 
-    if (pendingDan) { merged.push(pendingDan); }
+      merged.push(line);
+      i++;
+    }
     return merged;
   }
 
@@ -599,9 +603,10 @@
       '胆:02,08,15,22,31 拖:01,04,09,13,18,21,25,27,33',
       '胆:06,14,27 拖:03,09,11,17,20,23,29,32',
       '胆:05,16,20,26,27',
+      '',
       '拖:08,12,13,28,29,32',
-      '胆:03,05,26',
-      '拖:08,16,19,20,21',
+      '胆:16,18,23,29,',
+      '拖:04,05,08,11,19,22,26,27,33',
       '1,2,3,4,5,6',
       '5.15.20.25.29.30',
       '1,2,3,4,5,6',
