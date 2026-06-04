@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>双数字组合频率统计器 - 1至33 (支持记住分析组合)</title>
+    <title>双数字组合频率统计器 - 1至33 (支持蓝球格式输入)</title>
     <style>
         :root {
             --bg: #f0f4f8;
@@ -85,17 +85,22 @@
 <div class="app-container">
     <div style="text-align:center; padding: 8px 0;">
         <h1 style="font-size: 24px; font-weight: 800;">🎯 双数字组合频率统计器</h1>
-        <p style="color: #8899aa; font-size: 13px;">1—33任选2个 · 共528组 · 分析组合可记忆</p>
+        <p style="color: #8899aa; font-size: 13px;">1—33任选2个 · 共528组 · 支持红球-蓝球格式</p>
     </div>
 
     <!-- 输入卡片 -->
     <div class="card">
         <div class="card-header">
             <div class="icon icon-input">📝</div>
-            <div><div style="font-weight:700;">输入6数字组合</div><div style="font-size:13px; color:var(--text-secondary);">每行一组，逗号分隔，重复组合会累加</div></div>
+            <div>
+                <div style="font-weight:700;">输入6数字组合</div>
+                <div style="font-size:13px; color:var(--text-secondary);">
+                    每行可写纯红球：1,2,3,4,5,6<br>或红球-蓝球：1,2,3,4,5,6-1（蓝球忽略，仅统计红球）
+                </div>
+            </div>
         </div>
         <div class="card-body">
-            <textarea id="inputArea" placeholder="示例：&#10;1,2,3,4,5,6&#10;1,2,3,4,5,6&#10;2,3,4,5,6,7&#10;10,15,20,25,30,33"></textarea>
+            <textarea id="inputArea" placeholder="示例：&#10;1,2,3,4,5,6&#10;1,2,3,4,5,6-1&#10;2,3,4,5,6,7&#10;10,15,20,25,30,33&#10;01,02,03,04,05,06-16"></textarea>
             <div class="btn-row">
                 <button class="btn btn-primary" onclick="calculate()">🔍 开始统计</button>
                 <button class="btn btn-outline" onclick="loadExample()">📋 加载示例</button>
@@ -199,8 +204,6 @@
         let lastResults = null;
         let lastSingleFreq = null;
         let toastTimer = null;
-
-        // 记忆上次分析输入的组合
         let lastAnalysisInput = '';
 
         function showToast(msg, type='') {
@@ -213,28 +216,65 @@
         function fmtNum(n) { return String(n).padStart(2,'0'); }
         function fmtPair(a,b) { return fmtNum(a)+','+fmtNum(b); }
 
+        // 从一行中解析红球数字数组（可能包含蓝球）
+        function parseLine(line, lineIndex) {
+            line = line.trim();
+            if (!line) return null;
+            
+            let redPart = line;
+            let blueNum = null;
+            
+            // 检查是否包含 '-' 表示蓝球
+            if (line.includes('-')) {
+                const parts = line.split('-');
+                if (parts.length !== 2) {
+                    return { error: `第${lineIndex+1}行：格式错误，含多个“-”` };
+                }
+                redPart = parts[0].trim();
+                const bluePart = parts[1].trim();
+                if (!bluePart) {
+                    return { error: `第${lineIndex+1}行：缺少蓝球数字` };
+                }
+                const blueVal = parseInt(bluePart, 10);
+                if (isNaN(blueVal) || blueVal < 1 || blueVal > NUM_RANGE) {
+                    return { error: `第${lineIndex+1}行：蓝球"${bluePart}"无效，需1-33` };
+                }
+                blueNum = blueVal;
+            }
+            
+            // 解析红球部分
+            const numStrs = redPart.replace(/，/g, ',').split(',').map(s => s.trim()).filter(s => s !== '');
+            const nums = [];
+            for (const str of numStrs) {
+                const num = parseInt(str, 10);
+                if (isNaN(num) || num < 1 || num > NUM_RANGE) {
+                    return { error: `第${lineIndex+1}行：红球数字"${str}"无效，需1-33` };
+                }
+                nums.push(num);
+            }
+            
+            const uniqueNums = [...new Set(nums)];
+            if (uniqueNums.length !== COMBO_SIZE) {
+                return { error: `第${lineIndex+1}行：红球需要${COMBO_SIZE}个不同数字，当前${uniqueNums.length}个` };
+            }
+            
+            uniqueNums.sort((a,b)=>a-b);
+            return { combo: uniqueNums, blue: blueNum };
+        }
+
+        // 主解析函数，返回有效组合列表和错误列表
         function parseInput(text) {
             const lines = text.split(/\r?\n/);
             const validCombos = [];
             const errors = [];
             for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (!line) continue;
-                let parts = line.replace(/，/g, ',').split(',');
-                let nums = [];
-                for (let p of parts) {
-                    p = p.trim();
-                    if (!p) continue;
-                    let num = parseInt(p, 10);
-                    if (!isNaN(num) && num >= 1 && num <= NUM_RANGE) nums.push(num);
-                    else if (p.match(/^\d+$/)) errors.push(`第${i+1}行：数字"${p}"不在1-33范围内`);
-                    else errors.push(`第${i+1}行："${p}"无效`);
+                const result = parseLine(lines[i], i);
+                if (!result) continue;
+                if (result.error) {
+                    errors.push(result.error);
+                } else if (result.combo) {
+                    validCombos.push(result.combo);
                 }
-                const uniqueNums = [...new Set(nums)];
-                if (uniqueNums.length === COMBO_SIZE) {
-                    uniqueNums.sort((a,b)=>a-b);
-                    validCombos.push(uniqueNums);
-                } else if (uniqueNums.length > 0) errors.push(`第${i+1}行：需要6个数字`);
             }
             return { validCombos, errors };
         }
@@ -272,7 +312,11 @@
             const text = inputArea.value.trim();
             if (!text) { showToast('请输入数据','error'); return; }
             const { validCombos, errors } = parseInput(text);
-            if (!validCombos.length) { showToast('无有效组合','error'); return; }
+            if (!validCombos.length) { 
+                showToast('无有效组合','error'); 
+                if (errors.length) alert('错误详情：\n' + errors.join('\n'));
+                return; 
+            }
             const totalInput = validCombos.length;
 
             const pairCounts = countPairs(validCombos);
@@ -337,7 +381,7 @@
             navigator.clipboard.writeText(lines.join('\n')).then(()=>showToast('已复制单数字频率')).catch(()=>showToast('复制失败'));
         };
 
-        // ========== 分析模态逻辑 ==========
+        // 分析模态
         const analysisModal = document.getElementById('analysisModal');
         const analysisInput = document.getElementById('analysisInput');
         const analysisError = document.getElementById('analysisError');
@@ -346,137 +390,71 @@
         const singleAnalysisTable = document.getElementById('singleAnalysisTable');
 
         window.openAnalysisModal = function() {
-            if (!lastResults || !lastSingleFreq) {
-                showToast('请先完成统计', 'error');
-                return;
-            }
-            // 如果上次分析过，则填充上次的输入，否则清空
-            if (lastAnalysisInput) {
-                analysisInput.value = lastAnalysisInput;
-            } else {
-                analysisInput.value = '';
-            }
+            if (!lastResults || !lastSingleFreq) { showToast('请先完成统计', 'error'); return; }
+            analysisInput.value = lastAnalysisInput || '';
             analysisError.textContent = '';
-            // 如果有上次的分析结果，保留显示；否则隐藏结果区域
-            if (!window._analysisData) {
-                analysisResult.style.display = 'none';
-            }
             analysisModal.classList.add('active');
+            if (!window._analysisData) analysisResult.style.display = 'none';
             analysisInput.focus();
         };
-
-        window.closeAnalysisModal = function() {
-            analysisModal.classList.remove('active');
-        };
-
-        analysisModal.addEventListener('click', function(e) {
-            if (e.target === analysisModal) closeAnalysisModal();
-        });
+        window.closeAnalysisModal = () => analysisModal.classList.remove('active');
+        analysisModal.addEventListener('click', e => { if(e.target === analysisModal) closeAnalysisModal(); });
 
         function parseAnalysisInput(inputStr) {
             let parts = inputStr.replace(/，/g, ',').split(',');
             let nums = [];
             for (let p of parts) {
-                p = p.trim();
-                if (!p) continue;
-                let num = parseInt(p, 10);
-                if (isNaN(num) || num < 1 || num > NUM_RANGE) return null;
+                p = p.trim(); if(!p) continue;
+                let num = parseInt(p,10);
+                if(isNaN(num)||num<1||num>NUM_RANGE) return null;
                 nums.push(num);
             }
-            const uniqueNums = [...new Set(nums)];
-            if (uniqueNums.length !== COMBO_SIZE) return null;
-            uniqueNums.sort((a,b)=>a-b);
-            return uniqueNums;
+            const uniq = [...new Set(nums)];
+            if(uniq.length !== COMBO_SIZE) return null;
+            uniq.sort((a,b)=>a-b);
+            return uniq;
         }
 
         window.runAnalysis = function() {
-            if (!lastResults || !lastSingleFreq) {
-                analysisError.textContent = '请先完成主统计。';
-                return;
-            }
-            const inputVal = analysisInput.value.trim();
-            if (!inputVal) {
-                analysisError.textContent = '请输入6个数字。';
-                return;
-            }
-            const combo = parseAnalysisInput(inputVal);
-            if (!combo) {
-                analysisError.textContent = '格式错误：需要6个不重复的1-33数字，用逗号分隔。';
-                return;
-            }
-            // 记住本次输入
-            lastAnalysisInput = inputVal;
+            if (!lastResults || !lastSingleFreq) { analysisError.textContent='请先完成主统计'; return; }
+            const val = analysisInput.value.trim();
+            if(!val) { analysisError.textContent='请输入6个数字'; return; }
+            const combo = parseAnalysisInput(val);
+            if(!combo) { analysisError.textContent='格式错误：需要6个不重复的1-33数字'; return; }
+            lastAnalysisInput = val;
             analysisError.textContent = '';
 
-            // 双数字分析
             const pairList = [];
-            for (let i = 0; i < combo.length; i++) {
-                for (let j = i + 1; j < combo.length; j++) {
-                    const a = combo[i], b = combo[j];
-                    const display = fmtPair(a,b);
-                    const found = lastResults.find(r => r.display === display);
-                    const count = found ? found.count : 0;
-                    const rank = found ? (lastResults.indexOf(found) + 1) : '-';
-                    pairList.push({ display, count, rank });
-                }
+            for(let i=0;i<combo.length;i++) for(let j=i+1;j<combo.length;j++) {
+                const d = fmtPair(combo[i],combo[j]);
+                const f = lastResults.find(r=>r.display===d);
+                pairList.push({ display:d, count: f?f.count:0, rank: f?lastResults.indexOf(f)+1:'-' });
             }
-            pairList.sort((a,b) => {
-                const ra = typeof a.rank === 'number' ? a.rank : Infinity;
-                const rb = typeof b.rank === 'number' ? b.rank : Infinity;
-                return ra - rb;
-            });
+            pairList.sort((a,b)=>(typeof a.rank==='number'?a.rank:Infinity) - (typeof b.rank==='number'?b.rank:Infinity));
 
-            // 单数字分析
             const singleList = [];
-            for (const num of combo) {
-                const display = fmtNum(num);
-                const found = lastSingleFreq.find(item => item.number === num);
-                const count = found ? found.count : 0;
-                const rank = found ? (lastSingleFreq.indexOf(found) + 1) : '-';
-                singleList.push({ display, count, rank });
+            for(const n of combo) {
+                const d = fmtNum(n);
+                const f = lastSingleFreq.find(i=>i.number===n);
+                singleList.push({ display:d, count: f?f.count:0, rank: f?lastSingleFreq.indexOf(f)+1:'-' });
             }
-            singleList.sort((a,b) => {
-                const ra = typeof a.rank === 'number' ? a.rank : Infinity;
-                const rb = typeof b.rank === 'number' ? b.rank : Infinity;
-                return ra - rb;
-            });
+            singleList.sort((a,b)=>(typeof a.rank==='number'?a.rank:Infinity) - (typeof b.rank==='number'?b.rank:Infinity));
 
-            // 渲染双数字表格
-            let pairHtml = `<table><thead><tr><th>排名</th><th>组合</th><th>出现次数</th></tr></thead><tbody>`;
-            pairList.forEach(p => {
-                pairHtml += `<tr><td>${p.rank}</td><td class="col-combo">${p.display}</td><td>${p.count}</td></tr>`;
-            });
-            pairHtml += '</tbody></table>';
-            pairAnalysisTable.innerHTML = pairHtml;
-
-            // 渲染单数字表格
-            let singleHtml = `<table><thead><tr><th>排名</th><th>数字</th><th>出现次数</th></tr></thead><tbody>`;
-            singleList.forEach(s => {
-                singleHtml += `<tr><td>${s.rank}</td><td class="col-combo">${s.display}</td><td>${s.count}</td></tr>`;
-            });
-            singleHtml += '</tbody></table>';
-            singleAnalysisTable.innerHTML = singleHtml;
-
-            analysisResult.style.display = 'block';
+            pairAnalysisTable.innerHTML = `<table><thead><tr><th>排名</th><th>组合</th><th>次数</th></tr></thead><tbody>${pairList.map(p=>`<tr><td>${p.rank}</td><td class="col-combo">${p.display}</td><td>${p.count}</td></tr>`).join('')}</tbody></table>`;
+            singleAnalysisTable.innerHTML = `<table><thead><tr><th>排名</th><th>数字</th><th>次数</th></tr></thead><tbody>${singleList.map(s=>`<tr><td>${s.rank}</td><td class="col-combo">${s.display}</td><td>${s.count}</td></tr>`).join('')}</tbody></table>`;
+            analysisResult.style.display='block';
             window._analysisData = { pairList, singleList };
         };
 
         window.copyAnalysis = function(type) {
-            if (!window._analysisData) { showToast('无分析数据','error'); return; }
-            let lines = [];
-            if (type === 'pairs') {
-                lines = window._analysisData.pairList.map(p => `${p.display}\t${p.count}\t排名${p.rank}`);
-            } else if (type === 'singles') {
-                lines = window._analysisData.singleList.map(s => `${s.display}\t${s.count}\t排名${s.rank}`);
-            }
-            if (lines.length) {
-                navigator.clipboard.writeText(lines.join('\n')).then(()=>showToast('已复制')).catch(()=>showToast('复制失败'));
-            }
+            if(!window._analysisData) return showToast('无数据','error');
+            let lines = type==='pairs' ? window._analysisData.pairList.map(p=>`${p.display}\t${p.count}\t排名${p.rank}`) : window._analysisData.singleList.map(s=>`${s.display}\t${s.count}\t排名${s.rank}`);
+            navigator.clipboard.writeText(lines.join('\n')).then(()=>showToast('已复制')).catch(()=>showToast('复制失败'));
         };
 
         window.loadExample = function() {
-            inputArea.value = '1,2,3,4,5,6\n1,2,3,4,5,6\n2,3,4,5,6,7\n10,15,20,25,30,33';
-            showToast('示例已加载');
+            inputArea.value = '1,2,3,4,5,6\n1,2,3,4,5,6-1\n2,3,4,5,6,7\n10,15,20,25,30,33\n01,02,03,04,05,06-16';
+            showToast('示例已加载（含蓝球格式）');
             setTimeout(calculate, 200);
         };
 
@@ -486,7 +464,6 @@
             resultCard.style.display = 'none';
             singleFreqCard.style.display = 'none';
             lastResults = lastSingleFreq = null;
-            // 清除记忆的分析组合
             lastAnalysisInput = '';
             window._analysisData = null;
             showToast('已清空');
