@@ -212,22 +212,22 @@
 <div class="container">
   <h1>
     🎱 双分组
-    <span class="icon">6组分类·重复复制</span>
+    <span class="icon">6组分类·蓝球跟随</span>
   </h1>
 
   <div class="input-area">
-    <label>📋 输入组合（支持逗号、点号、空格分隔，拖行可省略冒号）</label>
-    <textarea id="comboInput" placeholder="单式/复式：1,2,3,4,5,6
-胆拖：胆:15,22,32 拖:01,05,07
-胆拖分行（拖行无冒号也可）：
+    <label>📋 输入组合（红球在前，可带篮球，如 1,2,3,4,5,6-8）</label>
+    <textarea id="comboInput" placeholder="单式/复式：1,2,3,4,5,6-8
+胆拖：胆:15,22,32，拖:01,05,07-12
+胆拖分行（蓝球在拖行末尾）：
 胆:05,16,20,26,27
-拖08,12,13,28,29,32
+拖:08,12,13,28,29,32-5
 ..."></textarea>
     <div class="hint">
-      <span>✅ 分隔符：<code>,</code> <code>.</code> <code>空格</code> 均可</span>
-      <span>✅ 胆拖：<code>胆:15,22,32 拖:01,05,07</code></span>
-      <span>⚠️ 数字必须1-33，单式至少6个数字</span>
-      <span>🔁 重复统计两位数格式，英文逗号</span>
+      <span>✅ 红球前，蓝球后用 <code>-</code> 分隔</span>
+      <span>✅ 胆拖支持省略“拖”字，中文逗号</span>
+      <span>⚠️ 数字必须1-33，单式至少6个红球</span>
+      <span>🔁 重复只看红球，蓝球保留</span>
     </div>
   </div>
 
@@ -251,6 +251,7 @@
     { id: 'g6', label: '胆拖形式：其他胆拖（1到3个胆）组合', test: (item) => item.type === 'dantuo' && item.danCount >= 1 && item.danCount <= 3 }
   ];
 
+  // 从字符串提取红球数字（用于分组计算）
   function extractNums(str) {
     const cleaned = str.replace(/\./g, ',').replace(/，/g, ',').replace(/\s+/g, ',').replace(/,+/g, ',');
     const parts = cleaned.split(',');
@@ -268,24 +269,38 @@
     return { nums, invalidNums };
   }
 
-  // 判断是否为胆行（有胆无拖）
+  // 提取末尾篮球，返回 { redPart, blue }，blue 为 null 或数字
+  function splitBlue(line) {
+    const trimmed = line.trim();
+    const lastDash = trimmed.lastIndexOf('-');
+    if (lastDash === -1) return { redPart: trimmed, blue: null };
+    const redPart = trimmed.substring(0, lastDash).trim();
+    const blueStr = trimmed.substring(lastDash + 1).trim();
+    if (/^\d+$/.test(blueStr)) {
+      const blueNum = parseInt(blueStr, 10);
+      if (blueNum >= 1 && blueNum <= 16) {
+        return { redPart, blue: blueNum };
+      }
+    }
+    // 如果不符合篮球格式，则整体作为红球
+    return { redPart: trimmed, blue: null };
+  }
+
   function isDanLine(line) {
     const t = line.trim();
     return /胆\s*[:：]/i.test(t) && !/拖\s*[:：]?/i.test(t.replace(/胆\s*[:：]\s*/i, ''));
   }
-
-  // 判断是否为拖行（有拖无胆，允许拖后面直接跟数字，无冒号）
   function isTuoLine(line) {
     const t = line.trim();
     return /^拖\s*[:：]?\s*\d/i.test(t) && !/胆/i.test(t);
   }
-
   function isDantuoSameLine(line) {
     const d = line.search(/胆\s*[:：]/i);
     const t = line.search(/拖\s*[:：]?/i);
     return d !== -1 && t !== -1 && d < t;
   }
 
+  // 预处理：合并跨行胆拖（允许空行）
   function preprocessLines(rawLines) {
     const merged = [];
     let i = 0;
@@ -297,7 +312,6 @@
         let j = i + 1;
         while (j < rawLines.length && rawLines[j].trim() === '') j++;
         if (j < rawLines.length && isTuoLine(rawLines[j].trim())) {
-          // 提取拖码内容（去掉“拖:”或“拖”前缀）
           const tuoRaw = rawLines[j].trim();
           const tuoContent = tuoRaw.replace(/^拖\s*[:：]?\s*/i, '');
           merged.push(line + ' ' + tuoContent);
@@ -315,15 +329,42 @@
     return merged;
   }
 
-  function normalizeItem(parsed) {
-    if (parsed.type === 'standard') {
-      return parsed.nums.map(n => String(n).padStart(2, '0')).join(',');
-    } else if (parsed.type === 'dantuo') {
-      const dan = parsed.danNums.map(n => String(n).padStart(2, '0')).join(',');
-      const tuo = parsed.tuoNums.map(n => String(n).padStart(2, '0')).join(',');
-      return `胆:${dan} 拖:${tuo}`;
+  // 解析一行（已预处理合并胆拖），返回解析对象，包含 blue 字段
+  function parseLine(line) {
+    const trimmed = line.trim();
+    if (!trimmed) return null;
+
+    // 分离篮球
+    const { redPart, blue } = splitBlue(trimmed);
+    const danIdx = redPart.search(/胆\s*[:：]/i);
+    const tuoIdx = redPart.search(/拖\s*[:：]?/i);
+
+    if (danIdx !== -1 && tuoIdx !== -1 && danIdx < tuoIdx) {
+      const danPart = redPart.substring(danIdx, tuoIdx).replace(/胆\s*[:：]\s*/i, '').trim();
+      const tuoPart = redPart.substring(tuoIdx).replace(/拖\s*[:：]?\s*/i, '').trim();
+      return buildDantuoResult(trimmed, danPart, tuoPart, blue);
+    } else if (danIdx !== -1 && tuoIdx === -1) {
+      const rest = redPart.substring(danIdx).replace(/胆\s*[:：]\s*/i, '').trim();
+      const autoSplit = tryAutoSplitDanTuo(rest);
+      if (autoSplit) {
+        return buildDantuoResult(trimmed, autoSplit.danPart, autoSplit.tuoPart, blue);
+      } else {
+        return { type: 'invalid', raw: trimmed, reason: '缺少拖码，且无法自动分割' };
+      }
+    } else if (danIdx === -1 && tuoIdx !== -1) {
+      return { type: 'invalid', raw: trimmed, reason: '缺少胆码' };
+    } else {
+      // 单式/复式
+      const result = extractNums(redPart);
+      if (result.invalidNums.length > 0) {
+        return { type: 'invalid', raw: trimmed, reason: `超出1-33：[${result.invalidNums.join(',')}]` };
+      }
+      const nums = result.nums.sort((a,b)=>a-b);
+      if (nums.length === 0) return { type: 'invalid', raw: trimmed, reason: '未识别到1-33的数字' };
+      if (new Set(nums).size !== nums.length) return { type: 'invalid', raw: trimmed, reason: `数字重复：[${nums.join(',')}]` };
+      if (nums.length < 6) return { type: 'invalid', raw: trimmed, reason: `只有${nums.length}个数字：[${nums.join(',')}]，至少需要6个` };
+      return { type: 'standard', raw: trimmed, count: nums.length, nums, blue };
     }
-    return null;
   }
 
   function tryAutoSplitDanTuo(rest) {
@@ -348,40 +389,7 @@
     return null;
   }
 
-  function parseLine(line) {
-    const trimmed = line.trim();
-    if (!trimmed) return null;
-    const danIdx = trimmed.search(/胆\s*[:：]/i);
-    const tuoIdx = trimmed.search(/拖\s*[:：]?/i);
-
-    if (danIdx !== -1 && tuoIdx !== -1 && danIdx < tuoIdx) {
-      const danPart = trimmed.substring(danIdx, tuoIdx).replace(/胆\s*[:：]\s*/i, '').trim();
-      const tuoPart = trimmed.substring(tuoIdx).replace(/拖\s*[:：]?\s*/i, '').trim();
-      return buildDantuoResult(trimmed, danPart, tuoPart);
-    } else if (danIdx !== -1 && tuoIdx === -1) {
-      const rest = trimmed.substring(danIdx).replace(/胆\s*[:：]\s*/i, '').trim();
-      const autoSplit = tryAutoSplitDanTuo(rest);
-      if (autoSplit) {
-        return buildDantuoResult(trimmed, autoSplit.danPart, autoSplit.tuoPart);
-      } else {
-        return { type: 'invalid', raw: trimmed, reason: '缺少拖码，且无法自动分割' };
-      }
-    } else if (danIdx === -1 && tuoIdx !== -1) {
-      return { type: 'invalid', raw: trimmed, reason: '缺少胆码' };
-    } else {
-      const result = extractNums(trimmed);
-      if (result.invalidNums.length > 0) {
-        return { type: 'invalid', raw: trimmed, reason: `超出1-33：[${result.invalidNums.join(',')}]` };
-      }
-      const nums = result.nums.sort((a,b)=>a-b);
-      if (nums.length === 0) return { type: 'invalid', raw: trimmed, reason: '未识别到1-33的数字' };
-      if (new Set(nums).size !== nums.length) return { type: 'invalid', raw: trimmed, reason: `数字重复：[${nums.join(',')}]` };
-      if (nums.length < 6) return { type: 'invalid', raw: trimmed, reason: `只有${nums.length}个数字：[${nums.join(',')}]，至少需要6个` };
-      return { type: 'standard', raw: trimmed, count: nums.length, nums };
-    }
-  }
-
-  function buildDantuoResult(raw, danPart, tuoPart) {
+  function buildDantuoResult(raw, danPart, tuoPart, blue) {
     const danResult = extractNums(danPart);
     const tuoResult = extractNums(tuoPart);
     if (danResult.invalidNums.length > 0) return { type: 'invalid', raw, reason: `胆码超出1-33：[${danResult.invalidNums.join(',')}]` };
@@ -393,7 +401,19 @@
     if (new Set(danNums).size !== danNums.length) return { type: 'invalid', raw, reason: `胆码重复：[${danNums.join(',')}]` };
     if (new Set(tuoNums).size !== tuoNums.length) return { type: 'invalid', raw, reason: `拖码重复：[${tuoNums.join(',')}]` };
     for (let n of danNums) if (tuoNums.includes(n)) return { type: 'invalid', raw, reason: `数字${n}在胆拖中重复` };
-    return { type: 'dantuo', raw, danCount: danNums.length, tuoCount: tuoNums.length, danNums, tuoNums };
+    return { type: 'dantuo', raw, danCount: danNums.length, tuoCount: tuoNums.length, danNums, tuoNums, blue };
+  }
+
+  // 标准化红球部分用于重复检测（忽略篮球）
+  function normalizeItem(parsed) {
+    if (parsed.type === 'standard') {
+      return parsed.nums.map(n => String(n).padStart(2, '0')).join(',');
+    } else if (parsed.type === 'dantuo') {
+      const dan = parsed.danNums.map(n => String(n).padStart(2, '0')).join(',');
+      const tuo = parsed.tuoNums.map(n => String(n).padStart(2, '0')).join(',');
+      return `胆:${dan} 拖:${tuo}`;
+    }
+    return null;
   }
 
   function process() {
@@ -449,7 +469,7 @@
         const norms = dupByCount[count];
         const id = 'dup' + count;
         dupData[id] = norms.join('\n');
-        html += `<div class="dup-card"><div class="group-header"><span class="group-title">🔁 出现 ${count} 次的组合 <span class="badge">${norms.length} 种</span></span><button class="copy-btn" data-dup-id="${id}">📋 复制本组</button></div><div class="combo-list">${escHtml(dupData[id])}</div></div>`;
+        html += `<div class="dup-card"><div class="group-header"><span class="group-title">🔁 出现 ${count} 次的组合（红球相同）<span class="badge">${norms.length} 种</span></span><button class="copy-btn" data-dup-id="${id}">📋 复制本组</button></div><div class="combo-list">${escHtml(dupData[id])}</div></div>`;
       }
     } else {
       html += `<div style="color:#8899aa; padding:8px 16px; background:#f8fafd; border-radius:12px; font-size:0.9rem;">✅ 没有重复组合</div>`;
@@ -512,19 +532,18 @@
 
   function loadDemo() {
     const demo = [
-      '1,2,3,4,5,6',
-      '5.15.20.25.29.30',
-      '7,8,9,10,11,12,13',
+      '1,2,3,4,5,6-8',
+      '5.15.20.25.29.30-12',
+      '7,8,9,10,11,12,13-3',
       '2,5,11,17,22,28,30,33',
-      '胆:03,11,19,28 拖:05,07,12,16,22,24,30',
-      '胆:02,08,15,22,31 拖:01,04,09,13,18,21,25,27,33',
+      '胆:03,11,19,28 拖:05,07,12,16,22,24,30-9',
+      '胆:02,08,15,22,31 拖:01,04,09,13,18,21,25,27,33-7',
+      '胆:16,18,23,29，拖:04,05,08,11,19,22,26,27,33-11',
       '胆:05,16,20,26,27',
-      '拖08,12,13,28,29,32',
-      '胆:16,18,23,29',
-      '拖:04,05,08,11,19,22,26,27,33',
-      '1,2,3,4,5,6',
-      '1,2,3,4,5,6',
-      '胆:06,14,27 拖:03,09,11,17,20,23,29,32'
+      '拖:08,12,13,28,29,32-5',
+      '1,2,3,4,5,6-8',
+      '1,2,3,4,5,6-8',
+      '胆:06,14,27 拖:03,09,11,17,20,23,29,32-2'
     ];
     document.getElementById('comboInput').value = demo.join('\n');
     process();
