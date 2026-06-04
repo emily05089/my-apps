@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>双应用前区筛选 · 奖金计算修复版</title>
+    <title>双应用前区筛选 · 完整修复版</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { --bg: #f5f6fa; --card-bg: #ffffff; --primary: #4a6cf7; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; --text: #2c3e50; --border: #e0e5ec; --radius: 14px; }
@@ -159,285 +159,591 @@
 
 <script>
 (function() {
-    try {
-        var TOTAL = 1107568;
-        var filteredAlive = new Uint8Array(TOTAL);
-        var filteredCount = TOTAL;
-        var masksLow, masksHigh;
-        var maskIndex = new Map();
-        var busy = false;
-        var orSel = new Set();
-        var andSel = new Set();
-        var historyCombos = [];
-        var historyRedBlue = [];
-        var lastInputSnapshot = '';
+    // 移除顶层 try-catch，让真实错误暴露出来，方便调试
+    var TOTAL = 1107568;
+    var filteredAlive = new Uint8Array(TOTAL);
+    var filteredCount = TOTAL;
+    var masksLow, masksHigh;
+    var maskIndex = new Map();
+    var busy = false;
+    var orSel = new Set();
+    var andSel = new Set();
+    var historyCombos = [];
+    var historyRedBlue = [];
+    var lastInputSnapshot = '';
 
-        // 历史组合列表（略）
-        var HISTORY_LINES = ["01,03,11,22,26,31","09,14,15,16,29,30","06,09,25,27,28,30","03,04,14,15,18,20","09,15,18,24,28,33","07,16,21,24,27,30","02,09,10,24,31,33","04,11,15,17,24,30","02,14,17,18,22,30","06,09,14,16,25,32","02,07,12,19,24,31","02,08,10,17,19,24","03,04,14,22,23,33","08,17,18,21,25,30","01,02,13,23,25,27","11,22,27,29,31,33","06,10,12,15,22,28","02,06,12,24,25,32","01,03,07,13,22,23","03,06,13,21,28,29","01,03,11,18,31,33","03,10,12,13,18,33","10,11,14,19,22,24","06,19,22,23,28,31","02,06,09,17,25,28","02,13,17,18,25,26","02,09,16,22,25,29","02,03,15,20,23,24","01,02,13,21,23,29","01,03,08,10,23,29","15,18,23,25,28,32","03,13,25,26,30,31","01,13,14,21,24,30","07,08,16,17,18,30","11,15,17,22,25,30","01,03,05,18,29,32","04,05,09,10,27,30","07,10,13,22,27,31","07,13,19,22,26,32","04,09,12,13,16,20","03,05,07,16,20,24","02,03,04,20,31,32","04,09,10,15,19,26","03,06,13,19,23,25","06,09,16,27,31,33","09,13,19,27,29,30","02,06,22,23,24,28","01,20,22,27,30,33","03,07,08,09,18,32","05,06,09,21,28,30","01,05,07,18,30,32","02,06,11,12,13,33","08,09,14,22,28,30","06,13,17,19,24,31","01,02,04,06,22,30","03,04,09,10,15,22","01,03,05,08,22,33","05,07,12,24,26,28","11,12,15,18,25,32","01,08,15,20,26,33","02,09,12,13,15,24","02,13,15,23,27,31","02,04,05,10,12,13","01,03,04,12,18,24","02,05,17,22,30,33","10,13,14,23,24,27","02,08,11,23,27,29","08,10,14,23,28,32","01,02,05,09,25,32","03,05,09,13,26,29","05,14,17,19,20,33","04,08,10,21,23,32","03,13,14,18,24,31","01,05,08,14,19,23","03,04,07,13,20,30","02,10,18,19,24,27","03,09,15,17,19,28","02,12,13,16,19,25","03,09,12,13,26,32","01,02,18,19,21,33","07,09,23,24,25,26","16,18,19,20,25,31","06,08,10,25,29,30","01,02,04,07,13,32","06,09,23,26,28,32","01,10,11,16,24,26","06,08,17,20,25,33","02,04,08,24,28,31","02,03,08,19,24,30","01,20,21,25,26,27","08,10,13,15,24,31","03,09,11,13,20,32"];
-        var HISTORY_SET = new Set();
-        for (var i = 0; i < HISTORY_LINES.length; i++) {
-            var nums = HISTORY_LINES[i].split(',').map(function(s){ return parseInt(s,10); });
-            if (nums.length === 6) {
-                var key = nums.map(function(n){ return String(n).padStart(2,'0'); }).sort().join(',');
-                HISTORY_SET.add(key);
+    // 历史组合列表
+    var HISTORY_LINES = [
+        "01,03,11,22,26,31","09,14,15,16,29,30","06,09,25,27,28,30","03,04,14,15,18,20",
+        "09,15,18,24,28,33","07,16,21,24,27,30","02,09,10,24,31,33","04,11,15,17,24,30",
+        "02,14,17,18,22,30","06,09,14,16,25,32","02,07,12,19,24,31","02,08,10,17,19,24",
+        "03,04,14,22,23,33","08,17,18,21,25,30","01,02,13,23,25,27","11,22,27,29,31,33",
+        "06,10,12,15,22,28","02,06,12,24,25,32","01,03,07,13,22,23","03,06,13,21,28,29",
+        "01,03,11,18,31,33","03,10,12,13,18,33","10,11,14,19,22,24","06,19,22,23,28,31",
+        "02,06,09,17,25,28","02,13,17,18,25,26","02,09,16,22,25,29","02,03,15,20,23,24",
+        "01,02,13,21,23,29","01,03,08,10,23,29","15,18,23,25,28,32","03,13,25,26,30,31",
+        "01,13,14,21,24,30","07,08,16,17,18,30","11,15,17,22,25,30","01,03,05,18,29,32",
+        "04,05,09,10,27,30","07,10,13,22,27,31","07,13,19,22,26,32","04,09,12,13,16,20",
+        "03,05,07,16,20,24","02,03,04,20,31,32","04,09,10,15,19,26","03,06,13,19,23,25",
+        "06,09,16,27,31,33","09,13,19,27,29,30","02,06,22,23,24,28","01,20,22,27,30,33",
+        "03,07,08,09,18,32","05,06,09,21,28,30","01,05,07,18,30,32","02,06,11,12,13,33",
+        "08,09,14,22,28,30","06,13,17,19,24,31","01,02,04,06,22,30","03,04,09,10,15,22",
+        "01,03,05,08,22,33","05,07,12,24,26,28","11,12,15,18,25,32","01,08,15,20,26,33",
+        "02,09,12,13,15,24","02,13,15,23,27,31","02,04,05,10,12,13","01,03,04,12,18,24",
+        "02,05,17,22,30,33","10,13,14,23,24,27","02,08,11,23,27,29","08,10,14,23,28,32",
+        "01,02,05,09,25,32","03,05,09,13,26,29","05,14,17,19,20,33","04,08,10,21,23,32",
+        "03,13,14,18,24,31","01,05,08,14,19,23","03,04,07,13,20,30","02,10,18,19,24,27",
+        "03,09,15,17,19,28","02,12,13,16,19,25","03,09,12,13,26,32","01,02,18,19,21,33",
+        "07,09,23,24,25,26","16,18,19,20,25,31","06,08,10,25,29,30","01,02,04,07,13,32",
+        "06,09,23,26,28,32","01,10,11,16,24,26","06,08,17,20,25,33","02,04,08,24,28,31",
+        "02,03,08,19,24,30","01,20,21,25,26,27","08,10,13,15,24,31","03,09,11,13,20,32"
+    ];
+    var HISTORY_SET = new Set();
+    for (var i = 0; i < HISTORY_LINES.length; i++) {
+        var nums = HISTORY_LINES[i].split(',').map(function(s){ return parseInt(s,10); });
+        if (nums.length === 6) {
+            var key = nums.map(function(n){ return String(n).padStart(2,'0'); }).sort().join(',');
+            HISTORY_SET.add(key);
+        }
+    }
+
+    function buildAll() {
+        masksLow = new Uint32Array(TOTAL);
+        masksHigh = new Uint32Array(TOTAL);
+        var idx = 0;
+        for (var a=1;a<=28;a++) for (var b=a+1;b<=29;b++) for (var c=b+1;c<=30;c++) for (var d=c+1;d<=31;d++) for (var e=d+1;e<=32;e++) for (var f=e+1;f<=33;f++) {
+            var m = maskFrom([a,b,c,d,e,f]);
+            masksLow[idx] = m.l; masksHigh[idx] = m.h;
+            maskIndex.set(m.l+'_'+m.h, idx); idx++;
+        }
+        filteredAlive.fill(1); filteredCount = TOTAL;
+        updateDisplay();
+        log('✅ 全集已加载');
+    }
+
+    function maskFrom(arr) { var l=0,h=0; for (var i=0;i<arr.length;i++) { if (arr[i]<=32) l |= (1 << (arr[i]-1)); else if (arr[i]===33) h |= 1; } return {l:l,h:h}; }
+    function unmask(l,h) { var r=[]; for (var i=0;i<32;i++) if (l & (1<<i)) r.push(i+1); if (h & 1) r.push(33); return r; }
+
+    function updateDisplay() {
+        document.getElementById('filteredBadge').textContent = filteredCount.toLocaleString();
+        document.getElementById('orCount').textContent = orSel.size;
+        document.getElementById('andCount').textContent = andSel.size;
+    }
+
+    function log(s) {
+        var el = document.getElementById('logArea');
+        var d = document.createElement('div'); d.textContent = s;
+        el.appendChild(d); el.scrollTop = el.scrollHeight;
+        while (el.children.length > 25) el.removeChild(el.firstChild);
+    }
+
+    function setStatus(s) { document.getElementById('statusText').textContent = s; }
+    function showProgress(pct) { document.getElementById('progressWrap').style.display = 'block'; document.getElementById('progressBar').style.width = pct+'%'; }
+    function hideProgress() { document.getElementById('progressWrap').style.display = 'none'; }
+
+    function isAllOdd(arr) { return arr.every(function(n){ return n%2===1; }); }
+    function isAllEven(arr) { return arr.every(function(n){ return n%2===0; }); }
+    function hasConsecutive(arr, len, gap) {
+        if (len > arr.length) return false;
+        for (var i=0; i <= arr.length-len; i++) {
+            var ok = true;
+            for (var j=1; j<len; j++) { if (arr[i+j] - arr[i+j-1] !== gap) { ok = false; break; } }
+            if (ok) return true;
+        }
+        return false;
+    }
+    function hasSeq(arr, len) { return hasConsecutive(arr, len, 1); }
+    function hasGap(arr, len) {
+        var odds = arr.filter(function(n){ return n%2===1; });
+        var evens = arr.filter(function(n){ return n%2===0; });
+        return hasConsecutive(odds, len, 2) || hasConsecutive(evens, len, 2);
+    }
+    function hasSameTail3(arr) { var t=[0,0,0,0,0,0,0,0,0,0]; for (var i=0;i<arr.length;i++){ t[arr[i]%10]++; if(t[arr[i]%10]>=3) return true; } return false; }
+    function hasSameTail2Groups(arr) { var t=[0,0,0,0,0,0,0,0,0,0]; for (var i=0;i<arr.length;i++) t[arr[i]%10]++; var g=0; for (var i=0;i<10;i++){ if(t[i]>=2) g++; if(g>=2) return true; } return false; }
+    function getZonePattern(arr) { var a=0,b=0,c=0; for (var i=0;i<arr.length;i++){ if(arr[i]>=1&&arr[i]<=11) a++; else if(arr[i]>=12&&arr[i]<=22) b++; else c++; } return [a,b,c].sort(function(x,y){return x-y;}).join(''); }
+
+    // 通用状态重置
+    function finishOperation(startTime) {
+        busy = false; hideProgress(); setStatus('就绪');
+        document.getElementById('btnApply').disabled = false;
+        document.getElementById('btnApply').textContent = '⚡应用筛选';
+        document.getElementById('btnExport').disabled = false;
+        document.getElementById('btnExport').textContent = '📥 导出Excel（红球）';
+        document.getElementById('btnPrizeExport').disabled = false;
+        document.getElementById('btnPrizeExport').textContent = '💰 奖金计算与导出';
+        if (startTime) { var elapsed = ((Date.now() - startTime) / 1000).toFixed(1); log('⏱️ 本次操作耗时：' + elapsed + ' 秒'); }
+    }
+
+    function applyCustomFilter(name, filterFn) {
+        if (busy) return alert('处理中'); if (filteredCount===0) return alert('无剩余');
+        if (!confirm('确认排除 ['+name+']？')) return;
+        var startTime = Date.now(); busy=true; setStatus(name+' 过滤中...'); showProgress(0);
+        var removed=0, done=0, BATCH=60000;
+        function step(start) {
+            try {
+                var end=Math.min(start+BATCH, TOTAL);
+                for (var i=start; i<end; i++) { if (!filteredAlive[i]) continue; if (filterFn(unmask(masksLow[i],masksHigh[i]))) { filteredAlive[i]=0; removed++; } }
+                done=end; showProgress(Math.round(done/TOTAL*100));
+                if (done<TOTAL) setTimeout(function(){ step(done); }, 5);
+                else { filteredCount-=removed; updateDisplay(); log('✅ '+name+'：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组'); finishOperation(startTime); }
+            } catch(e) { log('❌ 过滤出错：'+e.message); finishOperation(startTime); }
+        }
+        step(0);
+    }
+
+    function applyFilteredMask(targetSet, mode) {
+        if (targetSet.size===0) return alert('请选择数字'); if (filteredCount===0) return alert('无剩余'); if (busy) return alert('处理中');
+        var startTime = Date.now(); busy=true; setStatus(mode+'过滤中...'); showProgress(0);
+        var tm = maskFrom(Array.from(targetSet)); var removed=0, done=0, BATCH=200000;
+        function step(start) {
+            try {
+                var end=Math.min(start+BATCH, TOTAL);
+                for (var i=start; i<end; i++) { if (!filteredAlive[i]) continue; var l=masksLow[i], h=masksHigh[i]; if (mode==='OR' ? ((l&tm.l)||(h&tm.h)) : ((l&tm.l)===tm.l && (h&tm.h)===tm.h)) { filteredAlive[i]=0; removed++; } }
+                done=end; showProgress(Math.round(done/TOTAL*100));
+                if (done<TOTAL) setTimeout(function(){ step(done); }, 5);
+                else { filteredCount-=removed; updateDisplay(); log('✅ '+mode+'过滤：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组'); finishOperation(startTime); }
+            } catch(e) { log('❌ 过滤出错：'+e.message); finishOperation(startTime); }
+        }
+        step(0);
+    }
+
+    function genHit(cm, k) {
+        var nums = unmask(cm.l, cm.h); if (k===6) return [cm];
+        var others = []; for (var i=1;i<=33;i++) if (nums.indexOf(i)===-1) others.push(i);
+        var res = [];
+        if (k===5) { for (var i=0;i<6;i++) { var base = nums.filter(function(_,idx){return idx!==i;}); for (var j=0;j<others.length;j++) res.push(maskFrom(base.concat([others[j]]).sort(function(a,b){return a-b;}))); } }
+        else if (k===4) { for (var i=0;i<6;i++) { for (var j=i+1;j<6;j++) { var base = nums.filter(function(_,idx){return idx!==i&&idx!==j;}); for (var x=0;x<others.length;x++) { for (var y=x+1;y<others.length;y++) { res.push(maskFrom(base.concat([others[x],others[y]]).sort(function(a,b){return a-b;}))); } } } } }
+        else if (k===3) { for (var i=0;i<6;i++) { for (var j=i+1;j<6;j++) { for (var kk=j+1;kk<6;kk++) { var base = nums.filter(function(_,idx){return idx!==i&&idx!==j&&idx!==kk;}); for (var x=0;x<others.length;x++) { for (var y=x+1;y<others.length;y++) { for (var z=y+1;z<others.length;z++) { res.push(maskFrom(base.concat([others[x],others[y],others[z]]).sort(function(a,b){return a-b;}))); } } } } } } }
+        return res;
+    }
+
+    function doFilter(condMasks, opts) {
+        var removeSet = new Set(); var total = condMasks.length; var done = 0;
+        return new Promise(function(resolve) {
+            function step(start) {
+                try {
+                    var end = Math.min(start+80, total);
+                    for (var i=start; i<end; i++) {
+                        var cm = condMasks[i];
+                        if (opts.six) { var idx = maskIndex.get(cm.l+'_'+cm.h); if (idx!==undefined) removeSet.add(idx); }
+                        if (opts.five) { var hits5 = genHit(cm,5); for (var j=0;j<hits5.length;j++) { var idx = maskIndex.get(hits5[j].l+'_'+hits5[j].h); if (idx!==undefined) removeSet.add(idx); } }
+                        if (opts.four) { var hits4 = genHit(cm,4); for (var j=0;j<hits4.length;j++) { var idx = maskIndex.get(hits4[j].l+'_'+hits4[j].h); if (idx!==undefined) removeSet.add(idx); } }
+                        if (opts.three) { var hits3 = genHit(cm,3); for (var j=0;j<hits3.length;j++) { var idx = maskIndex.get(hits3[j].l+'_'+hits3[j].h); if (idx!==undefined) removeSet.add(idx); } }
+                    }
+                    done=end; showProgress(Math.round(done/total*100));
+                    if (done<total) setTimeout(function(){ step(done); }, 5);
+                    else {
+                        if (opts.zero) {
+                            var allNums = new Set(); for (var i=0;i<condMasks.length;i++) { var nums = unmask(condMasks[i].l, condMasks[i].h); for (var j=0;j<nums.length;j++) allNums.add(nums[j]); }
+                            var miss = []; for (var i=1;i<=33;i++) if (!allNums.has(i)) miss.push(i);
+                            if (miss.length>=6) { var zcs = combos(miss,6); for (var i=0;i<zcs.length;i++) { var m = maskFrom(zcs[i]); var idx = maskIndex.get(m.l+'_'+m.h); if (idx!==undefined) removeSet.add(idx); } }
+                        }
+                        var removed = 0; removeSet.forEach(function(idx){ if (filteredAlive[idx]) { filteredAlive[idx]=0; removed++; } });
+                        filteredCount -= removed; updateDisplay(); resolve(removed);
+                    }
+                } catch(e) { log('❌ 筛选出错：'+e.message); resolve(0); }
+            }
+            step(0);
+        });
+    }
+
+    function applyFilter() {
+        if (busy) return alert('处理中');
+        var startTime = Date.now();
+        var opts = {
+            zero: document.getElementById('chk0').checked,
+            three: document.getElementById('chk3').checked,
+            four: document.getElementById('chk4').checked,
+            five: document.getElementById('chk5').checked,
+            six: document.getElementById('chk6').checked
+        };
+        if (!opts.zero && !opts.three && !opts.four && !opts.five && !opts.six) return alert('请勾选排除条件');
+        addToHistory();
+        var expanded = expandCurrent();
+        if (!expanded.length) return alert('无有效组合');
+        var redsOnly = expanded.map(function(x){ return x.reds; });
+        var masks = redsOnly.map(function(c){ return maskFrom(c); });
+        var unique = []; var seen = new Set();
+        for (var i=0; i<masks.length; i++) { var k = masks[i].l+'_'+masks[i].h; if (!seen.has(k)) { seen.add(k); unique.push(masks[i]); } }
+        log('📋 展开'+expanded.length+'组，去重'+unique.length+'条件');
+        busy=true; document.getElementById('btnApply').disabled=true; document.getElementById('btnApply').textContent='⏳筛选中...'; showProgress(0);
+        doFilter(unique, opts).then(function(removed){
+            log('✅ 筛选完成：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组');
+            document.getElementById('inputArea').value=''; lastInputSnapshot='';
+            finishOperation(startTime);
+        });
+    }
+
+    function norm(s){ return s.replace(/，/g,',').replace(/：/g,':').trim(); }
+    function parseNums(s){
+        s = norm(s).replace(/\s+/g,'');
+        var parts;
+        if (s.indexOf(',')!==-1) parts = s.split(',').filter(Boolean);
+        else if (s.indexOf(':')!==-1) parts = s.split(':').filter(Boolean);
+        else if (/^\d{12,}$/.test(s)) { parts = []; for (var i=0;i<s.length;i+=2) parts.push(s.substring(i,i+2)); }
+        else parts = [s];
+        var nums = []; for (var i=0;i<parts.length;i++) { var n=parseInt(parts[i],10); if (n>=1&&n<=33) nums.push(n); }
+        return Array.from(new Set(nums)).sort(function(a,b){return a-b;});
+    }
+    function isDanTuo(s){ return /胆\s*[:：]/.test(norm(s)) && /拖\s*[:：]/.test(norm(s)); }
+    function parseDanTuo(s){
+        var n = norm(s); var dm = n.match(/胆\s*[:：]\s*([^拖]+)/); var tm = n.match(/拖\s*[:：]\s*(.+)/);
+        if (!dm||!tm) return null;
+        return { dan: parseNums(dm[1]), tuo: parseNums(tm[1]) };
+    }
+    function combos(nums, k){
+        if (k===0) return [[]];
+        var res=[], tmp=new Array(k);
+        (function dfs(start,d){ if (d===k){ res.push(tmp.slice()); return; } for (var i=start;i<=nums.length-(k-d);i++){ tmp[d]=nums[i]; dfs(i+1,d+1); } })(0,0);
+        return res;
+    }
+
+    // 解析一行（支持蓝球）
+    function parseLineWithBlue(line) {
+        line = line.trim(); if (!line) return [];
+        var blue = null;
+        var redPart = line;
+        if (line.indexOf('-') !== -1) {
+            var parts = line.split('-'); redPart = parts[0].trim();
+            var blueNum = parseInt(parts[1].trim(), 10);
+            if (!isNaN(blueNum) && blueNum>=1 && blueNum<=16) blue = blueNum;
+        }
+        redPart = redPart.replace(/，/g,',').replace(/：/g,':').trim();
+        if (isDanTuo(redPart)) {
+            var dt = parseDanTuo(redPart);
+            if (!dt || dt.dan.length<1 || dt.dan.length>5) return [];
+            var need = 6 - dt.dan.length; if (dt.tuo.length < need) return [];
+            var tcs = combos(dt.tuo, need);
+            return tcs.map(function(tc){ return { reds: dt.dan.concat(tc).sort(function(a,b){return a-b;}), blue: blue }; });
+        } else {
+            var nums = parseNums(redPart);
+            if (nums.length < 6) return [];
+            var cs = combos(nums, 6);
+            return cs.map(function(c){ return { reds: c, blue: blue }; });
+        }
+    }
+
+    function expandCurrent() {
+        var text = document.getElementById('inputArea').value;
+        var lines = text.split(/[\n\r]+/).filter(function(l){ return l.trim(); });
+        var all = [];
+        for (var i=0; i<lines.length; i++) {
+            var results = parseLineWithBlue(lines[i]);
+            if (results && results.length) all = all.concat(results);
+        }
+        return all;
+    }
+
+    function addToHistory(){
+        var raw = document.getElementById('inputArea').value.trim();
+        if (!raw || raw===lastInputSnapshot) return;
+        var expanded = expandCurrent();
+        if (expanded.length>0) {
+            for (var i=0; i<expanded.length; i++) {
+                historyCombos.push(expanded[i].reds);
+                historyRedBlue.push({ reds: expanded[i].reds, blue: expanded[i].blue });
+            }
+            lastInputSnapshot = raw;
+            log('📥 已记录当前输入（'+expanded.length+' 注），历史总计 '+historyCombos.length+' 注');
+        }
+    }
+
+    function analyzeDuplicates(){
+        addToHistory();
+        if (!historyCombos.length) return alert('历史记录为空，请先输入号码并点击「统计重复」');
+        var map = new Map();
+        for (var i=0; i<historyCombos.length; i++) {
+            var k = historyCombos[i].map(function(n){ return String(n).padStart(2,'0'); }).join(',');
+            map.set(k, (map.get(k)||0)+1);
+        }
+        var groups = new Map();
+        var allCombosList = [];
+        var uniqueCombosList = [];
+        map.forEach(function(cnt, k){
+            if (!groups.has(cnt)) groups.set(cnt, []);
+            groups.get(cnt).push(k);
+            for (var r = 0; r < cnt; r++) allCombosList.push(k);
+            uniqueCombosList.push(k);
+        });
+        uniqueCombosList.sort();
+        allCombosList = [];
+        var sortedCounts = Array.from(groups.keys()).sort(function(a,b){ return b-a; });
+        for (var i=0; i<sortedCounts.length; i++) {
+            var count = sortedCounts[i];
+            var combos = groups.get(count);
+            combos.sort();
+            for (var j=0; j<combos.length; j++) {
+                for (var r = 0; r < count; r++) allCombosList.push(combos[j]);
             }
         }
+        var total = historyCombos.length;
+        var unique = map.size;
+        var area = document.getElementById('resultArea');
+        var title = document.getElementById('resultTitle');
+        var list = document.getElementById('resultGroups');
+        title.textContent = '📊 全部历史组合统计：' + total.toLocaleString() + ' 注 → ' + unique.toLocaleString() + ' 种';
+        var html = '';
+        for (var i=0; i<sortedCounts.length; i++) {
+            var count = sortedCounts[i];
+            var combos = groups.get(count);
+            combos.sort();
+            html += '<div class="group-box"><div class="group-header"><span>出现 '+count+' 次（共 '+combos.length+' 组）</span>';
+            html += '<div><button class="copy-btn" data-count="'+count+'" data-type="plain">📋 复制号码</button></div></div>';
+            html += '<div class="group-list">';
+            for (var j=0; j<combos.length; j++) html += '<div>'+combos[j]+'</div>';
+            html += '</div></div>';
+        }
+        list.innerHTML = html;
+        var buttons = list.querySelectorAll('.copy-btn');
+        for (var i=0; i<buttons.length; i++) {
+            buttons[i].addEventListener('click', function(){
+                var cnt = parseInt(this.dataset.count);
+                var combos = groups.get(cnt);
+                if (!combos) return;
+                var text = combos.join('\n');
+                copyText(text, combos.length);
+            });
+        }
+        area.style.display = 'block';
+        document.getElementById('btnCopyAll').onclick = function() {
+            var text = allCombosList.join('\n');
+            copyText(text, allCombosList.length);
+        };
+        document.getElementById('btnCopyUnique').onclick = function() {
+            var text = uniqueCombosList.join('\n');
+            copyText(text, uniqueCombosList.length);
+        };
+        log('📊 统计完成（历史 '+total+' 注）');
+    }
 
-        function buildAll() {
-            masksLow = new Uint32Array(TOTAL);
-            masksHigh = new Uint32Array(TOTAL);
-            var idx = 0;
-            for (var a=1;a<=28;a++) for (var b=a+1;b<=29;b++) for (var c=b+1;c<=30;c++) for (var d=c+1;d<=31;d++) for (var e=d+1;e<=32;e++) for (var f=e+1;f<=33;f++) {
-                var m = maskFrom([a,b,c,d,e,f]);
-                masksLow[idx] = m.l; masksHigh[idx] = m.h;
-                maskIndex.set(m.l+'_'+m.h, idx); idx++;
+    function copyText(text, n) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function(){ alert('已复制 '+n+' 条'); }).catch(function(){ fallbackCopy(text,n); });
+        } else { fallbackCopy(text,n); }
+    }
+    function fallbackCopy(text, n) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed'; ta.style.left = '-9999px';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); alert('已复制 '+n+' 条'); } catch(e) { alert('复制失败，请手动复制'); }
+        document.body.removeChild(ta);
+    }
+
+    // 奖金计算函数
+    function calcPrize(reds, blue, ticketReds, ticketBlue) {
+        var matchRed = 0;
+        for (var i=0; i<reds.length; i++) {
+            if (ticketReds.indexOf(reds[i]) !== -1) matchRed++;
+        }
+        var matchBlue = (blue === ticketBlue) ? 1 : 0;
+        if (matchRed === 6 && matchBlue === 1) return 5000000;
+        if (matchRed === 6 && matchBlue === 0) return 500000;
+        if (matchRed === 5 && matchBlue === 1) return 3000;
+        if (matchRed === 5 && matchBlue === 0) return 200;
+        if (matchRed === 4 && matchBlue === 1) return 200;
+        if (matchRed === 4 && matchBlue === 0) return 10;
+        if (matchRed === 3 && matchBlue === 1) return 10;
+        if (matchRed === 3 && matchBlue === 0) return 5;
+        if (matchRed === 2 && matchBlue === 1) return 5;
+        if (matchRed === 1 && matchBlue === 1) return 5;
+        if (matchRed === 0 && matchBlue === 1) return 5;
+        return 0;
+    }
+
+    // 奖金计算与导出
+    function prizeExport() {
+        if (busy) return alert('处理中');
+        if (filteredCount === 0) return alert('无剩余组合');
+        if (!historyRedBlue.length) return alert('历史中没有任何红蓝组合，请先输入号码并应用筛选');
+        if (typeof XLSX === 'undefined') { alert('Excel库加载失败'); return; }
+        busy = true;
+        document.getElementById('btnPrizeExport').disabled = true;
+        document.getElementById('btnPrizeExport').textContent = '计算中...';
+        setStatus('计算奖金中...');
+        showProgress(0);
+        var startTime = Date.now();
+        var redCombos = [];
+        for (var i=0; i<TOTAL; i++) {
+            if (filteredAlive[i]) redCombos.push(unmask(masksLow[i], masksHigh[i]));
+        }
+        var allEntries = [];
+        for (var r=0; r<redCombos.length; r++) {
+            var reds = redCombos[r];
+            for (var b=1; b<=16; b++) {
+                allEntries.push({ reds: reds, blue: b, prize: 0 });
             }
-            filteredAlive.fill(1); filteredCount = TOTAL;
-            updateDisplay();
-            log('✅ 全集已加载');
         }
-
-        function maskFrom(arr) { var l=0,h=0; for (var i=0;i<arr.length;i++) { if (arr[i]<=32) l |= (1 << (arr[i]-1)); else if (arr[i]===33) h |= 1; } return {l:l,h:h}; }
-        function unmask(l,h) { var r=[]; for (var i=0;i<32;i++) if (l & (1<<i)) r.push(i+1); if (h & 1) r.push(33); return r; }
-
-        function updateDisplay() {
-            document.getElementById('filteredBadge').textContent = filteredCount.toLocaleString();
-            document.getElementById('orCount').textContent = orSel.size;
-            document.getElementById('andCount').textContent = andSel.size;
-        }
-
-        function log(s) {
-            var el = document.getElementById('logArea');
-            var d = document.createElement('div'); d.textContent = s;
-            el.appendChild(d); el.scrollTop = el.scrollHeight;
-            while (el.children.length > 25) el.removeChild(el.firstChild);
-        }
-
-        function setStatus(s) { document.getElementById('statusText').textContent = s; }
-        function showProgress(pct) { document.getElementById('progressWrap').style.display = 'block'; document.getElementById('progressBar').style.width = pct+'%'; }
-        function hideProgress() { document.getElementById('progressWrap').style.display = 'none'; }
-
-        function isAllOdd(arr) { return arr.every(function(n){ return n%2===1; }); }
-        function isAllEven(arr) { return arr.every(function(n){ return n%2===0; }); }
-        function hasConsecutive(arr, len, gap) {
-            if (len > arr.length) return false;
-            for (var i=0; i <= arr.length-len; i++) {
-                var ok = true;
-                for (var j=1; j<len; j++) { if (arr[i+j] - arr[i+j-1] !== gap) { ok = false; break; } }
-                if (ok) return true;
+        for (var t=0; t<historyRedBlue.length; t++) {
+            var ticket = historyRedBlue[t];
+            if (ticket.blue === null) continue;
+            for (var e=0; e<allEntries.length; e++) {
+                allEntries[e].prize += calcPrize(allEntries[e].reds, allEntries[e].blue, ticket.reds, ticket.blue);
             }
+        }
+        allEntries.sort(function(a,b){ return a.prize - b.prize; });
+        var sheetData = [['中奖号码', '中奖金额（元）']];
+        for (var i=0; i<allEntries.length; i++) {
+            var code = allEntries[i].reds.map(function(n){ return String(n).padStart(2,'0'); }).join(',') + '-' + String(allEntries[i].blue).padStart(2,'0');
+            sheetData.push([code, allEntries[i].prize]);
+        }
+        var ws = XLSX.utils.aoa_to_sheet(sheetData);
+        ws['!cols'] = [{wch:22}, {wch:14}];
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, '奖金表');
+        var now = new Date();
+        XLSX.writeFile(wb, '奖金计算_' + allEntries.length + '注_' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '.xlsx');
+        log('💰 奖金计算完成，共 '+allEntries.length.toLocaleString()+' 注');
+        document.getElementById('exportHint').textContent = '✅ 奖金表已导出';
+        finishOperation(startTime);
+    }
+
+    function exportXLSX(){
+        if (busy) return alert('处理中，请等待当前操作完成');
+        if (filteredCount === 0) return alert('无组合可导出');
+        if (typeof XLSX === 'undefined') { alert('Excel库加载失败，请检查网络后刷新页面'); return; }
+        var startTime = Date.now();
+        busy = true;
+        document.getElementById('btnExport').disabled = true;
+        document.getElementById('btnExport').textContent = '收集中...';
+        setStatus('导出中...');
+        showProgress(0);
+        var result = [];
+        var done = 0;
+        var BATCH = 200000;
+        function step(start) {
+            try {
+                var end = Math.min(start + BATCH, TOTAL);
+                for (var i = start; i < end; i++) {
+                    if (filteredAlive[i]) result.push(unmask(masksLow[i], masksHigh[i]).map(function(n){ return String(n).padStart(2,'0'); }).join(','));
+                }
+                done = end;
+                showProgress(Math.round(done / TOTAL * 100));
+                if (done < TOTAL) setTimeout(function(){ step(done); }, 5);
+                else {
+                    setTimeout(function() {
+                        try {
+                            var sheetData = [['前区号码']]; var maxLen = 19;
+                            for (var i = 0; i < result.length; i++) { var r = result[i]; if (r.length>maxLen) maxLen=r.length; sheetData.push([r]); }
+                            var wb = XLSX.utils.book_new();
+                            var ws1 = XLSX.utils.aoa_to_sheet(sheetData); ws1['!cols']=[{wch:maxLen+2}]; XLSX.utils.book_append_sheet(wb,ws1,'组合列表');
+                            var cnt = new Array(34).fill(0);
+                            for (var i=0;i<result.length;i++) { var nums=result[i].split(','); for(var j=0;j<nums.length;j++) cnt[+nums[j]]++; }
+                            var st=[]; for(var i=1;i<=33;i++) st.push({n:i,c:cnt[i]}); st.sort(function(a,b){return b.c-a.c;});
+                            var statData=[['数字','次数','占比']];
+                            for(var i=0;i<st.length;i++){ var s=st[i]; statData.push([String(s.n).padStart(2,'0'),s.c,(s.c/(result.length*6)*100).toFixed(2)+'%']); }
+                            var ws2=XLSX.utils.aoa_to_sheet(statData); ws2['!cols']=[{wch:8},{wch:12},{wch:10}]; XLSX.utils.book_append_sheet(wb,ws2,'统计');
+                            var now=new Date();
+                            XLSX.writeFile(wb,'双应用_'+result.length+'组_'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'.xlsx');
+                            log('📥 导出'+result.length.toLocaleString()+'组'); document.getElementById('exportHint').textContent='✅ 已导出';
+                        } catch(e) { alert('导出失败：'+e.message); log('❌ 导出失败：'+e.message); }
+                        finishOperation(startTime);
+                    }, 50);
+                }
+            } catch(e) { alert('数据收集出错：'+e.message); finishOperation(startTime); }
+        }
+        step(0);
+    }
+
+    function drawGrids(){
+        var orG=document.getElementById('orGrid'), andG=document.getElementById('andGrid');
+        orG.innerHTML=''; andG.innerHTML='';
+        for (var i=1;i<=33;i++){
+            var lbl=String(i).padStart(2,'0');
+            (function(idx){
+                var oc=document.createElement('div'); oc.className='n-cell'; oc.textContent=lbl;
+                oc.addEventListener('click',function(){ if(orSel.has(idx)) orSel.delete(idx); else orSel.add(idx); drawGrids(); });
+                if(orSel.has(idx)) oc.classList.add('on-or'); orG.appendChild(oc);
+                var ac=document.createElement('div'); ac.className='n-cell'; ac.textContent=lbl;
+                ac.addEventListener('click',function(){ if(andSel.has(idx)) andSel.delete(idx); else andSel.add(idx); drawGrids(); });
+                if(andSel.has(idx)) ac.classList.add('on-and'); andG.appendChild(ac);
+            })(i);
+        }
+    }
+
+    function showPairModal(){ document.getElementById('pairModalTextarea').value=''; document.getElementById('pairModalOverlay').style.display='flex'; }
+    function hidePairModal(){ document.getElementById('pairModalOverlay').style.display='none'; }
+    function confirmPairExclusion(){
+        var raw=document.getElementById('pairModalTextarea').value.trim();
+        if(!raw){ alert('请输入至少一组双数字'); return; }
+        var lines=raw.split(/[\n\r]+/).filter(function(l){return l.trim();});
+        var pairSet=new Set();
+        for(var i=0;i<lines.length;i++){
+            var nums=lines[i].split(/[,，]/).map(function(s){return parseInt(s,10);}).filter(function(n){return n>=1&&n<=33;});
+            if(nums.length>=2){ var a=Math.min(nums[0],nums[1]), b=Math.max(nums[0],nums[1]); if(a!==b) pairSet.add(a+','+b); }
+        }
+        if(pairSet.size===0){ alert('未识别到有效双数字组合'); return; }
+        hidePairModal();
+        applyCustomFilter('双数字组合', function(arr){
+            var pairs=Array.from(pairSet);
+            for(var i=0;i<pairs.length;i++){ var ab=pairs[i].split(','); var a=parseInt(ab[0]),b=parseInt(ab[1]); if(arr.indexOf(a)!==-1&&arr.indexOf(b)!==-1) return true; }
             return false;
-        }
-        function hasSeq(arr, len) { return hasConsecutive(arr, len, 1); }
-        function hasGap(arr, len) {
-            var odds = arr.filter(function(n){ return n%2===1; });
-            var evens = arr.filter(function(n){ return n%2===0; });
-            return hasConsecutive(odds, len, 2) || hasConsecutive(evens, len, 2);
-        }
-        function hasSameTail3(arr) { var t=[0,0,0,0,0,0,0,0,0,0]; for (var i=0;i<arr.length;i++){ t[arr[i]%10]++; if(t[arr[i]%10]>=3) return true; } return false; }
-        function hasSameTail2Groups(arr) { var t=[0,0,0,0,0,0,0,0,0,0]; for (var i=0;i<arr.length;i++) t[arr[i]%10]++; var g=0; for (var i=0;i<10;i++){ if(t[i]>=2) g++; if(g>=2) return true; } return false; }
-        function getZonePattern(arr) { var a=0,b=0,c=0; for (var i=0;i<arr.length;i++){ if(arr[i]>=1&&arr[i]<=11) a++; else if(arr[i]>=12&&arr[i]<=22) b++; else c++; } return [a,b,c].sort(function(x,y){return x-y;}).join(''); }
+        });
+    }
 
-        function finishOperation(startTime) {
-            busy = false; hideProgress(); setStatus('就绪');
-            document.getElementById('btnApply').disabled = false;
-            document.getElementById('btnApply').textContent = '⚡应用筛选';
-            document.getElementById('btnExport').disabled = false;
-            document.getElementById('btnExport').textContent = '📥 导出Excel（红球）';
-            document.getElementById('btnPrizeExport').disabled = false;
-            document.getElementById('btnPrizeExport').textContent = '💰 奖金计算与导出';
-            if (startTime) { var elapsed = ((Date.now() - startTime) / 1000).toFixed(1); log('⏱️ 本次操作耗时：' + elapsed + ' 秒'); }
-        }
+    function init() {
+        try {
+            buildAll();
+            drawGrids();
 
-        function applyCustomFilter(name, filterFn) {
-            if (busy) return alert('处理中'); if (filteredCount===0) return alert('无剩余');
-            if (!confirm('确认排除 ['+name+']？')) return;
-            var startTime = Date.now(); busy=true; setStatus(name+' 过滤中...'); showProgress(0);
-            var removed=0, done=0, BATCH=60000;
-            function step(start) {
-                try {
-                    var end=Math.min(start+BATCH, TOTAL);
-                    for (var i=start; i<end; i++) { if (!filteredAlive[i]) continue; if (filterFn(unmask(masksLow[i],masksHigh[i]))) { filteredAlive[i]=0; removed++; } }
-                    done=end; showProgress(Math.round(done/TOTAL*100));
-                    if (done<TOTAL) setTimeout(function(){ step(done); }, 5);
-                    else { filteredCount-=removed; updateDisplay(); log('✅ '+name+'：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组'); finishOperation(startTime); }
-                } catch(e) { log('❌ 过滤出错：'+e.message); finishOperation(startTime); }
-            }
-            step(0);
-        }
-
-        function applyFilteredMask(targetSet, mode) {
-            if (targetSet.size===0) return alert('请选择数字'); if (filteredCount===0) return alert('无剩余'); if (busy) return alert('处理中');
-            var startTime = Date.now(); busy=true; setStatus(mode+'过滤中...'); showProgress(0);
-            var tm = maskFrom(Array.from(targetSet)); var removed=0, done=0, BATCH=200000;
-            function step(start) {
-                try {
-                    var end=Math.min(start+BATCH, TOTAL);
-                    for (var i=start; i<end; i++) { if (!filteredAlive[i]) continue; var l=masksLow[i], h=masksHigh[i]; if (mode==='OR' ? ((l&tm.l)||(h&tm.h)) : ((l&tm.l)===tm.l && (h&tm.h)===tm.h)) { filteredAlive[i]=0; removed++; } }
-                    done=end; showProgress(Math.round(done/TOTAL*100));
-                    if (done<TOTAL) setTimeout(function(){ step(done); }, 5);
-                    else { filteredCount-=removed; updateDisplay(); log('✅ '+mode+'过滤：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组'); finishOperation(startTime); }
-                } catch(e) { log('❌ 过滤出错：'+e.message); finishOperation(startTime); }
-            }
-            step(0);
-        }
-
-        function genHit(cm, k) {
-            var nums = unmask(cm.l, cm.h); if (k===6) return [cm];
-            var others = []; for (var i=1;i<=33;i++) if (nums.indexOf(i)===-1) others.push(i);
-            var res = [];
-            if (k===5) { for (var i=0;i<6;i++) { var base = nums.filter(function(_,idx){return idx!==i;}); for (var j=0;j<others.length;j++) res.push(maskFrom(base.concat([others[j]]).sort(function(a,b){return a-b;}))); } }
-            else if (k===4) { for (var i=0;i<6;i++) { for (var j=i+1;j<6;j++) { var base = nums.filter(function(_,idx){return idx!==i&&idx!==j;}); for (var x=0;x<others.length;x++) { for (var y=x+1;y<others.length;y++) { res.push(maskFrom(base.concat([others[x],others[y]]).sort(function(a,b){return a-b;}))); } } } } }
-            else if (k===3) { for (var i=0;i<6;i++) { for (var j=i+1;j<6;j++) { for (var kk=j+1;kk<6;kk++) { var base = nums.filter(function(_,idx){return idx!==i&&idx!==j&&idx!==kk;}); for (var x=0;x<others.length;x++) { for (var y=x+1;y<others.length;y++) { for (var z=y+1;z<others.length;z++) { res.push(maskFrom(base.concat([others[x],others[y],others[z]]).sort(function(a,b){return a-b;}))); } } } } } } }
-            return res;
-        }
-
-        function doFilter(condMasks, opts) {
-            var removeSet = new Set(); var total = condMasks.length; var done = 0;
-            return new Promise(function(resolve) {
-                function step(start) {
-                    try {
-                        var end = Math.min(start+80, total);
-                        for (var i=start; i<end; i++) {
-                            var cm = condMasks[i];
-                            if (opts.six) { var idx = maskIndex.get(cm.l+'_'+cm.h); if (idx!==undefined) removeSet.add(idx); }
-                            if (opts.five) { var hits5 = genHit(cm,5); for (var j=0;j<hits5.length;j++) { var idx = maskIndex.get(hits5[j].l+'_'+hits5[j].h); if (idx!==undefined) removeSet.add(idx); } }
-                            if (opts.four) { var hits4 = genHit(cm,4); for (var j=0;j<hits4.length;j++) { var idx = maskIndex.get(hits4[j].l+'_'+hits4[j].h); if (idx!==undefined) removeSet.add(idx); } }
-                            if (opts.three) { var hits3 = genHit(cm,3); for (var j=0;j<hits3.length;j++) { var idx = maskIndex.get(hits3[j].l+'_'+hits3[j].h); if (idx!==undefined) removeSet.add(idx); } }
-                        }
-                        done=end; showProgress(Math.round(done/total*100));
-                        if (done<total) setTimeout(function(){ step(done); }, 5);
-                        else {
-                            if (opts.zero) {
-                                var allNums = new Set(); for (var i=0;i<condMasks.length;i++) { var nums = unmask(condMasks[i].l, condMasks[i].h); for (var j=0;j<nums.length;j++) allNums.add(nums[j]); }
-                                var miss = []; for (var i=1;i<=33;i++) if (!allNums.has(i)) miss.push(i);
-                                if (miss.length>=6) { var zcs = combos(miss,6); for (var i=0;i<zcs.length;i++) { var m = maskFrom(zcs[i]); var idx = maskIndex.get(m.l+'_'+m.h); if (idx!==undefined) removeSet.add(idx); } }
-                            }
-                            var removed = 0; removeSet.forEach(function(idx){ if (filteredAlive[idx]) { filteredAlive[idx]=0; removed++; } });
-                            filteredCount -= removed; updateDisplay(); resolve(removed);
-                        }
-                    } catch(e) { log('❌ 筛选出错：'+e.message); resolve(0); }
-                }
-                step(0);
-            });
-        }
-
-        function applyFilter() {
-            if (busy) return alert('处理中');
-            var startTime = Date.now();
-            var opts = {
-                zero: document.getElementById('chk0').checked,
-                three: document.getElementById('chk3').checked,
-                four: document.getElementById('chk4').checked,
-                five: document.getElementById('chk5').checked,
-                six: document.getElementById('chk6').checked
-            };
-            if (!opts.zero && !opts.three && !opts.four && !opts.five && !opts.six) return alert('请勾选排除条件');
-            addToHistory();
-            var expanded = expandCurrent();
-            if (!expanded.length) return alert('无有效组合');
-            var redsOnly = expanded.map(function(x){ return x.reds; });
-            var masks = redsOnly.map(function(c){ return maskFrom(c); });
-            var unique = []; var seen = new Set();
-            for (var i=0; i<masks.length; i++) { var k = masks[i].l+'_'+masks[i].h; if (!seen.has(k)) { seen.add(k); unique.push(masks[i]); } }
-            log('📋 展开'+expanded.length+'组，去重'+unique.length+'条件');
-            busy=true; document.getElementById('btnApply').disabled=true; document.getElementById('btnApply').textContent='⏳筛选中...'; showProgress(0);
-            doFilter(unique, opts).then(function(removed){
-                log('✅ 筛选完成：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组');
-                document.getElementById('inputArea').value=''; lastInputSnapshot='';
-                finishOperation(startTime);
-            });
-        }
-
-        function norm(s){ return s.replace(/，/g,',').replace(/：/g,':').trim(); }
-        function parseNums(s){
-            s = norm(s).replace(/\s+/g,'');
-            var parts;
-            if (s.indexOf(',')!==-1) parts = s.split(',').filter(Boolean);
-            else if (s.indexOf(':')!==-1) parts = s.split(':').filter(Boolean);
-            else if (/^\d{12,}$/.test(s)) { parts = []; for (var i=0;i<s.length;i+=2) parts.push(s.substring(i,i+2)); }
-            else parts = [s];
-            var nums = []; for (var i=0;i<parts.length;i++) { var n=parseInt(parts[i],10); if (n>=1&&n<=33) nums.push(n); }
-            return Array.from(new Set(nums)).sort(function(a,b){return a-b;});
-        }
-        function isDanTuo(s){ return /胆\s*[:：]/.test(norm(s)) && /拖\s*[:：]/.test(norm(s)); }
-        function parseDanTuo(s){
-            var n = norm(s); var dm = n.match(/胆\s*[:：]\s*([^拖]+)/); var tm = n.match(/拖\s*[:：]\s*(.+)/);
-            if (!dm||!tm) return null;
-            return { dan: parseNums(dm[1]), tuo: parseNums(tm[1]) };
-        }
-        function combos(nums, k){
-            if (k===0) return [[]];
-            var res=[], tmp=new Array(k);
-            (function dfs(start,d){ if (d===k){ res.push(tmp.slice()); return; } for (var i=start;i<=nums.length-(k-d);i++){ tmp[d]=nums[i]; dfs(i+1,d+1); } })(0,0);
-            return res;
-        }
-
-        // 解析一行（支持蓝球）
-        function parseLineWithBlue(line) {
-            line = line.trim(); if (!line) return [];
-            var blue = null;
-            var redPart = line;
-            if (line.indexOf('-') !== -1) {
-                var parts = line.split('-'); redPart = parts[0].trim();
-                var blueNum = parseInt(parts[1].trim(), 10);
-                if (!isNaN(blueNum) && blueNum>=1 && blueNum<=16) blue = blueNum;
-            }
-            redPart = redPart.replace(/，/g,',').replace(/：/g,':').trim();
-            if (isDanTuo(redPart)) {
-                var dt = parseDanTuo(redPart);
-                if (!dt || dt.dan.length<1 || dt.dan.length>5) return [];
-                var need = 6 - dt.dan.length; if (dt.tuo.length < need) return [];
-                var tcs = combos(dt.tuo, need);
-                return tcs.map(function(tc){ return { reds: dt.dan.concat(tc).sort(function(a,b){return a-b;}), blue: blue }; });
-            } else {
-                var nums = parseNums(redPart);
-                if (nums.length < 6) return [];
-                var cs = combos(nums, 6);
-                return cs.map(function(c){ return { reds: c, blue: blue }; });
-            }
-        }
-
-        function expandCurrent() {
-            var text = document.getElementById('inputArea').value;
-            var lines = text.split(/[\n\r]+/).filter(function(l){ return l.trim(); });
-            var all = [];
-            for (var i=0; i<lines.length; i++) {
-                var results = parseLineWithBlue(lines[i]);
-                if (results && results.length) all = all.concat(results);
-            }
-            return all;
-        }
-
-        function addToHistory(){
-            var raw = document.getElementById('inputArea').value.trim();
-            if (!raw || raw===lastInputSnapshot) return;
-            var expanded = expandCurrent();
-            if (expanded.length>0) {
-                for (var i=0; i<expanded.length; i++) {
-                    historyCombos.push(expanded[i].reds);
-                    historyRedBlue.push({ reds: expanded[i].reds, blue: expanded[i].blue });
-                }
-                lastInputSnapshot = raw;
-                log('📥 已记录当前输入（'+expanded.length+' 注），历史总计 '+historyCombos.length+' 注');
-            }
-        }
-
-        // 统计、导出等函数（保持之前逻辑，略作调整）
-        function analyzeDuplicates(){ /* ... 同之前版本，此处省略以节省篇幅，实际代码中包含完整实现 */ }
-        function exportXLSX(){ /* ... */ }
-        function prizeExport(){ /* ... */ }
-        // 其他函数省略，完整代码在上次交付中已有，此处仅修复按钮问题
-
-        // 事件绑定
-        function init() {
-            buildAll(); drawGrids();
             document.getElementById('btnApply').addEventListener('click', applyFilter);
-            // 其余绑定同前
-            log('✅ 修复版就绪，可正常使用');
+            document.getElementById('btnClearInput').addEventListener('click', function(){
+                document.getElementById('inputArea').value = '';
+                ['chk0','chk3','chk4','chk5','chk6'].forEach(function(id){ document.getElementById(id).checked = false; });
+            });
+            document.getElementById('btnStats').addEventListener('click', analyzeDuplicates);
+            document.getElementById('btnResetAll').addEventListener('click', function(){
+                if (busy) return alert('处理中');
+                if (!confirm('重置全部？')) return;
+                filteredAlive.fill(1); filteredCount = TOTAL;
+                historyCombos = []; historyRedBlue = []; lastInputSnapshot = '';
+                updateDisplay();
+                document.getElementById('inputArea').value = '';
+                document.getElementById('resultArea').style.display = 'none';
+                orSel.clear(); andSel.clear(); drawGrids();
+                hideProgress(); setStatus('就绪');
+                log('🔄 已重置');
+            });
+            document.getElementById('btnApplyOR').addEventListener('click', function(){ applyFilteredMask(orSel,'OR'); });
+            document.getElementById('btnClearOR').addEventListener('click', function(){ orSel.clear(); drawGrids(); });
+            document.getElementById('btnApplyAND').addEventListener('click', function(){ applyFilteredMask(andSel,'AND'); });
+            document.getElementById('btnClearAND').addEventListener('click', function(){ andSel.clear(); drawGrids(); });
+            document.getElementById('btnExport').addEventListener('click', exportXLSX);
+            document.getElementById('btnPrizeExport').addEventListener('click', prizeExport);
+
+            function bind(id, fn) { document.getElementById(id).addEventListener('click', fn); }
+            bind('btnAllOdd', function(){ applyCustomFilter('全奇数', isAllOdd); });
+            bind('btnAllEven', function(){ applyCustomFilter('全偶数', isAllEven); });
+            bind('btn3Seq', function(){ applyCustomFilter('3连号', function(arr){ return hasSeq(arr,3); }); });
+            bind('btn3Gap', function(){ applyCustomFilter('3隔号', function(arr){ return hasGap(arr,3); }); });
+            bind('btn4Seq', function(){ applyCustomFilter('4连号', function(arr){ return hasSeq(arr,4); }); });
+            bind('btn4Gap', function(){ applyCustomFilter('4隔号', function(arr){ return hasGap(arr,4); }); });
+            bind('btn5Seq', function(){ applyCustomFilter('5连号', function(arr){ return hasSeq(arr,5); }); });
+            bind('btn5Gap', function(){ applyCustomFilter('5隔号', function(arr){ return hasGap(arr,5); }); });
+            bind('btn6Seq', function(){ applyCustomFilter('6连号', function(arr){ return hasSeq(arr,6); }); });
+            bind('btn6Gap', function(){ applyCustomFilter('6隔号', function(arr){ return hasGap(arr,6); }); });
+            bind('btnTail3', function(){ applyCustomFilter('同尾数≥3个', hasSameTail3); });
+            bind('btnTail2Group', function(){ applyCustomFilter('同尾数组数≥2组', hasSameTail2Groups); });
+            bind('btnRatio600', function(){ applyCustomFilter('6:0:0型', function(arr){ return getZonePattern(arr)==='006'; }); });
+            bind('btnRatio510', function(){ applyCustomFilter('5:1:0型', function(arr){ return getZonePattern(arr)==='015'; }); });
+            bind('btnRatio420', function(){ applyCustomFilter('4:2:0型', function(arr){ return getZonePattern(arr)==='024'; }); });
+            bind('btnRatio411', function(){ applyCustomFilter('4:1:1型', function(arr){ return getZonePattern(arr)==='114'; }); });
+            bind('btnRatio330', function(){ applyCustomFilter('3:3:0型', function(arr){ return getZonePattern(arr)==='033'; }); });
+            bind('btnRatio321', function(){ applyCustomFilter('3:2:1型', function(arr){ return getZonePattern(arr)==='123'; }); });
+            bind('btnRatio222', function(){ applyCustomFilter('2:2:2型', function(arr){ return getZonePattern(arr)==='222'; }); });
+            bind('btnExcludeHistory', function(){ applyCustomFilter('历史组合', function(arr){ var key=arr.map(function(n){ return String(n).padStart(2,'0'); }).sort().join(','); return HISTORY_SET.has(key); }); });
+            bind('btnExcludePairs', showPairModal);
+            document.getElementById('btnPairModalCancel').addEventListener('click', hidePairModal);
+            document.getElementById('btnPairModalConfirm').addEventListener('click', confirmPairExclusion);
+
+            log('✅ 修复版就绪，所有功能正常');
+        } catch(e) {
+            alert('初始化失败：' + e.message + '\n请刷新页面重试。');
+            console.error(e);
         }
-        init();
-    } catch(e) { alert('初始化失败：'+e.message); }
+    }
+
+    init();
 })();
 </script>
 </body>
