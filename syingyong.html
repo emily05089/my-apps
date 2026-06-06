@@ -147,6 +147,18 @@
     </div>
 </div>
 
+<!-- 双数字弹窗（已省略，代码保持一致） -->
+<div class="modal-overlay" id="pairModalOverlay">
+    <div class="modal-box">
+        <div class="modal-title">输入双数字组合（每行一组，如 01,05）</div>
+        <textarea class="modal-textarea" id="pairModalTextarea" placeholder="例如：&#10;01,05&#10;03,08&#10;12,23"></textarea>
+        <div class="modal-buttons">
+            <button class="btn btn-outline" id="btnPairModalCancel">取消</button>
+            <button class="btn btn-danger" id="btnPairModalConfirm">确认排除</button>
+        </div>
+    </div>
+</div>
+
 <script>
 (function() {
     var TOTAL = 1107568;
@@ -527,7 +539,7 @@
         document.body.removeChild(ta);
     }
 
-    // Worker 相关
+    // ========== Worker 奖金计算（已修复排序） ==========
     function createPrizeWorker() {
         if (prizeWorker) { prizeWorker.terminate(); }
         var workerCode = [
@@ -593,7 +605,7 @@
             "    if (currentRed < totalRed) {",
             "      setTimeout(processBatch, 50);",
             "    } else {",
-            "      // 生成结果数组",
+            "      // 生成结果并按金额升序排序",
             "      var rows = [];",
             "      for (var r = 0; r < totalRed; r++) {",
             "        var reds = [];",
@@ -604,10 +616,16 @@
             "        var redStr = reds.map(function(n){ return (n < 10 ? '0' : '') + n; }).join(',');",
             "        var baseIdx = r * 16;",
             "        for (var b = 1; b <= 16; b++) {",
-            "          rows.push(redStr + '-' + (b < 10 ? '0' : '') + b + ',' + prizes[baseIdx + b - 1]);",
+            "          var amount = prizes[baseIdx + b - 1];",
+            "          rows.push({ str: redStr + '-' + (b < 10 ? '0' : '') + b, amount: amount });",
             "        }",
             "      }",
-            "      self.postMessage({ type: 'complete', rows: rows });",
+            "      rows.sort(function(a, b) { return a.amount - b.amount; });",
+            "      var csvRows = [];",
+            "      for (var i = 0; i < rows.length; i++) {",
+            "        csvRows.push(rows[i].str + ',' + rows[i].amount);",
+            "      }",
+            "      self.postMessage({ type: 'complete', rows: csvRows });",
             "    }",
             "  }",
             "  processBatch();",
@@ -662,7 +680,6 @@
         for (var i = 0; i < TOTAL; i++) {
             if (filteredAlive[i]) redMasks.push({ l: masksLow[i], h: masksHigh[i] });
         }
-        // 预处理历史数据，生成掩码
         var historyData = [];
         for (var j = 0; j < historyRedBlue.length; j++) {
             var t = historyRedBlue[j];
@@ -820,7 +837,7 @@
             document.getElementById('btnPairModalCancel').addEventListener('click', hidePairModal);
             document.getElementById('btnPairModalConfirm').addEventListener('click', confirmPairExclusion);
 
-            log('✅ Worker版就绪，奖金计算在后台极速运行，进度实时可见');
+            log('✅ Worker版就绪，奖金计算按金额从少到多排序');
         } catch(e) {
             alert('初始化失败：' + e.message + '\n请刷新页面重试。');
             console.error(e);
