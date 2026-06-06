@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>双应用前区筛选 · 进度可见版</title>
+    <title>双应用前区筛选 · 最终稳定版</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { --bg: #f5f6fa; --card-bg: #ffffff; --primary: #4a6cf7; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; --text: #2c3e50; --border: #e0e5ec; --radius: 14px; }
@@ -551,7 +551,7 @@
         return 0;
     }
 
-    // 奖金计算与导出（分批处理红球组合，确保进度条可见）
+    // 奖金计算与导出（优化版：分批极小，确保进度条实时更新）
     function prizeExport() {
         if (busy) return alert('处理中');
         if (filteredCount === 0) return alert('无剩余组合');
@@ -560,7 +560,6 @@
             return;
         }
         if (typeof XLSX === 'undefined') { alert('Excel库加载失败，请检查网络'); return; }
-        if (!confirm('即将进行奖金计算，可能需要一些时间，确认继续？')) return;
 
         busy = true;
         document.getElementById('btnPrizeExport').disabled = true;
@@ -568,7 +567,7 @@
         setStatus('计算奖金中...');
         showProgress(0);
 
-        // 收集所有存活红球掩码
+        var startTime = Date.now();
         var redMasks = [];
         for (var i = 0; i < TOTAL; i++) {
             if (filteredAlive[i]) redMasks.push({ l: masksLow[i], h: masksHigh[i] });
@@ -576,7 +575,6 @@
         var totalRed = redMasks.length;
         var prizes = new Uint32Array(totalRed * 16);
 
-        // 准备历史票数据（只保留有蓝球的）
         var tMasks = [];
         var tBlues = [];
         for (var j = 0; j < historyRedBlue.length; j++) {
@@ -589,7 +587,7 @@
         var ticketCount = tMasks.length;
         if (ticketCount === 0) { alert('没有有效历史票'); finishOperation(); return; }
 
-        var batchSize = 50; // 每批处理50个红球组合，确保进度平滑
+        var batchSize = 20; // 极小的批次，确保进度条平滑更新
         var currentRed = 0;
 
         function processBatch() {
@@ -613,10 +611,11 @@
             var progress = Math.round((currentRed / totalRed) * 100);
             showProgress(progress);
             if (currentRed < totalRed) {
-                setTimeout(processBatch, 1); // 极短延迟，保持 UI 响应
+                setTimeout(processBatch, 50); // 增加延迟，确保浏览器渲染进度条
             } else {
                 setStatus('正在生成Excel...');
-                setTimeout(buildPrizeExcel, 10);
+                showProgress(100);
+                setTimeout(buildPrizeExcel, 100);
             }
         }
 
@@ -648,7 +647,7 @@
                 alert('导出失败：' + e.message);
                 log('❌ 导出失败');
             }
-            finishOperation(Date.now());
+            finishOperation(startTime);
         }
 
         processBatch();
@@ -792,7 +791,7 @@
             document.getElementById('btnPairModalCancel').addEventListener('click', hidePairModal);
             document.getElementById('btnPairModalConfirm').addEventListener('click', confirmPairExclusion);
 
-            log('✅ 进度可见版就绪，计算奖金将显示实时进度');
+            log('✅ 最终版就绪，奖金计算进度条会实时更新');
         } catch(e) {
             alert('初始化失败：' + e.message + '\n请刷新页面重试。');
             console.error(e);
