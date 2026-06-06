@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>双应用前区筛选 · 底部显示+奖金修复</title>
+    <title>双应用前区筛选 · 奖金分片版</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { --bg: #f5f6fa; --card-bg: #ffffff; --primary: #4a6cf7; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; --text: #2c3e50; --border: #e0e5ec; --radius: 14px; }
@@ -175,7 +175,7 @@
     var historyRedBlue = [];
     var lastInputSnapshot = '';
 
-    // 历史组合列表
+    // 历史组合列表（略）
     var HISTORY_LINES = [
         "01,03,11,22,26,31","09,14,15,16,29,30","06,09,25,27,28,30","03,04,14,15,18,20",
         "09,15,18,24,28,33","07,16,21,24,27,30","02,09,10,24,31,33","04,11,15,17,24,30",
@@ -208,6 +208,15 @@
             var key = nums.map(function(n){ return String(n).padStart(2,'0'); }).sort().join(',');
             HISTORY_SET.add(key);
         }
+    }
+
+    function popcount32(v) {
+        v = v - ((v >>> 1) & 0x55555555);
+        v = (v & 0x33333333) + ((v >>> 2) & 0x33333333);
+        v = (v + (v >>> 4)) & 0x0F0F0F0F;
+        v = (v + (v >>> 8)) & 0x0F0F0F0F;
+        v = (v + (v >>> 16)) & 0x0F0F0F0F;
+        return v & 0x3F;
     }
 
     function buildAll() {
@@ -266,7 +275,6 @@
     function hasSameTail2Groups(arr) { var t=[0,0,0,0,0,0,0,0,0,0]; for (var i=0;i<arr.length;i++) t[arr[i]%10]++; var g=0; for (var i=0;i<10;i++){ if(t[i]>=2) g++; if(g>=2) return true; } return false; }
     function getZonePattern(arr) { var a=0,b=0,c=0; for (var i=0;i<arr.length;i++){ if(arr[i]>=1&&arr[i]<=11) a++; else if(arr[i]>=12&&arr[i]<=22) b++; else c++; } return [a,b,c].sort(function(x,y){return x-y;}).join(''); }
 
-    // 通用状态重置
     function finishOperation(startTime) {
         busy = false; hideProgress(); setStatus('就绪');
         document.getElementById('btnApply').disabled = false;
@@ -532,28 +540,19 @@
         document.body.removeChild(ta);
     }
 
-    // 奖金计算函数
-    function calcPrize(reds, blue, ticketReds, ticketBlue) {
-        var matchRed = 0;
-        for (var i=0; i<reds.length; i++) {
-            if (ticketReds.indexOf(reds[i]) !== -1) matchRed++;
-        }
-        var matchBlue = (blue === ticketBlue) ? 1 : 0;
-        if (matchRed === 6 && matchBlue === 1) return 5000000;
-        if (matchRed === 6 && matchBlue === 0) return 500000;
-        if (matchRed === 5 && matchBlue === 1) return 3000;
-        if (matchRed === 5 && matchBlue === 0) return 200;
-        if (matchRed === 4 && matchBlue === 1) return 200;
-        if (matchRed === 4 && matchBlue === 0) return 10;
-        if (matchRed === 3 && matchBlue === 1) return 10;
-        if (matchRed === 3 && matchBlue === 0) return 5;
-        if (matchRed === 2 && matchBlue === 1) return 5;
-        if (matchRed === 1 && matchBlue === 1) return 5;
-        if (matchRed === 0 && matchBlue === 1) return 5;
+    // 奖金计算函数（基于匹配红球数和蓝球是否匹配）
+    function prizeAmount(matchRed, matchBlue) {
+        if (matchRed === 6) return matchBlue ? 5000000 : 500000;
+        if (matchRed === 5) return matchBlue ? 3000 : 200;
+        if (matchRed === 4) return matchBlue ? 200 : 10;
+        if (matchRed === 3) return matchBlue ? 10 : 5;
+        if (matchRed === 2 && matchBlue) return 5;
+        if (matchRed === 1 && matchBlue) return 5;
+        if (matchRed === 0 && matchBlue) return 5;
         return 0;
     }
 
-    // 奖金计算与导出（修复版）
+    // 奖金计算与导出（分片异步）
     function prizeExport() {
         if (busy) return alert('处理中');
         if (filteredCount === 0) return alert('无剩余组合');
@@ -562,45 +561,107 @@
             return;
         }
         if (typeof XLSX === 'undefined') { alert('Excel库加载失败，请检查网络'); return; }
+        if (!confirm('即将进行奖金计算，可能需要一些时间，确认继续？')) return;
+
         busy = true;
         document.getElementById('btnPrizeExport').disabled = true;
         document.getElementById('btnPrizeExport').textContent = '计算中...';
         setStatus('计算奖金中...');
         showProgress(0);
-        var startTime = Date.now();
-        var redCombos = [];
-        for (var i=0; i<TOTAL; i++) {
-            if (filteredAlive[i]) redCombos.push(unmask(masksLow[i], masksHigh[i]));
+
+        // 收集所有存活红球掩码
+        var redMasks = [];
+        for (var i = 0; i < TOTAL; i++) {
+            if (filteredAlive[i]) redMasks.push({ low: masksLow[i], high: masksHigh[i] });
         }
-        var allEntries = [];
-        for (var r=0; r<redCombos.length; r++) {
-            var reds = redCombos[r];
-            for (var b=1; b<=16; b++) {
-                allEntries.push({ reds: reds, blue: b, prize: 0 });
+        var totalRed = redMasks.length;
+        // 奖金数组，每个红球组合对应16个蓝球
+        var prizes = new Uint32Array(totalRed * 16);
+
+        // 历史票处理（异步分片）
+        var ticketIndex = 0;
+        var ticketCount = historyRedBlue.length;
+
+        function processNextTicket() {
+            if (ticketIndex >= ticketCount) {
+                // 所有票处理完毕，生成Excel
+                buildPrizeExcel();
+                return;
             }
-        }
-        for (var t=0; t<historyRedBlue.length; t++) {
-            var ticket = historyRedBlue[t];
-            if (ticket.blue === null) continue;
-            for (var e=0; e<allEntries.length; e++) {
-                allEntries[e].prize += calcPrize(allEntries[e].reds, allEntries[e].blue, ticket.reds, ticket.blue);
+            var ticket = historyRedBlue[ticketIndex];
+            ticketIndex++;
+            if (ticket.blue === null) {
+                // 无蓝球，跳过
+                setTimeout(processNextTicket, 0);
+                return;
             }
+            var ticketMask = maskFrom(ticket.reds);
+            var ticketBlue = ticket.blue;
+            // 遍历所有红球组合
+            for (var r = 0; r < totalRed; r++) {
+                var m = redMasks[r];
+                var interLow = m.low & ticketMask.l;
+                var interHigh = m.high & ticketMask.h;
+                var matchRed = popcount32(interLow) + (interHigh & 1);
+                var baseIdx = r * 16;
+                if (matchRed >= 3 || (matchRed <= 2 && ticketBlue === 1) || (matchRed === 2 && ticketBlue === 1) || (matchRed === 1 && ticketBlue === 1) || (matchRed === 0 && ticketBlue === 1)) {
+                    // 可能中奖，详细计算
+                    for (var b = 1; b <= 16; b++) {
+                        var isBlueMatch = (b === ticketBlue) ? 1 : 0;
+                        var prize = prizeAmount(matchRed, isBlueMatch);
+                        if (prize > 0) {
+                            prizes[baseIdx + b - 1] += prize;
+                        }
+                    }
+                } else {
+                    // 没有奖金，跳过
+                }
+            }
+            var progress = Math.round((ticketIndex / ticketCount) * 100);
+            showProgress(progress);
+            // 释放主线程，继续下一张票
+            setTimeout(processNextTicket, 5);
         }
-        allEntries.sort(function(a,b){ return a.prize - b.prize; });
-        var sheetData = [['中奖号码', '中奖金额（元）']];
-        for (var i=0; i<allEntries.length; i++) {
-            var code = allEntries[i].reds.map(function(n){ return String(n).padStart(2,'0'); }).join(',') + '-' + String(allEntries[i].blue).padStart(2,'0');
-            sheetData.push([code, allEntries[i].prize]);
+
+        function buildPrizeExcel() {
+            // 生成 Excel
+            setTimeout(function() {
+                try {
+                    var rows = [];
+                    for (var r = 0; r < totalRed; r++) {
+                        var reds = unmask(redMasks[r].low, redMasks[r].high);
+                        var redStr = reds.map(function(n){ return String(n).padStart(2,'0'); }).join(',');
+                        var baseIdx = r * 16;
+                        for (var b = 1; b <= 16; b++) {
+                            var code = redStr + '-' + String(b).padStart(2,'0');
+                            var prize = prizes[baseIdx + b - 1];
+                            rows.push([code, prize]);
+                        }
+                    }
+                    // 按奖金升序排序
+                    rows.sort(function(a, b) { return a[1] - b[1]; });
+                    var sheetData = [['中奖号码', '中奖金额（元）']];
+                    for (var i = 0; i < rows.length; i++) {
+                        sheetData.push(rows[i]);
+                    }
+                    var ws = XLSX.utils.aoa_to_sheet(sheetData);
+                    ws['!cols'] = [{wch:22}, {wch:14}];
+                    var wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, '奖金表');
+                    var now = new Date();
+                    XLSX.writeFile(wb, '奖金计算_' + rows.length + '注_' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '.xlsx');
+                    log('💰 奖金计算完成，共 '+rows.length.toLocaleString()+' 注');
+                    document.getElementById('exportHint').textContent = '✅ 奖金表已导出';
+                } catch (e) {
+                    alert('生成Excel失败：' + e.message);
+                    log('❌ 导出失败');
+                }
+                finishOperation(Date.now());
+            }, 10);
         }
-        var ws = XLSX.utils.aoa_to_sheet(sheetData);
-        ws['!cols'] = [{wch:22}, {wch:14}];
-        var wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, '奖金表');
-        var now = new Date();
-        XLSX.writeFile(wb, '奖金计算_' + allEntries.length + '注_' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '.xlsx');
-        log('💰 奖金计算完成，共 '+allEntries.length.toLocaleString()+' 注');
-        document.getElementById('exportHint').textContent = '✅ 奖金表已导出';
-        finishOperation(startTime);
+
+        // 开始处理第一张票
+        processNextTicket();
     }
 
     function exportXLSX(){
@@ -741,7 +802,7 @@
             document.getElementById('btnPairModalCancel').addEventListener('click', hidePairModal);
             document.getElementById('btnPairModalConfirm').addEventListener('click', confirmPairExclusion);
 
-            log('✅ 底部显示+奖金修复版已就绪');
+            log('✅ 奖金分片版就绪，计算将显示进度');
         } catch(e) {
             alert('初始化失败：' + e.message + '\n请刷新页面重试。');
             console.error(e);
