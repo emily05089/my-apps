@@ -147,7 +147,7 @@
     </div>
 </div>
 
-<!-- 双数字弹窗（已省略，代码保持一致） -->
+<!-- 双数字弹窗 -->
 <div class="modal-overlay" id="pairModalOverlay">
     <div class="modal-box">
         <div class="modal-title">输入双数字组合（每行一组，如 01,05）</div>
@@ -539,7 +539,7 @@
         document.body.removeChild(ta);
     }
 
-    // ========== Worker 奖金计算（已修复排序） ==========
+    // ========== Worker 奖金计算（生成带引号的CSV，主线程转为Excel） ==========
     function createPrizeWorker() {
         if (prizeWorker) { prizeWorker.terminate(); }
         var workerCode = [
@@ -605,7 +605,7 @@
             "    if (currentRed < totalRed) {",
             "      setTimeout(processBatch, 50);",
             "    } else {",
-            "      // 生成结果并按金额升序排序",
+            "      // 构建带引号的CSV行",
             "      var rows = [];",
             "      for (var r = 0; r < totalRed; r++) {",
             "        var reds = [];",
@@ -617,9 +617,10 @@
             "        var baseIdx = r * 16;",
             "        for (var b = 1; b <= 16; b++) {",
             "          var amount = prizes[baseIdx + b - 1];",
-            "          rows.push({ str: redStr + '-' + (b < 10 ? '0' : '') + b, amount: amount });",
+            "          rows.push({ str: '\"' + redStr + '-' + (b < 10 ? '0' : '') + b + '\"', amount: amount });",
             "        }",
             "      }",
+            "      // 按金额升序",
             "      rows.sort(function(a, b) { return a.amount - b.amount; });",
             "      var csvRows = [];",
             "      for (var i = 0; i < rows.length; i++) {",
@@ -641,18 +642,19 @@
                 showProgress(data.progress);
                 setStatus('计算奖金中... ' + data.currentRed.toLocaleString() + ' / ' + data.totalRed.toLocaleString());
             } else if (data.type === 'complete') {
-                setStatus('正在生成CSV...');
-                var csvContent = '中奖号码,中奖金额（元）\n' + data.rows.join('\n');
-                var blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-                var a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                var now = new Date();
-                a.download = '奖金计算_' + (data.rows.length) + '注_' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '.csv';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                log('💰 奖金计算完成，共 ' + data.rows.length.toLocaleString() + ' 注，CSV已导出');
-                document.getElementById('exportHint').textContent = '✅ 奖金表已导出';
+                setStatus('正在生成Excel...');
+                var csvContent = '"中奖号码","中奖金额（元）"\n' + data.rows.join('\n');
+                try {
+                    var wb = XLSX.read(csvContent, { type: 'string', raw: true });
+                    var newWb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(newWb, wb.Sheets[wb.SheetNames[0]], '奖金计算');
+                    var now = new Date();
+                    XLSX.writeFile(newWb, '奖金计算_' + data.rows.length + '注_' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '.xlsx');
+                    log('💰 奖金计算完成，共 ' + data.rows.length.toLocaleString() + ' 注，Excel已导出');
+                    document.getElementById('exportHint').textContent = '✅ 奖金表已导出';
+                } catch(e) {
+                    alert('生成Excel失败：'+e.message);
+                }
                 finishOperation(Date.now());
             } else if (data.type === 'error') {
                 alert(data.msg);
@@ -837,7 +839,7 @@
             document.getElementById('btnPairModalCancel').addEventListener('click', hidePairModal);
             document.getElementById('btnPairModalConfirm').addEventListener('click', confirmPairExclusion);
 
-            log('✅ Worker版就绪，奖金计算按金额从少到多排序');
+            log('✅ 奖金导出为两列Excel，金额从低到高排列');
         } catch(e) {
             alert('初始化失败：' + e.message + '\n请刷新页面重试。');
             console.error(e);
