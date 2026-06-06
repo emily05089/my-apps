@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>双应用前区筛选 · 奖金计算可用版</title>
+    <title>双应用前区筛选 · 底部显示+奖金修复</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { --bg: #f5f6fa; --card-bg: #ffffff; --primary: #4a6cf7; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; --text: #2c3e50; --border: #e0e5ec; --radius: 14px; }
@@ -50,6 +50,7 @@
         .modal-textarea { width: 100%; height: 150px; border: 1.5px solid var(--border); border-radius: 12px; padding: 10px; font-size: 14px; font-family: monospace; resize: vertical; background: #fafbfc; }
         .modal-textarea:focus { outline: none; border-color: var(--primary); background: #fff; }
         .modal-buttons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+        .bottom-remain { text-align: center; font-size: 13px; margin-top: 6px; color: var(--text); }
     </style>
 </head>
 <body>
@@ -140,6 +141,9 @@
             <button class="btn btn-prize" id="btnPrizeExport" style="flex:1;">💰 奖金计算与导出</button>
         </div>
         <div id="exportHint" style="font-size:11px;color:#888;margin-top:4px;"></div>
+        <div class="bottom-remain">
+            当前剩余组合：<span class="badge" id="filteredBadgeBottom">1,107,568</span>
+        </div>
     </div>
 </div>
 
@@ -225,6 +229,7 @@
 
     function updateDisplay() {
         document.getElementById('filteredBadge').textContent = filteredCount.toLocaleString();
+        document.getElementById('filteredBadgeBottom').textContent = filteredCount.toLocaleString();
         document.getElementById('orCount').textContent = orSel.size;
         document.getElementById('andCount').textContent = andSel.size;
     }
@@ -397,7 +402,6 @@
         return res;
     }
 
-    // 解析一行（支持蓝球）
     function parseLineWithBlue(line) {
         line = line.trim(); if (!line) return [];
         var blue = null;
@@ -549,11 +553,14 @@
         return 0;
     }
 
-    // 奖金计算与导出
+    // 奖金计算与导出（修复版）
     function prizeExport() {
         if (busy) return alert('处理中');
         if (filteredCount === 0) return alert('无剩余组合');
-        if (!historyRedBlue.length) return alert('历史中没有任何带蓝球的组合。请先输入含蓝球的号码（如 1,2,3,4,5,6-1）并点击“应用筛选”。');
+        if (!historyRedBlue.length) {
+            alert('历史中没有任何带蓝球的组合。\n请先输入类似 1,2,3,4,5,6-1 的号码并点击“应用筛选”。');
+            return;
+        }
         if (typeof XLSX === 'undefined') { alert('Excel库加载失败，请检查网络'); return; }
         busy = true;
         document.getElementById('btnPrizeExport').disabled = true;
@@ -734,7 +741,7 @@
             document.getElementById('btnPairModalCancel').addEventListener('click', hidePairModal);
             document.getElementById('btnPairModalConfirm').addEventListener('click', confirmPairExclusion);
 
-            log('✅ 完整版就绪，奖金计算需输入带蓝球的号码');
+            log('✅ 底部显示+奖金修复版已就绪');
         } catch(e) {
             alert('初始化失败：' + e.message + '\n请刷新页面重试。');
             console.error(e);
