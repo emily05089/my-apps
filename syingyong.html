@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>双应用前区筛选 · 完整修复版</title>
+    <title>双应用前区筛选 · 奖金计算可用版</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { --bg: #f5f6fa; --card-bg: #ffffff; --primary: #4a6cf7; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; --text: #2c3e50; --border: #e0e5ec; --radius: 14px; }
@@ -159,7 +159,6 @@
 
 <script>
 (function() {
-    // 移除顶层 try-catch，让真实错误暴露出来，方便调试
     var TOTAL = 1107568;
     var filteredAlive = new Uint8Array(TOTAL);
     var filteredCount = TOTAL;
@@ -450,7 +449,7 @@
 
     function analyzeDuplicates(){
         addToHistory();
-        if (!historyCombos.length) return alert('历史记录为空，请先输入号码并点击「统计重复」');
+        if (!historyCombos.length) return alert('历史记录为空');
         var map = new Map();
         for (var i=0; i<historyCombos.length; i++) {
             var k = historyCombos[i].map(function(n){ return String(n).padStart(2,'0'); }).join(',');
@@ -523,8 +522,7 @@
     }
     function fallbackCopy(text, n) {
         var ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed'; ta.style.left = '-9999px';
+        ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
         document.body.appendChild(ta); ta.select();
         try { document.execCommand('copy'); alert('已复制 '+n+' 条'); } catch(e) { alert('复制失败，请手动复制'); }
         document.body.removeChild(ta);
@@ -555,8 +553,8 @@
     function prizeExport() {
         if (busy) return alert('处理中');
         if (filteredCount === 0) return alert('无剩余组合');
-        if (!historyRedBlue.length) return alert('历史中没有任何红蓝组合，请先输入号码并应用筛选');
-        if (typeof XLSX === 'undefined') { alert('Excel库加载失败'); return; }
+        if (!historyRedBlue.length) return alert('历史中没有任何带蓝球的组合。请先输入含蓝球的号码（如 1,2,3,4,5,6-1）并点击“应用筛选”。');
+        if (typeof XLSX === 'undefined') { alert('Excel库加载失败，请检查网络'); return; }
         busy = true;
         document.getElementById('btnPrizeExport').disabled = true;
         document.getElementById('btnPrizeExport').textContent = '计算中...';
@@ -736,7 +734,7 @@
             document.getElementById('btnPairModalCancel').addEventListener('click', hidePairModal);
             document.getElementById('btnPairModalConfirm').addEventListener('click', confirmPairExclusion);
 
-            log('✅ 修复版就绪，所有功能正常');
+            log('✅ 完整版就绪，奖金计算需输入带蓝球的号码');
         } catch(e) {
             alert('初始化失败：' + e.message + '\n请刷新页面重试。');
             console.error(e);
