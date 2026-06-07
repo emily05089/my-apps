@@ -25,6 +25,7 @@
         .btn-warn { background: var(--warning); color: #fff; }
         .btn-danger { background: var(--danger); color: #fff; }
         .btn-prize { background: #8e44ad; color: #fff; }
+        .btn-fixed { background: #2c3e50; color: #fff; }
         .number-grid { display: flex; flex-wrap: wrap; gap: 3px; margin: 6px 0; }
         .n-cell { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; cursor: pointer; background: #fff; transition: 0.1s; color: #333; }
         .n-cell:active { transform: scale(0.9); }
@@ -136,7 +137,12 @@
     </div>
 
     <div class="card">
-        <div class="flex-row">
+        <b>📌 固定奖金基准与导出</b>
+        <div class="flex-row" style="margin-top:6px;">
+            <button class="btn btn-fixed btn-sm" id="btnFixHistory">📌 固定当前历史</button>
+            <span class="tag" id="fixStatus" style="margin-left:4px;">（未固定）</span>
+        </div>
+        <div class="flex-row" style="margin-top:10px;">
             <button class="btn" id="btnExport" style="flex:1;">📥 导出Excel（红球）</button>
             <button class="btn btn-prize" id="btnPrizeExport" style="flex:1;">💰 奖金计算与导出</button>
         </div>
@@ -169,10 +175,14 @@
     var busy = false;
     var orSel = new Set();
     var andSel = new Set();
-    var historyCombos = [];
-    var historyRedBlue = [];
+    var historyCombos = [];          // 用于统计全部历史
+    var historyRedBlue = [];         // 动态累积的带蓝球组合（可能被固定忽略）
     var lastInputSnapshot = '';
     var prizeWorker = null;
+
+    // 新增：固定历史相关变量
+    var fixedHistoryRedBlue = [];    // 被固定的历史组合（深拷贝）
+    var isPrizeHistoryFixed = false; // 是否已固定
 
     // 历史组合列表
     var HISTORY_LINES = [
@@ -240,6 +250,13 @@
         document.getElementById('filteredBadgeBottom').textContent = filteredCount.toLocaleString();
         document.getElementById('orCount').textContent = orSel.size;
         document.getElementById('andCount').textContent = andSel.size;
+        // 更新固定状态显示
+        var fixEl = document.getElementById('fixStatus');
+        if (isPrizeHistoryFixed) {
+            fixEl.textContent = '（已固定：' + fixedHistoryRedBlue.length + ' 条基准）';
+        } else {
+            fixEl.textContent = '（未固定）';
+        }
     }
 
     function log(s) {
@@ -458,6 +475,18 @@
         }
     }
 
+    // 固定历史按钮逻辑
+    function fixHistory() {
+        if (historyRedBlue.length === 0) {
+            alert('当前没有任何带蓝球的输入记录，无法固定');
+            return;
+        }
+        fixedHistoryRedBlue = historyRedBlue.slice(); // 深拷贝一份
+        isPrizeHistoryFixed = true;
+        updateDisplay();
+        log('📌 已固定当前 ' + fixedHistoryRedBlue.length + ' 条带蓝球组合作为奖金计算基准，后续输入不影响');
+    }
+
     function analyzeDuplicates(){
         addToHistory();
         if (!historyCombos.length) return alert('历史记录为空');
@@ -539,7 +568,7 @@
         document.body.removeChild(ta);
     }
 
-    // ========== Worker 奖金计算（生成带引号的CSV，主线程转为Excel） ==========
+    // ========== Worker 奖金计算（支持固定历史） ==========
     function createPrizeWorker() {
         if (prizeWorker) { prizeWorker.terminate(); }
         var workerCode = [
@@ -605,7 +634,6 @@
             "    if (currentRed < totalRed) {",
             "      setTimeout(processBatch, 50);",
             "    } else {",
-            "      // 构建带引号的CSV行",
             "      var rows = [];",
             "      for (var r = 0; r < totalRed; r++) {",
             "        var reds = [];",
@@ -620,7 +648,6 @@
             "          rows.push({ str: '\"' + redStr + '-' + (b < 10 ? '0' : '') + b + '\"', amount: amount });",
             "        }",
             "      }",
-            "      // 按金额升序",
             "      rows.sort(function(a, b) { return a.amount - b.amount; });",
             "      var csvRows = [];",
             "      for (var i = 0; i < rows.length; i++) {",
@@ -666,7 +693,11 @@
     function prizeExport() {
         if (busy) return alert('处理中');
         if (filteredCount === 0) return alert('无剩余组合');
-        if (!historyRedBlue.length) {
+
+        // 根据是否固定，选择不同的历史数据源
+        var sourceHistory = isPrizeHistoryFixed ? fixedHistoryRedBlue : historyRedBlue;
+
+        if (!sourceHistory.length) {
             alert('历史中没有任何带蓝球的组合。\n请先输入类似 1,2,3,4,5,6-1 的号码并点击“应用筛选”。');
             return;
         }
@@ -682,9 +713,11 @@
         for (var i = 0; i < TOTAL; i++) {
             if (filteredAlive[i]) redMasks.push({ l: masksLow[i], h: masksHigh[i] });
         }
+
+        // 构建 Worker 所需的掩码数据
         var historyData = [];
-        for (var j = 0; j < historyRedBlue.length; j++) {
-            var t = historyRedBlue[j];
+        for (var j = 0; j < sourceHistory.length; j++) {
+            var t = sourceHistory[j];
             if (t.blue !== null) {
                 var m = maskFrom(t.reds);
                 historyData.push({ redMaskL: m.l, redMaskH: m.h, blue: t.blue });
@@ -799,13 +832,16 @@
                 if (busy) return alert('处理中');
                 if (!confirm('重置全部？')) return;
                 filteredAlive.fill(1); filteredCount = TOTAL;
-                historyCombos = []; historyRedBlue = []; lastInputSnapshot = '';
+                historyCombos = []; historyRedBlue = [];
+                fixedHistoryRedBlue = [];
+                isPrizeHistoryFixed = false;
+                lastInputSnapshot = '';
                 updateDisplay();
                 document.getElementById('inputArea').value = '';
                 document.getElementById('resultArea').style.display = 'none';
                 orSel.clear(); andSel.clear(); drawGrids();
                 hideProgress(); setStatus('就绪');
-                log('🔄 已重置');
+                log('🔄 已重置（含固定状态）');
             });
             document.getElementById('btnApplyOR').addEventListener('click', function(){ applyFilteredMask(orSel,'OR'); });
             document.getElementById('btnClearOR').addEventListener('click', function(){ orSel.clear(); drawGrids(); });
@@ -813,6 +849,7 @@
             document.getElementById('btnClearAND').addEventListener('click', function(){ andSel.clear(); drawGrids(); });
             document.getElementById('btnExport').addEventListener('click', exportXLSX);
             document.getElementById('btnPrizeExport').addEventListener('click', prizeExport);
+            document.getElementById('btnFixHistory').addEventListener('click', fixHistory);
 
             function bind(id, fn) { document.getElementById(id).addEventListener('click', fn); }
             bind('btnAllOdd', function(){ applyCustomFilter('全奇数', isAllOdd); });
@@ -839,7 +876,8 @@
             document.getElementById('btnPairModalCancel').addEventListener('click', hidePairModal);
             document.getElementById('btnPairModalConfirm').addEventListener('click', confirmPairExclusion);
 
-            log('✅ 奖金导出为两列Excel，金额从低到高排列');
+            updateDisplay();
+            log('✅ 已加载固定历史按钮，点击即可锁定奖金基准');
         } catch(e) {
             alert('初始化失败：' + e.message + '\n请刷新页面重试。');
             console.error(e);
