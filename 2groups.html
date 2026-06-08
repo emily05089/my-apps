@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>双数字组合频率统计器 - 1至33 (支持单注/复式/胆拖+蓝球统计)</title>
+    <title>双数字组合频率统计器 - 1至33红球 · 1至16蓝球</title>
     <style>
         :root {
             --bg: #f0f4f8;
@@ -56,7 +56,6 @@
         .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #2d3748; color: #fff; padding: 10px 22px; border-radius: 30px; font-weight: 600; z-index: 9999; opacity: 0; transition: 0.3s; }
         .toast.show { opacity: 1; } .toast.success { background: #48bb78; }
 
-        /* 模态窗口 */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
         .modal-overlay.active { display: flex; }
         .modal-dialog { background: #fff; border-radius: 16px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
@@ -74,7 +73,7 @@
 <div class="app-container">
     <div style="text-align:center; padding: 8px 0;">
         <h1 style="font-size: 24px; font-weight: 800;">🎯 双数字组合频率统计器</h1>
-        <p style="color: #8899aa; font-size: 13px;">1—33任选2个 · 共528组 · 单注/复式/胆拖 + 蓝球统计</p>
+        <p style="color: #8899aa; font-size: 13px;">红球1‑33 · 蓝球1‑16 · 共528组双数字</p>
     </div>
 
     <div class="card">
@@ -83,15 +82,13 @@
             <div>
                 <div style="font-weight:700;">输入号码组合</div>
                 <div style="font-size:13px; color:var(--text-secondary);">
-                    支持格式（逗号中英文均可，1‑9可写01或1）：<br>
-                    • 单注：1,2,3,4,5,6 或 1,2,3,4,5,6-1<br>
-                    • 复式：1,2,3,4,5,6,7-2 (自动拆成7注)<br>
-                    • 胆拖：01,02,03-04,05,06-16 (胆码-拖码-蓝球)
+                    支持格式：<br>• 单注：1,2,3,4,5,6 或 1,2,3,4,5,6-1<br>
+                    • 复式：1,2,3,4,5,6,7-2<br>• 胆拖：01,02,03-04,05,06-16
                 </div>
             </div>
         </div>
         <div class="card-body">
-            <textarea id="inputArea" placeholder="示例：&#10;1,2,3,4,5,6-1&#10;1,2,3,4,5,6,7-2&#10;2,3,4,5,6,7&#10;01,02,03-04,05,06-16&#10;10,15,20,25,30,33-08"></textarea>
+            <textarea id="inputArea" placeholder="示例：&#10;1,2,3,4,5,6-1&#10;1,2,3,4,5,6,7-2&#10;01,02,03-04,05,06-16&#10;10,15,20,25,30,33-08"></textarea>
             <div class="btn-row">
                 <button class="btn btn-primary" onclick="calculate()">🔍 开始统计</button>
                 <button class="btn btn-outline" onclick="loadExample()">📋 加载示例</button>
@@ -109,7 +106,7 @@
         <div class="card-header">
             <div class="icon icon-result">🏆</div>
             <div><div style="font-weight:700;">双数字组合频率排行 — 528组</div><div id="resultSubtitle" style="font-size:13px; color:var(--text-secondary);"></div></div>
-            <div style="margin-left:auto; display:flex; gap:8px; flex-wrap:wrap;">
+            <div style="margin-left:auto; display:flex; gap:8px;">
                 <button class="btn btn-success btn-sm" onclick="copyAllWithCount()">📋 复制全部(带次数)</button>
                 <button class="btn btn-outline btn-sm" onclick="copySelectedCombos()">✂️ 复制勾选组合</button>
                 <button class="btn btn-outline btn-sm" onclick="openAnalysisModal()">🔍 分析特定组合</button>
@@ -121,8 +118,8 @@
     <div class="card" id="singleFreqCard" style="display:none;">
         <div class="card-header">
             <div class="icon icon-single">🔢</div>
-            <div><div style="font-weight:700;">单数字出现频率 (1-33)</div><div id="singleFreqSubtitle" style="font-size:13px; color:var(--text-secondary);"></div></div>
-            <div style="margin-left:auto;"><button class="btn btn-success btn-sm" onclick="copySingleFreq()">📋 复制频率统计</button></div>
+            <div><div style="font-weight:700;">红球单数字频率 (1-33)</div><div id="singleFreqSubtitle" style="font-size:13px; color:var(--text-secondary);"></div></div>
+            <div style="margin-left:auto;"><button class="btn btn-success btn-sm" onclick="copySingleFreq()">📋 复制频率</button></div>
         </div>
         <div class="card-body no-padding"><div class="result-scroll" id="singleFreqScroll" style="max-height:400px;"></div></div>
     </div>
@@ -130,7 +127,7 @@
     <div class="card" id="blueFreqCard" style="display:none;">
         <div class="card-header">
             <div class="icon icon-blue">🔵</div>
-            <div><div style="font-weight:700;">蓝球出现频率 (1-33)</div><div id="blueFreqSubtitle" style="font-size:13px; color:var(--text-secondary);"></div></div>
+            <div><div style="font-weight:700;">蓝球出现频率 (1-16)</div><div id="blueFreqSubtitle" style="font-size:13px; color:var(--text-secondary);"></div></div>
             <div style="margin-left:auto;"><button class="btn btn-success btn-sm" onclick="copyBlueFreq()">📋 复制蓝球频率</button></div>
         </div>
         <div class="card-body no-padding"><div class="result-scroll" id="blueFreqScroll" style="max-height:400px;"></div></div>
@@ -142,7 +139,7 @@
 <div class="modal-overlay" id="analysisModal">
     <div class="modal-dialog">
         <h3>🔍 分析特定6数字组合</h3>
-        <p style="color:var(--text-secondary); font-size:14px; margin-bottom:12px;">输入一组号码（如 01,02,03,04,05,06），分析其双数字及单数字频率与排名。</p>
+        <p style="color:var(--text-secondary); font-size:14px; margin-bottom:12px;">输入一组红球号码，分析其双数字及单数字频率与排名。</p>
         <div class="modal-input-row">
             <input type="text" id="analysisInput" placeholder="例如：01,02,03,04,05,06">
             <button class="btn btn-primary btn-sm" onclick="runAnalysis()">分析</button>
@@ -166,9 +163,9 @@
 
 <script>
     (function() {
-        const TOTAL_PAIRS = 528, NUM_RANGE = 33, COMBO_SIZE = 6;
+        const TOTAL_PAIRS = 528, RED_RANGE = 33, BLUE_RANGE = 16, COMBO_SIZE = 6;
         const ALL_PAIRS = [];
-        for (let a = 1; a <= NUM_RANGE; a++) for (let b = a + 1; b <= NUM_RANGE; b++) ALL_PAIRS.push([a, b]);
+        for (let a = 1; a <= RED_RANGE; a++) for (let b = a + 1; b <= RED_RANGE; b++) ALL_PAIRS.push([a, b]);
         const pairToIndex = new Map();
         ALL_PAIRS.forEach((pair, idx) => pairToIndex.set(pair[0]+','+pair[1], idx));
 
@@ -198,7 +195,6 @@
         function fmtNum(n) { return String(n).padStart(2,'0'); }
         function fmtPair(a,b) { return fmtNum(a)+','+fmtNum(b); }
 
-        // 组合生成器
         function combinations(arr, k) {
             const res = [];
             const f = (start, chosen) => {
@@ -209,52 +205,45 @@
             return res;
         }
 
-        // 解析数字字符串数组
         function parseNumbers(str, lineIdx, partName) {
             const nums = [];
             const parts = str.replace(/，/g, ',').split(',').map(s => s.trim()).filter(s => s !== '');
             for (const p of parts) {
                 const n = parseInt(p, 10);
-                if (isNaN(n) || n < 1 || n > NUM_RANGE) return { error: `第${lineIdx+1}行：${partName}数字"${p}"无效` };
+                if (isNaN(n) || n < 1 || n > RED_RANGE) return { error: `第${lineIdx+1}行：${partName}数字"${p}"无效` };
                 nums.push(n);
             }
             return [...new Set(nums)].sort((a,b)=>a-b);
         }
 
-        // 核心解析一行
         function parseLine(line, lineIdx) {
             line = line.trim();
             if (!line) return null;
-            // 提取蓝球
             let blueNum = null;
             let redPart = line;
-            const blueMatch = line.match(/-(0?[1-9]|[12]\d|3[0-3])$/);
+            const blueMatch = line.match(/-(0?[1-9]|1[0-6])$/);
             if (blueMatch) {
                 blueNum = parseInt(blueMatch[1], 10);
+                if (blueNum < 1 || blueNum > BLUE_RANGE) return { error: `第${lineIdx+1}行：蓝球需在1-16之间` };
                 redPart = line.substring(0, blueMatch.index).trim();
                 if (!redPart) return { error: `第${lineIdx+1}行：红球部分为空` };
             }
-            // 判断胆拖
             if (redPart.includes('-')) {
                 const parts = redPart.split('-');
                 if (parts.length !== 2) return { error: `第${lineIdx+1}行：胆拖格式错误` };
-                const danStr = parts[0].trim(), tuoStr = parts[1].trim();
-                const danRes = parseNumbers(danStr, lineIdx, '胆码');
+                const danRes = parseNumbers(parts[0].trim(), lineIdx, '胆码');
                 if (danRes.error) return danRes;
-                const tuoRes = parseNumbers(tuoStr, lineIdx, '拖码');
+                const tuoRes = parseNumbers(parts[1].trim(), lineIdx, '拖码');
                 if (tuoRes.error) return tuoRes;
                 const dan = danRes, tuo = tuoRes;
                 if (dan.length === 0 || dan.length >= COMBO_SIZE) return { error: `第${lineIdx+1}行：胆码个数需1-5` };
                 if (dan.length + tuo.length < COMBO_SIZE) return { error: `第${lineIdx+1}行：胆拖数字总数不足6个` };
-                // 检查胆拖重复
-                const overlap = dan.filter(n => tuo.includes(n));
-                if (overlap.length) return { error: `第${lineIdx+1}行：胆码与拖码重复` };
+                if (dan.some(n => tuo.includes(n))) return { error: `第${lineIdx+1}行：胆码与拖码重复` };
                 const need = COMBO_SIZE - dan.length;
                 const tuoCombos = combinations(tuo, need);
                 const redCombos = tuoCombos.map(tc => [...dan, ...tc].sort((a,b)=>a-b));
                 return { combos: redCombos, blue: blueNum };
             } else {
-                // 普通复式或单注
                 const numRes = parseNumbers(redPart, lineIdx, '红球');
                 if (numRes.error) return numRes;
                 const nums = numRes;
@@ -267,7 +256,7 @@
         function parseAllInput(text) {
             const lines = text.split(/\r?\n/);
             const allRedCombos = [];
-            const blueFreq = new Array(NUM_RANGE+1).fill(0);
+            const blueFreq = new Array(BLUE_RANGE + 1).fill(0);
             const errors = [];
             for (let i = 0; i < lines.length; i++) {
                 const res = parseLine(lines[i], i);
@@ -323,20 +312,20 @@
             document.getElementById('selectAllCheckbox').onchange = e => document.querySelectorAll('.combo-checkbox').forEach(cb => cb.checked = e.target.checked);
 
             const singleFreq = (() => {
-                const f = new Array(NUM_RANGE+1).fill(0);
-                validRedCombos.forEach(c => c.forEach(n => { if(n>=1&&n<=NUM_RANGE) f[n]++; }));
+                const f = new Array(RED_RANGE+1).fill(0);
+                validRedCombos.forEach(c => c.forEach(n => { if(n>=1&&n<=RED_RANGE) f[n]++; }));
                 const list = [];
-                for (let i=1; i<=NUM_RANGE; i++) list.push({ number:i, display:fmtNum(i), count:f[i] });
+                for (let i=1; i<=RED_RANGE; i++) list.push({ number:i, display:fmtNum(i), count:f[i] });
                 return list.sort((a,b)=> b.count - a.count || a.number - b.number);
             })();
             lastSingleFreq = singleFreq;
             singleFreqCard.style.display='block';
-            singleFreqSubtitle.textContent = `基于${totalCombos}注统计`;
+            singleFreqSubtitle.textContent = `基于${totalCombos}注红球统计`;
             singleFreqScroll.innerHTML = `<table><thead><tr><th>排名</th><th>数字</th><th>次数</th></tr></thead><tbody>${singleFreq.map((it,i)=>`<tr><td>${i+1}</td><td class="col-combo">${it.display}</td><td><span class="count-badge ${it.count===singleFreq[0].count?'badge-high':(it.count>0?'badge-low':'badge-zero')}">${it.count}</span></td></tr>`).join('')}</tbody></table>`;
 
             const blueList = (() => {
                 const list = [];
-                for (let i=1; i<=NUM_RANGE; i++) list.push({ number:i, display:fmtNum(i), count:blueFreq[i] });
+                for (let i=1; i<=BLUE_RANGE; i++) list.push({ number:i, display:fmtNum(i), count:blueFreq[i] });
                 return list.sort((a,b)=> b.count - a.count || a.number - b.number);
             })();
             lastBlueFreq = blueList;
@@ -366,7 +355,6 @@
             navigator.clipboard.writeText(lastBlueFreq.map(i=>i.display+','+i.count).join('\n')).then(()=>showToast('已复制蓝球频率'));
         };
 
-        // 分析模态 (保持不变)
         const analysisModal = document.getElementById('analysisModal');
         const analysisInput = document.getElementById('analysisInput');
         window.openAnalysisModal = () => {
@@ -382,7 +370,7 @@
             const val = analysisInput.value.trim();
             if(!val) return document.getElementById('analysisError').textContent='请输入6个数字';
             const parts = val.replace(/，/g,',').split(',').map(s=>parseInt(s.trim(),10));
-            if(parts.length!==6 || parts.some(n=>isNaN(n)||n<1||n>NUM_RANGE) || new Set(parts).size!==6)
+            if(parts.length!==6 || parts.some(n=>isNaN(n)||n<1||n>RED_RANGE) || new Set(parts).size!==6)
                 return document.getElementById('analysisError').textContent='格式错误';
             const combo = parts.sort((a,b)=>a-b);
             lastAnalysisInput = val;
@@ -411,7 +399,7 @@
         };
 
         window.loadExample = () => {
-            inputArea.value = '1,2,3,4,5,6-1\n1,2,3,4,5,6,7-2\n2,3,4,5,6,7\n01,02,03-04,05,06-16\n10,15,20,25,30,33-08';
+            inputArea.value = '1,2,3,4,5,6-1\n1,2,3,4,5,6,7-2\n01,02,03-04,05,06-16\n10,15,20,25,30,33-08';
             showToast('示例已加载');
             setTimeout(calculate, 200);
         };
