@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>双应用前区筛选 · Excel双Sheet版</title>
+    <title>双应用前区筛选 · Worker终极版</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { --bg: #f5f6fa; --card-bg: #ffffff; --primary: #4a6cf7; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; --text: #2c3e50; --border: #e0e5ec; --radius: 14px; }
@@ -148,7 +148,7 @@
             <span class="tag" id="fixStatus" style="margin-left:4px;">（未固定）</span>
         </div>
         <div class="flex-row" style="margin-top:10px;">
-            <button class="btn" id="btnExport" style="flex:1;">📥 导出红球CSV</button>
+            <button class="btn" id="btnExport" style="flex:1;">📥 导出Excel（红球）</button>
             <button class="btn btn-prize" id="btnPrizeExport" style="flex:1;">💰 奖金计算与导出</button>
         </div>
         <div id="exportHint" style="font-size:11px;color:#888;margin-top:4px;"></div>
@@ -165,7 +165,6 @@
         </div>
     </div>
 </div>
-
 <script>
 (function() {
     var TOTAL = 1107568;
@@ -220,7 +219,14 @@
         }
     }
 
-    function popcount32(v) { v = v - ((v >>> 1) & 0x55555555); v = (v & 0x33333333) + ((v >>> 2) & 0x33333333); v = (v + (v >>> 4)) & 0x0F0F0F0F; v = (v + (v >>> 8)) & 0x0F0F0F0F; v = (v + (v >>> 16)) & 0x0F0F0F0F; return v & 0x3F; }
+    function popcount32(v) {
+        v = v - ((v >>> 1) & 0x55555555);
+        v = (v & 0x33333333) + ((v >>> 2) & 0x33333333);
+        v = (v + (v >>> 4)) & 0x0F0F0F0F;
+        v = (v + (v >>> 8)) & 0x0F0F0F0F;
+        v = (v + (v >>> 16)) & 0x0F0F0F0F;
+        return v & 0x3F;
+    }
 
     function buildAll() {
         masksLow = new Uint32Array(TOTAL);
@@ -245,8 +251,11 @@
         document.getElementById('orCount').textContent = orSel.size;
         document.getElementById('andCount').textContent = andSel.size;
         var fixEl = document.getElementById('fixStatus');
-        if (isPrizeHistoryFixed) { fixEl.textContent = '（已固定：' + fixedHistoryRedBlue.length + ' 条基准）'; }
-        else { fixEl.textContent = '（未固定）'; }
+        if (isPrizeHistoryFixed) {
+            fixEl.textContent = '（已固定：' + fixedHistoryRedBlue.length + ' 条基准）';
+        } else {
+            fixEl.textContent = '（未固定）';
+        }
     }
 
     function log(s) {
@@ -294,7 +303,7 @@
         document.getElementById('btnApply').disabled = false;
         document.getElementById('btnApply').textContent = '⚡应用筛选';
         document.getElementById('btnExport').disabled = false;
-        document.getElementById('btnExport').textContent = '📥 导出红球CSV';
+        document.getElementById('btnExport').textContent = '📥 导出Excel（红球）';
         document.getElementById('btnPrizeExport').disabled = false;
         document.getElementById('btnPrizeExport').textContent = '💰 奖金计算与导出';
         if (startTime) { var elapsed = ((Date.now() - startTime) / 1000).toFixed(1); log('⏱️ 本次操作耗时：' + elapsed + ' 秒'); }
@@ -474,7 +483,10 @@
     }
 
     function fixHistory() {
-        if (historyRedBlue.length === 0) { alert('当前没有任何带蓝球的输入记录，无法固定'); return; }
+        if (historyRedBlue.length === 0) {
+            alert('当前没有任何带蓝球的输入记录，无法固定');
+            return;
+        }
         fixedHistoryRedBlue = historyRedBlue.slice();
         isPrizeHistoryFixed = true;
         updateDisplay();
@@ -483,15 +495,24 @@
 
     function sortComboNumbers(comboStr, mode) {
         var nums = comboStr.split(',').map(function(s){ return parseInt(s,10); });
-        if (mode === 'asc') nums.sort(function(a,b){ return a-b; });
-        else if (mode === 'desc') nums.sort(function(a,b){ return b-a; });
-        else if (mode === 'from16') nums.sort(function(a,b){ var oA = (a-16+33)%33; var oB = (b-16+33)%33; return oA - oB; });
+        if (mode === 'asc') {
+            nums.sort(function(a,b){ return a-b; });
+        } else if (mode === 'desc') {
+            nums.sort(function(a,b){ return b-a; });
+        } else if (mode === 'from16') {
+            nums.sort(function(a,b){
+                var offsetA = (a - 16 + 33) % 33;
+                var offsetB = (b - 16 + 33) % 33;
+                return offsetA - offsetB;
+            });
+        }
         return nums.map(function(n){ return String(n).padStart(2,'0'); }).join(',');
     }
 
     function getCurrentAllAndUnique() {
         if (!statsGroups || !statsSortedCounts) return { all: [], unique: [] };
-        var allCombosList = [], uniqueCombosList = [];
+        var allCombosList = [];
+        var uniqueCombosList = [];
         for (var i = 0; i < statsSortedCounts.length; i++) {
             var count = statsSortedCounts[i];
             var combos = statsGroups.get(count);
@@ -602,7 +623,7 @@
         document.body.removeChild(ta);
     }
 
-    // ========== Worker 奖金计算（输出CSV字符串，主线程用 XLSX.read 生成Excel） ==========
+    // ========== 仅修改了导出部分：生成 Excel 双 Sheet，列宽自适应 ==========
     function createPrizeWorker() {
         if (prizeWorker) { prizeWorker.terminate(); }
         var workerCode = [
@@ -612,7 +633,14 @@
             "    computePrize(data.redMasks, data.historyRedBlue, data.batchSize);",
             "  }",
             "};",
-            "function popcount32(v) { v = v - ((v >>> 1) & 0x55555555); v = (v & 0x33333333) + ((v >>> 2) & 0x33333333); v = (v + (v >>> 4)) & 0x0F0F0F0F; v = (v + (v >>> 8)) & 0x0F0F0F0F; v = (v + (v >>> 16)) & 0x0F0F0F0F; return v & 0x3F; }",
+            "function popcount32(v) {",
+            "  v = v - ((v >>> 1) & 0x55555555);",
+            "  v = (v & 0x33333333) + ((v >>> 2) & 0x33333333);",
+            "  v = (v + (v >>> 4)) & 0x0F0F0F0F;",
+            "  v = (v + (v >>> 8)) & 0x0F0F0F0F;",
+            "  v = (v + (v >>> 16)) & 0x0F0F0F0F;",
+            "  return v & 0x3F;",
+            "}",
             "function prizeAmount(matchRed, matchBlue) {",
             "  if (matchRed === 6) return matchBlue ? 5000000 : 500000;",
             "  if (matchRed === 5) return matchBlue ? 3000 : 200;",
@@ -661,8 +689,7 @@
             "    if (currentRed < totalRed) {",
             "      setTimeout(processBatch, 50);",
             "    } else {",
-            "      var fullCsvLines = [];",
-            "      var redSet = new Set();",
+            "      var rows = [];",
             "      for (var r = 0; r < totalRed; r++) {",
             "        var reds = [];",
             "        var low = redMasks[r].l;",
@@ -670,20 +697,18 @@
             "        for (var i = 0; i < 32; i++) { if (low & (1 << i)) reds.push(i + 1); }",
             "        if (high & 1) reds.push(33);",
             "        var redStr = reds.map(function(n){ return (n < 10 ? '0' : '') + n; }).join(',');",
-            "        redSet.add(redStr);",
             "        var baseIdx = r * 16;",
             "        for (var b = 1; b <= 16; b++) {",
             "          var amount = prizes[baseIdx + b - 1];",
-            "          fullCsvLines.push('\"' + redStr + '-' + (b < 10 ? '0' : '') + b + '\",' + amount);",
+            "          rows.push({ str: '\"' + redStr + '-' + (b < 10 ? '0' : '') + b + '\"', amount: amount });",
             "        }",
             "      }",
-            "      fullCsvLines.sort(function(a, b) {",
-            "        var amtA = parseInt(a.split(',')[1]);",
-            "        var amtB = parseInt(b.split(',')[1]);",
-            "        return amtA - amtB;",
-            "      });",
-            "      var redArr = Array.from(redSet).sort();",
-            "      self.postMessage({ type: 'complete', fullCsv: fullCsvLines.join('\\n'), redCsv: redArr.join('\\n') });",
+            "      rows.sort(function(a, b) { return a.amount - b.amount; });",
+            "      var csvRows = [];",
+            "      for (var i = 0; i < rows.length; i++) {",
+            "        csvRows.push(rows[i].str + ',' + rows[i].amount);",
+            "      }",
+            "      self.postMessage({ type: 'complete', rows: csvRows });",
             "    }",
             "  }",
             "  processBatch();",
@@ -701,36 +726,59 @@
             } else if (data.type === 'complete') {
                 setStatus('正在生成Excel...');
                 try {
-                    // 构造完整的 CSV 字符串
-                    var fullCsvString = '"中奖号码","中奖金额（元）"\n' + data.fullCsv;
-                    var redCsvString = '"红球号码"\n' + data.redCsv;
-
-                    // 使用 SheetJS 读取 CSV 字符串生成工作表
-                    var fullWb = XLSX.read(fullCsvString, { type: 'string', raw: true });
-                    var redWb = XLSX.read(redCsvString, { type: 'string', raw: true });
-
+                    // 完整组合 CSV 字符串
+                    var fullCsvStr = '"中奖号码","中奖金额（元）"\n' + data.rows.join('\n');
+                    var fullWb = XLSX.read(fullCsvStr, { type: 'string', raw: true });
                     var fullSheet = fullWb.Sheets[fullWb.SheetNames[0]];
+                    // 红球汇总（去重）
+                    var redSet = new Set();
+                    for (var i = 0; i < data.rows.length; i++) {
+                        var line = data.rows[i];
+                        var parts = line.split('",');
+                        if (parts.length >= 2) {
+                            var code = parts[0].substring(1);
+                            var dashIdx = code.lastIndexOf('-');
+                            if (dashIdx !== -1) {
+                                var redCode = code.substring(0, dashIdx);
+                                var nums = redCode.split(',').map(function(s){ return parseInt(s,10); });
+                                nums.sort(function(a,b){ return a-b; });
+                                redCode = nums.map(function(n){ return String(n).padStart(2,'0'); }).join(',');
+                                redSet.add(redCode);
+                            }
+                        }
+                    }
+                    var redArr = Array.from(redSet).sort();
+                    var redCsvStr = '"红球号码"\n' + redArr.join('\n');
+                    var redWb = XLSX.read(redCsvStr, { type: 'string', raw: true });
                     var redSheet = redWb.Sheets[redWb.SheetNames[0]];
 
-                    // 创建新工作簿并添加两个工作表
+                    // 列宽自适应
+                    var max1 = 19, max2 = 10;
+                    var fullData = XLSX.utils.sheet_to_json(fullSheet, { header: 1 });
+                    for (var i = 1; i < fullData.length; i++) {
+                        if (fullData[i][0] && fullData[i][0].length > max1) max1 = fullData[i][0].length;
+                        if (fullData[i][1] && String(fullData[i][1]).length > max2) max2 = String(fullData[i][1]).length;
+                    }
+                    fullSheet['!cols'] = [{wch: max1 + 2}, {wch: max2 + 2}];
+
+                    var maxRed = 17;
+                    var redData = XLSX.utils.sheet_to_json(redSheet, { header: 1 });
+                    for (var i = 1; i < redData.length; i++) {
+                        if (redData[i][0] && redData[i][0].length > maxRed) maxRed = redData[i][0].length;
+                    }
+                    redSheet['!cols'] = [{wch: maxRed + 2}];
+
                     var wb = XLSX.utils.book_new();
                     XLSX.utils.book_append_sheet(wb, fullSheet, '完整组合');
                     XLSX.utils.book_append_sheet(wb, redSheet, '红球汇总');
-
-                    // 设置列宽（可选）
-                    if (!fullSheet['!cols']) fullSheet['!cols'] = [{wch: 22}, {wch: 15}];
-                    if (!redSheet['!cols']) redSheet['!cols'] = [{wch: 22}];
-
-                    // 下载
                     var now = new Date();
                     var ts = now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
                     XLSX.writeFile(wb, '奖金计算_' + ts + '.xlsx');
-
-                    log('💰 奖金计算完成，Excel已导出（完整组合 + 红球汇总）');
-                    document.getElementById('exportHint').textContent = '✅ Excel文件已导出';
+                    log('💰 奖金计算完成，Excel已导出（双Sheet，列宽自适应）');
+                    document.getElementById('exportHint').textContent = '✅ 奖金表已导出';
                 } catch(err) {
-                    alert('生成Excel失败：' + err.message + '\n请尝试减少数据量或使用Chrome浏览器');
-                    log('❌ Excel生成失败：' + err.message);
+                    alert('生成Excel失败：' + err.message);
+                    log('❌ 生成Excel失败：' + err.message);
                 }
                 finishOperation(Date.now());
             } else if (data.type === 'error') {
@@ -782,6 +830,7 @@
     function exportXLSX(){
         if (busy) return alert('处理中，请等待当前操作完成');
         if (filteredCount === 0) return alert('无组合可导出');
+        if (typeof XLSX === 'undefined') { alert('Excel库加载失败，请检查网络后刷新页面'); return; }
         var startTime = Date.now();
         busy = true;
         document.getElementById('btnExport').disabled = true;
@@ -801,20 +850,26 @@
                 showProgress(Math.round(done / TOTAL * 100));
                 if (done < TOTAL) setTimeout(function(){ step(done); }, 5);
                 else {
-                    var csvContent = '\uFEFF"红球号码"\n' + result.join('\n');
-                    var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                    var a = document.createElement('a');
-                    a.href = URL.createObjectURL(blob);
-                    var now = new Date();
-                    a.download = '双应用红球_' + result.length + '组_' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '.csv';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    log('📥 导出红球' + result.length.toLocaleString() + '组');
-                    document.getElementById('exportHint').textContent = '✅ 红球CSV已导出';
-                    finishOperation(startTime);
+                    setTimeout(function() {
+                        try {
+                            var sheetData = [['前区号码']]; var maxLen = 19;
+                            for (var i = 0; i < result.length; i++) { var r = result[i]; if (r.length>maxLen) maxLen=r.length; sheetData.push([r]); }
+                            var wb = XLSX.utils.book_new();
+                            var ws1 = XLSX.utils.aoa_to_sheet(sheetData); ws1['!cols']=[{wch:maxLen+2}]; XLSX.utils.book_append_sheet(wb,ws1,'组合列表');
+                            var cnt = new Array(34).fill(0);
+                            for (var i=0;i<result.length;i++) { var nums=result[i].split(','); for(var j=0;j<nums.length;j++) cnt[+nums[j]]++; }
+                            var st=[]; for(var i=1;i<=33;i++) st.push({n:i,c:cnt[i]}); st.sort(function(a,b){return b.c-a.c;});
+                            var statData=[['数字','次数','占比']];
+                            for(var i=0;i<st.length;i++){ var s=st[i]; statData.push([String(s.n).padStart(2,'0'),s.c,(s.c/(result.length*6)*100).toFixed(2)+'%']); }
+                            var ws2=XLSX.utils.aoa_to_sheet(statData); ws2['!cols']=[{wch:8},{wch:12},{wch:10}]; XLSX.utils.book_append_sheet(wb,ws2,'统计');
+                            var now=new Date();
+                            XLSX.writeFile(wb,'双应用_'+result.length+'组_'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'.xlsx');
+                            log('📥 导出'+result.length.toLocaleString()+'组'); document.getElementById('exportHint').textContent='✅ 已导出';
+                        } catch(e) { alert('导出失败：'+e.message); log('❌ 导出失败：'+e.message); }
+                        finishOperation(startTime);
+                    }, 50);
                 }
-            } catch(e) { alert('导出失败：'+e.message); finishOperation(startTime); }
+            } catch(e) { alert('数据收集出错：'+e.message); finishOperation(startTime); }
         }
         step(0);
     }
@@ -920,7 +975,7 @@
             document.getElementById('btnPairModalConfirm').addEventListener('click', confirmPairExclusion);
 
             updateDisplay();
-            log('✅ 最终版：导出为单Excel双Sheet，稳定不闪退');
+            log('✅ 列宽自适应已更新，其他功能不变');
         } catch(e) {
             alert('初始化失败：' + e.message + '\n请刷新页面重试。');
             console.error(e);
