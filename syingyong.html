@@ -732,18 +732,22 @@
                     var row = allRows[i];
                     var parts = row.split('"');
                     if (parts.length >= 3) {
-                        var code = parts[1]; // 例如 "01,02,03,04,05,06-01"
-                        var amount = parseInt(parts[2].substring(1), 10); // 去掉逗号
+                        var code = parts[1];
+                        var amount = parseInt(parts[2].substring(1), 10);
                         fullData.push([code, amount]);
                         var dashIdx = code.lastIndexOf('-');
                         var redCode = code.substring(0, dashIdx);
-                        redMap.set(redCode, (redMap.get(redCode) || 0) + amount);
+                        // 确保红球号码从小到大排序
+                        var redNums = redCode.split(',').map(function(s){ return parseInt(s,10); });
+                        redNums.sort(function(a,b){ return a-b; });
+                        var sortedRedCode = redNums.map(function(n){ return String(n).padStart(2,'0'); }).join(',');
+                        redMap.set(sortedRedCode, (redMap.get(sortedRedCode) || 0) + amount);
                     }
                 }
                 // Sheet1: 完整组合
                 var sheet1Data = [['中奖号码', '中奖金额（元）']];
                 for (var i = 0; i < fullData.length; i++) sheet1Data.push(fullData[i]);
-                // Sheet2: 红球汇总
+                // Sheet2: 红球汇总，金额升序
                 var redEntries = Array.from(redMap.entries());
                 redEntries.sort(function(a, b) { return a[1] - b[1]; });
                 var sheet2Data = [['红球号码', '合计中奖金额（元）']];
@@ -966,7 +970,7 @@
             document.getElementById('btnPairModalConfirm').addEventListener('click', confirmPairExclusion);
 
             updateDisplay();
-            log('✅ 完整版就绪，双表Excel列宽自适应');
+            log('✅ 完整版就绪，双表Excel列宽自适应，红球汇总已排序');
         } catch(e) {
             alert('初始化失败：' + e.message + '\n请刷新页面重试。');
             console.error(e);
