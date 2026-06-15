@@ -81,6 +81,7 @@
 胆:04,07,16,27 拖:05,08,14-2"></textarea>
         <div class="chip-row">
             <label class="chip"><input type="checkbox" id="chk0">中0个</label>
+            <label class="chip"><input type="checkbox" id="chk2">中2个</label>
             <label class="chip"><input type="checkbox" id="chk3">中3个</label>
             <label class="chip"><input type="checkbox" id="chk4">中4个</label>
             <label class="chip"><input type="checkbox" id="chk5">中5个</label>
@@ -88,7 +89,6 @@
         </div>
         <div class="flex-row">
             <button class="btn" id="btnApply">⚡应用筛选</button>
-            <button class="btn btn-danger btn-sm" id="btnTwo">排除中2个</button>
             <button class="btn btn-outline btn-sm" id="btnClearInput">清空</button>
             <button class="btn btn-warn btn-sm" id="btnStats">📊 统计全部历史</button>
             <button class="btn btn-outline btn-sm" id="btnResetAll">重置</button>
@@ -551,12 +551,13 @@
         var startTime = Date.now();
         var opts = {
             zero: document.getElementById('chk0').checked,
+            two: document.getElementById('chk2').checked,
             three: document.getElementById('chk3').checked,
             four: document.getElementById('chk4').checked,
             five: document.getElementById('chk5').checked,
             six: document.getElementById('chk6').checked
         };
-        if (!opts.zero && !opts.three && !opts.four && !opts.five && !opts.six) return alert('请勾选排除条件');
+        if (!opts.zero && !opts.two && !opts.three && !opts.four && !opts.five && !opts.six) return alert('请勾选至少一个排除条件');
         addToHistory();
         var expanded = expandCurrent();
         if (!expanded.length) return alert('无有效组合');
@@ -569,27 +570,6 @@
         busy=true; document.getElementById('btnApply').disabled=true; document.getElementById('btnApply').textContent='⏳筛选中...'; showProgress(0);
         doFilter(unique, opts).then(function(removed){
             log('✅ 筛选完成：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组');
-            document.getElementById('inputArea').value=''; lastInputSnapshot='';
-            finishOperation(startTime);
-        });
-    }
-
-    function applyTwoFilter() {
-        if (busy) return alert('处理中');
-        if (!confirm('确认排除所有命中恰好2个的组合？')) return;
-        addToHistory();
-        var expanded = expandCurrent();
-        if (!expanded.length) return alert('请在输入框填入号码后使用此功能');
-        var redsOnly = expanded.map(function(x){ return x.reds; });
-        var masks = redsOnly.map(function(c){ return maskFrom(c); });
-        var unique = []; var seen = new Set();
-        for (var i=0; i<masks.length; i++) { var k = masks[i].l+'_'+masks[i].h; if (!seen.has(k)) { seen.add(k); unique.push(masks[i]); } }
-        log('📋 排除中2个：去重'+unique.length+'条件');
-        saveUndoState();
-        var startTime = Date.now();
-        busy=true; document.getElementById('btnApply').disabled=true; document.getElementById('btnApply').textContent='⏳筛选中...'; showProgress(0);
-        doFilter(unique, {two: true}).then(function(removed){
-            log('✅ 排除中2个完成：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组');
             document.getElementById('inputArea').value=''; lastInputSnapshot='';
             finishOperation(startTime);
         });
@@ -1195,10 +1175,9 @@
             drawGrids();
 
             document.getElementById('btnApply').addEventListener('click', applyFilter);
-            document.getElementById('btnTwo').addEventListener('click', applyTwoFilter);
             document.getElementById('btnClearInput').addEventListener('click', function(){
                 document.getElementById('inputArea').value = '';
-                ['chk0','chk3','chk4','chk5','chk6'].forEach(function(id){ document.getElementById(id).checked = false; });
+                ['chk0','chk2','chk3','chk4','chk5','chk6'].forEach(function(id){ document.getElementById(id).checked = false; });
             });
             document.getElementById('btnStats').addEventListener('click', analyzeDuplicates);
             document.getElementById('btnResetAll').addEventListener('click', function(){
@@ -1273,7 +1252,7 @@
             });
 
             updateDisplay();
-            log('✅ 完整版就绪，排除中2个按钮已移至输入框下方');
+            log('✅ 完整版就绪，中2个已整合为复选框');
         } catch(e) {
             alert('初始化失败：' + e.message + '\n请刷新页面重试。');
             console.error(e);
