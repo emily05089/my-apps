@@ -88,6 +88,7 @@
         </div>
         <div class="flex-row">
             <button class="btn" id="btnApply">⚡应用筛选</button>
+            <button class="btn btn-danger btn-sm" id="btnTwo">排除中2个</button>
             <button class="btn btn-outline btn-sm" id="btnClearInput">清空</button>
             <button class="btn btn-warn btn-sm" id="btnStats">📊 统计全部历史</button>
             <button class="btn btn-outline btn-sm" id="btnResetAll">重置</button>
@@ -156,7 +157,6 @@
         <div class="flex-row" style="margin-top:6px;">
             <button class="btn btn-danger btn-sm" id="btnExcludePairs">排除双数字组合</button>
             <button class="btn btn-danger btn-sm" id="btnExcludeMulti">排除多数字组合</button>
-            <button class="btn btn-danger btn-sm" id="btnTwo">排除中2个</button>
         </div>
         <hr>
         <div style="font-weight:600; margin-bottom:4px;">📌 按区间排除数字个数（点击确认后生效）</div>
@@ -501,11 +501,9 @@
                 }
             }
         } else if (k===2) {
-            // 从6个中选2个保留，其余4个从others中选4个补齐
             for (var i=0;i<6;i++) {
                 for (var j=i+1;j<6;j++) {
                     var base = [nums[i], nums[j]];
-                    // 需要从others中选4个
                     var combos4 = combos(others, 4);
                     for (var c4=0; c4<combos4.length; c4++) {
                         var full = base.concat(combos4[c4]).sort(function(a,b){return a-b;});
@@ -1197,6 +1195,7 @@
             drawGrids();
 
             document.getElementById('btnApply').addEventListener('click', applyFilter);
+            document.getElementById('btnTwo').addEventListener('click', applyTwoFilter);
             document.getElementById('btnClearInput').addEventListener('click', function(){
                 document.getElementById('inputArea').value = '';
                 ['chk0','chk3','chk4','chk5','chk6'].forEach(function(id){ document.getElementById(id).checked = false; });
@@ -1257,7 +1256,6 @@
             });
             bind('btnExcludePairs', showPairModal);
             bind('btnExcludeMulti', showMultiModal);
-            bind('btnTwo', applyTwoFilter);
             document.getElementById('btnPairModalCancel').addEventListener('click', hidePairModal);
             document.getElementById('btnPairModalConfirm').addEventListener('click', confirmPairExclusion);
             document.getElementById('btnMultiModalCancel').addEventListener('click', hideMultiModal);
@@ -1275,7 +1273,7 @@
             });
 
             updateDisplay();
-            log('✅ 完整版就绪，已增加排除中2个按钮');
+            log('✅ 完整版就绪，排除中2个按钮已移至输入框下方');
         } catch(e) {
             alert('初始化失败：' + e.message + '\n请刷新页面重试。');
             console.error(e);
