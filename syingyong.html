@@ -60,6 +60,8 @@
         .sort-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
         .zone-exclude-row { margin-bottom: 8px; }
         .zone-exclude-row .zone-name { font-weight: 600; font-size: 13px; margin-right: 8px; min-width: 70px; display: inline-block; }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0; }
+        .checkbox-group label { display: flex; align-items: center; gap: 4px; font-size: 14px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -157,6 +159,7 @@
         <div class="flex-row" style="margin-top:6px;">
             <button class="btn btn-danger btn-sm" id="btnExcludePairs">排除双数字组合</button>
             <button class="btn btn-danger btn-sm" id="btnExcludeMulti">排除多数字组合</button>
+            <button class="btn btn-danger btn-sm" id="btnExcludeMultiHit">排除多数字组合（自定义命中）</button>
         </div>
         <hr>
         <div style="font-weight:600; margin-bottom:4px;">📌 按区间排除数字个数（点击确认后生效）</div>
@@ -219,6 +222,24 @@
         <div class="modal-buttons">
             <button class="btn btn-outline" id="btnMultiModalCancel">取消</button>
             <button class="btn btn-danger" id="btnMultiModalConfirm">确认排除</button>
+        </div>
+    </div>
+</div>
+<!-- 自定义命中排除模态框 -->
+<div class="modal-overlay" id="multiHitModalOverlay">
+    <div class="modal-box">
+        <div class="modal-title">输入多数字组合，并勾选排除命中个数</div>
+        <textarea class="modal-textarea" id="multiHitModalTextarea" placeholder="每行一组，可带蓝球（自动忽略蓝球）
+例如：&#10;2,6,7,9,12,13,15,17,18,19,21,23,24,28,32&#10;1,3,5,8,11,14-8"></textarea>
+        <div class="checkbox-group" id="multiHitCheckboxes">
+            <label><input type="checkbox" class="hit-check" value="0">中0个</label>
+            <label><input type="checkbox" class="hit-check" value="1">中1个</label>
+            <label><input type="checkbox" class="hit-check" value="2">中2个</label>
+            <label><input type="checkbox" class="hit-check" value="3">中3个</label>
+        </div>
+        <div class="modal-buttons">
+            <button class="btn btn-outline" id="btnMultiHitModalCancel">取消</button>
+            <button class="btn btn-danger" id="btnMultiHitModalConfirm">确认排除</button>
         </div>
     </div>
 </div>
@@ -1169,6 +1190,47 @@
         });
     }
 
+    // 自定义命中排除相关函数
+    function showMultiHitModal(){ 
+        document.getElementById('multiHitModalTextarea').value=''; 
+        document.querySelectorAll('#multiHitCheckboxes input[type="checkbox"]').forEach(function(cb){ cb.checked = false; });
+        document.getElementById('multiHitModalOverlay').style.display='flex'; 
+    }
+    function hideMultiHitModal(){ document.getElementById('multiHitModalOverlay').style.display='none'; }
+    function confirmMultiHitExclusion(){
+        var raw=document.getElementById('multiHitModalTextarea').value.trim();
+        if(!raw){ alert('请输入至少一组数字组合'); return; }
+        var lines=raw.split(/[\n\r]+/).filter(function(l){return l.trim();});
+        var targetSets = [];
+        for(var i=0;i<lines.length;i++){
+            var nums = parseNums(lines[i]);
+            if(nums.length > 0){
+                targetSets.push(new Set(nums));
+            }
+        }
+        if(targetSets.length===0){ alert('未识别到有效数字组合'); return; }
+
+        var selectedHits = [];
+        document.querySelectorAll('#multiHitCheckboxes input[type="checkbox"]:checked').forEach(function(cb){
+            selectedHits.push(parseInt(cb.value));
+        });
+        if(selectedHits.length === 0){ alert('请至少勾选一个命中个数'); return; }
+
+        hideMultiHitModal();
+        var hitNames = selectedHits.map(function(h){ return '中'+h+'个'; }).join('+');
+        applyCustomFilter('自定义命中排除 ['+hitNames+']', function(arr){
+            for(var s=0; s<targetSets.length; s++){
+                var set = targetSets[s];
+                var matchCount = 0;
+                for(var k=0; k<arr.length; k++){
+                    if(set.has(arr[k])) matchCount++;
+                }
+                if(selectedHits.indexOf(matchCount) !== -1) return true;
+            }
+            return false;
+        });
+    }
+
     function init() {
         try {
             buildAll();
@@ -1235,10 +1297,14 @@
             });
             bind('btnExcludePairs', showPairModal);
             bind('btnExcludeMulti', showMultiModal);
+            bind('btnExcludeMultiHit', showMultiHitModal);
+
             document.getElementById('btnPairModalCancel').addEventListener('click', hidePairModal);
             document.getElementById('btnPairModalConfirm').addEventListener('click', confirmPairExclusion);
             document.getElementById('btnMultiModalCancel').addEventListener('click', hideMultiModal);
             document.getElementById('btnMultiModalConfirm').addEventListener('click', confirmMultiExclusion);
+            document.getElementById('btnMultiHitModalCancel').addEventListener('click', hideMultiHitModal);
+            document.getElementById('btnMultiHitModalConfirm').addEventListener('click', confirmMultiHitExclusion);
 
             document.querySelectorAll('.zone-btn').forEach(function(btn) {
                 btn.addEventListener('click', function() {
@@ -1252,7 +1318,7 @@
             });
 
             updateDisplay();
-            log('✅ 完整版就绪，中2个已整合为复选框');
+            log('✅ 完整版就绪，已增加自定义命中排除功能');
         } catch(e) {
             alert('初始化失败：' + e.message + '\n请刷新页面重试。');
             console.error(e);
