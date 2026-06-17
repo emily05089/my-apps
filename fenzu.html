@@ -212,14 +212,14 @@
 <div class="container">
   <h1>
     🎱 双分组
-    <span class="icon">6组分类·蓝球跟随</span>
+    <span class="icon">11组分类·蓝球跟随</span>
   </h1>
 
   <div class="input-area">
-    <label>📋 输入组合（红球在前，可带篮球，如 1,2,3,4,5,6-8）</label>
+    <label>📋 输入组合（支持篮球，如 1,2,3,4,5,6-8）</label>
     <textarea id="comboInput" placeholder="单式/复式：1,2,3,4,5,6-8
 胆拖：胆:15,22,32，拖:01,05,07-12
-胆拖分行（蓝球在拖行末尾）：
+胆拖分行：
 胆:05,16,20,26,27
 拖:08,12,13,28,29,32-5
 ..."></textarea>
@@ -242,16 +242,24 @@
 
 <script>
 (function() {
+  // 分组定义（共11组）
   const GROUP_DEFS = [
     { id: 'g1', label: '单式/复式：6个数字的组合', test: (item) => item.type === 'standard' && item.count === 6 },
     { id: 'g2', label: '单式/复式：7、8、9个数字的组合', test: (item) => item.type === 'standard' && item.count >= 7 && item.count <= 9 },
     { id: 'g3', label: '单式/复式：10-14个数字的组合', test: (item) => item.type === 'standard' && item.count >= 10 && item.count <= 14 },
+    // 新增单独数量组
+    { id: 'g10', label: '单式/复式：10个数字的组合', test: (item) => item.type === 'standard' && item.count === 10 },
+    { id: 'g11', label: '单式/复式：11个数字的组合', test: (item) => item.type === 'standard' && item.count === 11 },
+    { id: 'g12', label: '单式/复式：12个数字的组合', test: (item) => item.type === 'standard' && item.count === 12 },
+    { id: 'g13', label: '单式/复式：13个数字的组合', test: (item) => item.type === 'standard' && item.count === 13 },
+    { id: 'g14', label: '单式/复式：14个数字的组合', test: (item) => item.type === 'standard' && item.count === 14 },
+    // 继续原有分组
     { id: 'g4', label: '单式/复式：15个数字及以上的组合', test: (item) => item.type === 'standard' && item.count >= 15 },
     { id: 'g5', label: '胆拖形式：4个胆、5个胆的组合', test: (item) => item.type === 'dantuo' && (item.danCount === 4 || item.danCount === 5) },
     { id: 'g6', label: '胆拖形式：其他胆拖（1到3个胆）组合', test: (item) => item.type === 'dantuo' && item.danCount >= 1 && item.danCount <= 3 }
   ];
 
-  // 从字符串提取红球数字（用于分组计算）
+  // 从字符串提取红球数字
   function extractNums(str) {
     const cleaned = str.replace(/\./g, ',').replace(/，/g, ',').replace(/\s+/g, ',').replace(/,+/g, ',');
     const parts = cleaned.split(',');
@@ -269,7 +277,7 @@
     return { nums, invalidNums };
   }
 
-  // 提取末尾篮球，返回 { redPart, blue }，blue 为 null 或数字
+  // 分离篮球
   function splitBlue(line) {
     const trimmed = line.trim();
     const lastDash = trimmed.lastIndexOf('-');
@@ -282,7 +290,6 @@
         return { redPart, blue: blueNum };
       }
     }
-    // 如果不符合篮球格式，则整体作为红球
     return { redPart: trimmed, blue: null };
   }
 
@@ -300,7 +307,6 @@
     return d !== -1 && t !== -1 && d < t;
   }
 
-  // 预处理：合并跨行胆拖（允许空行）
   function preprocessLines(rawLines) {
     const merged = [];
     let i = 0;
@@ -329,12 +335,9 @@
     return merged;
   }
 
-  // 解析一行（已预处理合并胆拖），返回解析对象，包含 blue 字段
   function parseLine(line) {
     const trimmed = line.trim();
     if (!trimmed) return null;
-
-    // 分离篮球
     const { redPart, blue } = splitBlue(trimmed);
     const danIdx = redPart.search(/胆\s*[:：]/i);
     const tuoIdx = redPart.search(/拖\s*[:：]?/i);
@@ -354,7 +357,6 @@
     } else if (danIdx === -1 && tuoIdx !== -1) {
       return { type: 'invalid', raw: trimmed, reason: '缺少胆码' };
     } else {
-      // 单式/复式
       const result = extractNums(redPart);
       if (result.invalidNums.length > 0) {
         return { type: 'invalid', raw: trimmed, reason: `超出1-33：[${result.invalidNums.join(',')}]` };
@@ -404,7 +406,6 @@
     return { type: 'dantuo', raw, danCount: danNums.length, tuoCount: tuoNums.length, danNums, tuoNums, blue };
   }
 
-  // 标准化红球部分用于重复检测（忽略篮球）
   function normalizeItem(parsed) {
     if (parsed.type === 'standard') {
       return parsed.nums.map(n => String(n).padStart(2, '0')).join(',');
@@ -533,7 +534,7 @@
   function loadDemo() {
     const demo = [
       '1,2,3,4,5,6-8',
-      '5.15.20.25.29.30-12',
+      '5,15,20,25,29,30-12',
       '7,8,9,10,11,12,13-3',
       '2,5,11,17,22,28,30,33',
       '胆:03,11,19,28 拖:05,07,12,16,22,24,30-9',
