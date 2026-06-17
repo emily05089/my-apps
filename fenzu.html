@@ -242,19 +242,20 @@
 
 <script>
 (function() {
-  // 分组定义（按顺序，重叠分组会同时放入）
+  // 分组定义 - 10/11/12/13/14 单独分组移到最后
   const GROUP_DEFS = [
     { id: 'g1', label: '单式/复式：6个数字的组合', test: (item) => item.type === 'standard' && item.count === 6 },
     { id: 'g2', label: '单式/复式：7、8、9个数字的组合', test: (item) => item.type === 'standard' && item.count >= 7 && item.count <= 9 },
     { id: 'g3', label: '单式/复式：10-14个数字的组合', test: (item) => item.type === 'standard' && item.count >= 10 && item.count <= 14 },
+    { id: 'g4', label: '单式/复式：15个数字及以上的组合', test: (item) => item.type === 'standard' && item.count >= 15 },
+    { id: 'g5', label: '胆拖形式：4个胆、5个胆的组合', test: (item) => item.type === 'dantuo' && (item.danCount === 4 || item.danCount === 5) },
+    { id: 'g6', label: '胆拖形式：其他胆拖（1到3个胆）组合', test: (item) => item.type === 'dantuo' && item.danCount >= 1 && item.danCount <= 3 },
+    // 单独数量组放在最后
     { id: 'g10', label: '单式/复式：10个数字的组合', test: (item) => item.type === 'standard' && item.count === 10 },
     { id: 'g11', label: '单式/复式：11个数字的组合', test: (item) => item.type === 'standard' && item.count === 11 },
     { id: 'g12', label: '单式/复式：12个数字的组合', test: (item) => item.type === 'standard' && item.count === 12 },
     { id: 'g13', label: '单式/复式：13个数字的组合', test: (item) => item.type === 'standard' && item.count === 13 },
-    { id: 'g14', label: '单式/复式：14个数字的组合', test: (item) => item.type === 'standard' && item.count === 14 },
-    { id: 'g4', label: '单式/复式：15个数字及以上的组合', test: (item) => item.type === 'standard' && item.count >= 15 },
-    { id: 'g5', label: '胆拖形式：4个胆、5个胆的组合', test: (item) => item.type === 'dantuo' && (item.danCount === 4 || item.danCount === 5) },
-    { id: 'g6', label: '胆拖形式：其他胆拖（1到3个胆）组合', test: (item) => item.type === 'dantuo' && item.danCount >= 1 && item.danCount <= 3 }
+    { id: 'g14', label: '单式/复式：14个数字的组合', test: (item) => item.type === 'standard' && item.count === 14 }
   ];
 
   function extractNums(str) {
@@ -432,13 +433,11 @@
       const norm = normalizeItem(parsed);
       if (norm) countMap.set(norm, (countMap.get(norm) || 0) + 1);
 
-      // 匹配所有符合条件的分组（重叠分组同时收录）
       let anyMatched = false;
       for (let g of groups) {
         if (g.test(parsed)) {
           g.items.push(parsed.raw);
           anyMatched = true;
-          // 不break，继续匹配其他组
         }
       }
       if (!anyMatched) {
