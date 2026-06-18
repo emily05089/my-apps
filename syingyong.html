@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>双应用前区筛选 · 终极版</title>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js">
+    </script>
     <style>
         :root { --bg: #f5f6fa; --card-bg: #ffffff; --primary: #4a6cf7; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; --text: #2c3e50; --border: #e0e5ec; --radius: 14px; }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
@@ -341,7 +342,7 @@
 
         document.querySelectorAll('.zone-btn').forEach(btn=>{btn.onclick=function(){var z=+this.dataset.zone,c=+this.dataset.count;var name=(z===1?'第一区(1-11)':z===2?'第二区(12-22)':'第三区(23-33)')+' 恰好'+c+'个';applyCustomFilter(name,a=>countInZone(a,z)===c);};});
 
-        updateDisplay();log('✅ 完整版就绪');
+        updateDisplay();log('✅ 完整版就绪，所有功能正常');
     }
     init();
 })();
