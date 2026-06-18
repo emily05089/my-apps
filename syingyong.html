@@ -984,104 +984,201 @@
     }
 
     function exportXLSX(){
-        if (busy) return alert('处理中，请等待当前操作完成');
-        if (filteredCount === 0) return alert('无组合可导出');
-        if (typeof XLSX === 'undefined') { alert('Excel库加载失败，请检查网络后刷新页面'); return; }
-        var startTime = Date.now();
-        busy = true;
-        document.getElementById('btnExport').disabled = true;
-        document.getElementById('btnExport').textContent = '收集中...';
-        setStatus('导出中...');
-        showProgress(0);
-        var result = [];
-        var done = 0;
-        var BATCH = 200000;
-        function step(start) {
-            try {
-                var end = Math.min(start + BATCH, TOTAL);
-                for (var i = start; i < end; i++) {
-                    if (filteredAlive[i]) result.push(unmask(masksLow[i], masksHigh[i]).map(function(n){ return String(n).padStart(2,'0'); }).join(','));
-                }
-                done = end;
-                showProgress(Math.round(done / TOTAL * 100));
-                if (done < TOTAL) setTimeout(function(){ step(done); }, 5);
-                else {
-                    setTimeout(function() {
-                        try {
-                            var sheetData = [['前区号码']];
-                            for (var i = 0; i < result.length; i++) {
-                                sheetData.push([result[i]]);
+    if (busy) return alert('处理中，请等待当前操作完成');
+    if (filteredCount === 0) return alert('无组合可导出');
+    if (typeof XLSX === 'undefined') { alert('Excel库加载失败，请检查网络后刷新页面'); return; }
+    var startTime = Date.now();
+    busy = true;
+    document.getElementById('btnExport').disabled = true;
+    document.getElementById('btnExport').textContent = '收集中...';
+    setStatus('导出中...');
+    showProgress(0);
+    var result = [];
+    var done = 0;
+    var BATCH = 200000;
+    function step(start) {
+        try {
+            var end = Math.min(start + BATCH, TOTAL);
+            for (var i = start; i < end; i++) {
+                if (filteredAlive[i]) result.push(unmask(masksLow[i], masksHigh[i]).map(function(n){ return String(n).padStart(2,'0'); }).join(','));
+            }
+            done = end;
+            showProgress(Math.round(done / TOTAL * 100));
+            if (done < TOTAL) setTimeout(function(){ step(done); }, 5);
+            else {
+                setTimeout(function() {
+                    try {
+                        // 原有升序组合列表
+                        var sheetData = [['前区号码']];
+                        for (var i = 0; i < result.length; i++) {
+                            sheetData.push([result[i]]);
+                        }
+                        var wb = XLSX.utils.book_new();
+                        var ws1 = XLSX.utils.aoa_to_sheet(sheetData);
+                        // 列宽
+                        var colWidths1 = [0];
+                        for (var r = 0; r < sheetData.length; r++) {
+                            var w = getStrWidth(String(sheetData[r][0]));
+                            if (w > colWidths1[0]) colWidths1[0] = w;
+                        }
+                        colWidths1[0] = Math.min(colWidths1[0] + 2, 100);
+                        ws1['!cols'] = [{wch: colWidths1[0]}];
+                        XLSX.utils.book_append_sheet(wb, ws1, '组合列表');
+
+                        // 数字出现次数统计
+                        var cnt = new Array(34).fill(0);
+                        for (var i=0;i<result.length;i++) {
+                            var nums=result[i].split(',');
+                            for(var j=0;j<nums.length;j++) cnt[+nums[j]]++;
+                        }
+                        var st=[];
+                        for(var i=1;i<=33;i++) st.push({n:i,c:cnt[i]});
+                        st.sort(function(a,b){return b.c-a.c;});
+
+                        var statData=[['数字','次数','占比']];
+                        for(var i=0;i<st.length;i++){
+                            var s=st[i];
+                            statData.push([
+                                String(s.n).padStart(2,'0'),
+                                s.c,
+                                (s.c/(result.length*6)*100).toFixed(2)+'%'
+                            ]);
+                        }
+                        var ws2=XLSX.utils.aoa_to_sheet(statData);
+                        var colWidths2 = [0,0,0];
+                        for (var r = 0; r < statData.length; r++) {
+                            for (var c = 0; c < 3; c++) {
+                                var w = getStrWidth(String(statData[r][c]));
+                                if (w > colWidths2[c]) colWidths2[c] = w;
                             }
-                            var wb = XLSX.utils.book_new();
-                            var ws1 = XLSX.utils.aoa_to_sheet(sheetData);
+                        }
+                        colWidths2[0] = Math.min(colWidths2[0] + 2, 20);
+                        colWidths2[1] = Math.min(colWidths2[1] + 2, 20);
+                        colWidths2[2] = Math.min(colWidths2[2] + 2, 20);
+                        ws2['!cols'] = [
+                            {wch: colWidths2[0]},
+                            {wch: colWidths2[1]},
+                            {wch: colWidths2[2]}
+                        ];
+                        XLSX.utils.book_append_sheet(wb, ws2, '统计');
 
-                            var colWidths1 = [0];
-                            for (var r = 0; r < sheetData.length; r++) {
-                                var w = getStrWidth(String(sheetData[r][0]));
-                                if (w > colWidths1[0]) colWidths1[0] = w;
+                        // ========== 新增：组合对统计 ==========
+                        // 生成所有两两组合映射
+                        var pairMap = {};  // key -> index
+                        var pairKeys = new Array(528);
+                        var idx = 0;
+                        for (var a = 1; a <= 33; a++) {
+                            for (var b = a + 1; b <= 33; b++) {
+                                var key = String(a).padStart(2,'0') + ',' + String(b).padStart(2,'0');
+                                pairMap[key] = idx;
+                                pairKeys[idx] = key;
+                                idx++;
                             }
-                            colWidths1[0] = Math.min(colWidths1[0] + 2, 100);
-                            ws1['!cols'] = [{wch: colWidths1[0]}];
-
-                            XLSX.utils.book_append_sheet(wb, ws1, '组合列表');
-
-                            var cnt = new Array(34).fill(0);
-                            for (var i=0;i<result.length;i++) {
-                                var nums=result[i].split(',');
-                                for(var j=0;j<nums.length;j++) cnt[+nums[j]]++;
-                            }
-                            var st=[];
-                            for(var i=1;i<=33;i++) st.push({n:i,c:cnt[i]});
-                            st.sort(function(a,b){return b.c-a.c;});
-
-                            var statData=[['数字','次数','占比']];
-                            for(var i=0;i<st.length;i++){
-                                var s=st[i];
-                                statData.push([
-                                    String(s.n).padStart(2,'0'),
-                                    s.c,
-                                    (s.c/(result.length*6)*100).toFixed(2)+'%'
-                                ]);
-                            }
-                            var ws2=XLSX.utils.aoa_to_sheet(statData);
-
-                            var colWidths2 = [0,0,0];
-                            for (var r = 0; r < statData.length; r++) {
-                                for (var c = 0; c < 3; c++) {
-                                    var w = getStrWidth(String(statData[r][c]));
-                                    if (w > colWidths2[c]) colWidths2[c] = w;
+                        }
+                        var pairCount = new Array(528).fill(0);
+                        for (var i = 0; i < result.length; i++) {
+                            var nums = result[i].split(',').map(Number);
+                            for (var p = 0; p < nums.length; p++) {
+                                for (var q = p + 1; q < nums.length; q++) {
+                                    var a = nums[p], b = nums[q];
+                                    var key = (a < b) ? (String(a).padStart(2,'0') + ',' + String(b).padStart(2,'0')) : (String(b).padStart(2,'0') + ',' + String(a).padStart(2,'0'));
+                                    pairCount[pairMap[key]]++;
                                 }
                             }
-                            colWidths2[0] = Math.min(colWidths2[0] + 2, 20);
-                            colWidths2[1] = Math.min(colWidths2[1] + 2, 20);
-                            colWidths2[2] = Math.min(colWidths2[2] + 2, 20);
-                            ws2['!cols'] = [
-                                {wch: colWidths2[0]},
-                                {wch: colWidths2[1]},
-                                {wch: colWidths2[2]}
-                            ];
-
-                            XLSX.utils.book_append_sheet(wb, ws2, '统计');
-
-                            var now=new Date();
-                            XLSX.writeFile(wb,'双应用_'+result.length+'组_'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'.xlsx');
-                            log('📥 导出'+result.length.toLocaleString()+'组');
-                            document.getElementById('exportHint').textContent='✅ 已导出';
-                        } catch(e) {
-                            alert('导出失败：'+e.message);
-                            log('❌ 导出失败：'+e.message);
                         }
-                        finishOperation(startTime);
-                    }, 50);
-                }
-            } catch(e) {
-                alert('数据收集出错：'+e.message);
-                finishOperation(startTime);
-            }
-        }
-        step(0);
-    }
+                        // 按次数降序排列
+                        var pairData = [['组合','出现次数']];
+                        var sortedPairs = [];
+                        for (var i = 0; i < 528; i++) {
+                            sortedPairs.push({ key: pairKeys[i], count: pairCount[i] });
+                        }
+                        sortedPairs.sort(function(a,b){ return b.count - a.count; });
+                        for (var i = 0; i < sortedPairs.length; i++) {
+                            pairData.push([sortedPairs[i].key, sortedPairs[i].count]);
+                        }
+                        var ws3 = XLSX.utils.aoa_to_sheet(pairData);
+                        var colWidths3 = [0,0];
+                        for (var r = 0; r < pairData.length; r++) {
+                            for (var c = 0; c < 2; c++) {
+                                var w = getStrWidth(String(pairData[r][c]));
+                                if (w > colWidths3[c]) colWidths3[c] = w;
+                            }
+                        }
+                        colWidths3[0] = Math.min(colWidths3[0] + 2, 20);
+                        colWidths3[1] = Math.min(colWidths3[1] + 2, 20);
+                        ws3['!cols'] = [{wch: colWidths3[0]}, {wch: colWidths3[1]}];
+                        XLSX.utils.book_append_sheet(wb, ws3, '组合对统计');
 
+                        // ========== 新增：降序排列组合列表 ==========
+                        var descResult = result.slice().sort(function(a,b){
+                            return b.localeCompare(a);
+                        });
+                        var sheetDesc = [['前区号码(降序)']];
+                        for (var i = 0; i < descResult.length; i++) {
+                            sheetDesc.push([descResult[i]]);
+                        }
+                        var wsDesc = XLSX.utils.aoa_to_sheet(sheetDesc);
+                        var colWidthsDesc = [0];
+                        for (var r = 0; r < sheetDesc.length; r++) {
+                            var w = getStrWidth(String(sheetDesc[r][0]));
+                            if (w > colWidthsDesc[0]) colWidthsDesc[0] = w;
+                        }
+                        colWidthsDesc[0] = Math.min(colWidthsDesc[0] + 2, 100);
+                        wsDesc['!cols'] = [{wch: colWidthsDesc[0]}];
+                        XLSX.utils.book_append_sheet(wb, wsDesc, '组合列表_降序');
+
+                        // ========== 新增：17起循环排列 ==========
+                        function calcSortKey17(comboStr) {
+                            var nums = comboStr.split(',').map(Number);
+                            var mapped = nums.map(function(n){
+                                // 17->1,18->2,...,33->17,1->18,2->19,...,16->33
+                                var m = (n - 17 + 33) % 33 + 1;
+                                return String(m).padStart(2,'0');
+                            });
+                            mapped.sort();
+                            return mapped.join(',');
+                        }
+                        var comboWithKey = result.map(function(s){
+                            return { orig: s, key: calcSortKey17(s) };
+                        });
+                        comboWithKey.sort(function(a,b){
+                            return a.key.localeCompare(b.key);
+                        });
+                        var sheet17 = [['前区号码(17起)']];
+                        for (var i = 0; i < comboWithKey.length; i++) {
+                            sheet17.push([comboWithKey[i].orig]);
+                        }
+                        var ws17 = XLSX.utils.aoa_to_sheet(sheet17);
+                        var colWidths17 = [0];
+                        for (var r = 0; r < sheet17.length; r++) {
+                            var w = getStrWidth(String(sheet17[r][0]));
+                            if (w > colWidths17[0]) colWidths17[0] = w;
+                        }
+                        colWidths17[0] = Math.min(colWidths17[0] + 2, 100);
+                        ws17['!cols'] = [{wch: colWidths17[0]}];
+                        XLSX.utils.book_append_sheet(wb, ws17, '组合列表_17起');
+
+                        // 导出文件
+                        var now=new Date();
+                        XLSX.writeFile(wb,'双应用_'+result.length+'组_'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'.xlsx');
+                        log('📥 导出'+result.length.toLocaleString()+'组（含组合对统计、降序、17起列表）');
+                        document.getElementById('exportHint').textContent='✅ 已导出（含组合对统计、降序、17起列表）';
+                    } catch(e) {
+                        alert('导出失败：'+e.message);
+                        log('❌ 导出失败：'+e.message);
+                    }
+                    finishOperation(startTime);
+                }, 50);
+            }
+        } catch(e) {
+            alert('数据收集出错：'+e.message);
+            finishOperation(startTime);
+        }
+    }
+    step(0);
+}
+    
+                 
     function drawGrids(){
         var zones = [
             { id: 'orZone1', min: 1, max: 11 },
