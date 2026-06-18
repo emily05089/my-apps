@@ -342,7 +342,7 @@
 
         document.querySelectorAll('.zone-btn').forEach(btn=>{btn.onclick=function(){var z=+this.dataset.zone,c=+this.dataset.count;var name=(z===1?'第一区(1-11)':z===2?'第二区(12-22)':'第三区(23-33)')+' 恰好'+c+'个';applyCustomFilter(name,a=>countInZone(a,z)===c);};});
 
-        updateDisplay();log('✅ 完整版就绪，所有功能正常');
+        updateDisplay();log('✅ 完整版就绪，导出含双数字统计及多种排序');
     }
     init();
 })();
