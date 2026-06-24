@@ -282,7 +282,7 @@
     var redoStack = [];
     var MAX_UNDO = 50;
 
-    // 完整历史数据
+    // 完整历史数据（共3833条）
     var HISTORY_LINES = [
         "03,08,19,25,31,33","03,06,08,14,26,27","12,14,16,17,18,32","03,05,16,18,29,32",
         "04,19,27,29,30,32","05,11,21,23,24,29","07,08,16,24,30,32","01,09,15,18,29,33",
@@ -1164,6 +1164,16 @@
         }
     }
 
+    // 预计算历史组合的位掩码
+    var HIST_MASKS = [];
+    function buildHistMasks() {
+        HIST_MASKS = [];
+        for (var i = 0; i < HISTORY_ARRAYS.length; i++) {
+            var m = maskFrom(HISTORY_ARRAYS[i]);
+            HIST_MASKS.push(m);
+        }
+    }
+
     function popcount32(v) {
         v = v - ((v >>> 1) & 0x55555555);
         v = (v & 0x33333333) + ((v >>> 2) & 0x33333333);
@@ -1334,6 +1344,34 @@
                 done=end; showProgress(Math.round(done/TOTAL*100));
                 if (done<TOTAL) setTimeout(function(){ step(done); }, 5);
                 else { filteredCount-=removed; updateDisplay(); log('✅ '+name+'：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组'); finishOperation(startTime); }
+            } catch(e) { log('❌ 过滤出错：'+e.message); finishOperation(startTime); }
+        }
+        step(0);
+    }
+
+    // 快速版本：直接传掩码
+    function applyCustomFilterFast(name, filterFnWithMask) {
+        if (busy) return alert('处理中'); if (filteredCount===0) return alert('无剩余');
+        if (!confirm('确认排除 ['+name+']？')) return;
+        saveUndoState();
+        var startTime = Date.now(); busy=true; setStatus(name+' 过滤中...'); showProgress(0);
+        var removed=0, done=0, BATCH=30000;
+        function step(start) {
+            try {
+                var end=Math.min(start+BATCH, TOTAL);
+                for (var i=start; i<end; i++) {
+                    if (!filteredAlive[i]) continue;
+                    if (filterFnWithMask(masksLow[i], masksHigh[i])) {
+                        filteredAlive[i]=0; removed++;
+                    }
+                }
+                done=end; showProgress(Math.round(done/TOTAL*100));
+                if (done<TOTAL) setTimeout(function(){ step(done); }, 5);
+                else {
+                    filteredCount-=removed; updateDisplay();
+                    log('✅ '+name+'：移除 '+removed.toLocaleString()+' 组，剩余 '+filteredCount.toLocaleString()+' 组');
+                    finishOperation(startTime);
+                }
             } catch(e) { log('❌ 过滤出错：'+e.message); finishOperation(startTime); }
         }
         step(0);
@@ -1680,6 +1718,17 @@
         document.body.appendChild(ta); ta.select();
         try { document.execCommand('copy'); alert('已复制 '+n+' 条'); } catch(e) { alert('复制失败，请手动复制'); }
         document.body.removeChild(ta);
+    }
+
+    // 检查是否与任意历史组合匹配 targetCount 个数字（使用位掩码快速匹配）
+    function matchHistCountFast(l, h, targetCount) {
+        for (var i = 0; i < HIST_MASKS.length; i++) {
+            var interLow = l & HIST_MASKS[i].l;
+            var interHigh = h & HIST_MASKS[i].h;
+            var match = popcount32(interLow) + (interHigh & 1);
+            if (match === targetCount) return true;
+        }
+        return false;
     }
 
     function createPrizeWorker() {
@@ -2201,22 +2250,10 @@
         });
     }
 
-    // 计算当前组合与历史组合中5个或4个的匹配
-    function matchHistCount(arr, targetCount) {
-        for (var i = 0; i < HISTORY_ARRAYS.length; i++) {
-            var histArr = HISTORY_ARRAYS[i];
-            var match = 0;
-            for (var j = 0; j < arr.length; j++) {
-                if (histArr.indexOf(arr[j]) !== -1) match++;
-            }
-            if (match === targetCount) return true;
-        }
-        return false;
-    }
-
     function init() {
         try {
             buildAll();
+            buildHistMasks();
             drawGrids();
 
             document.getElementById('btnApply').addEventListener('click', applyFilter);
@@ -2278,19 +2315,20 @@
             bind('btnExcludeHistory', function(){
                 applyCustomFilter('历史组合', function(arr){ var key=arr.map(function(n){ return String(n).padStart(2,'0'); }).sort().join(','); return HISTORY_SET.has(key); });
             });
-            // 新增：排除历史中5个
             bind('btnExcludeHist5', function(){
-                applyCustomFilter('历史中5个', function(arr){ return matchHistCount(arr, 5); });
+                applyCustomFilterFast('历史中5个', function(l, h){
+                    return matchHistCountFast(l, h, 5);
+                });
             });
-            // 新增：排除历史中4个
             bind('btnExcludeHist4', function(){
-                applyCustomFilter('历史中4个', function(arr){ return matchHistCount(arr, 4); });
+                applyCustomFilterFast('历史中4个', function(l, h){
+                    return matchHistCountFast(l, h, 4);
+                });
             });
             bind('btnExcludePairs', showPairModal);
             bind('btnExcludeMulti', showMultiModal);
             bind('btnExcludeMultiHit', showMultiHitModal);
 
-            // 绑定奇偶比例排除按钮
             document.querySelectorAll('.odd-even-btn').forEach(function(btn) {
                 btn.addEventListener('click', function() {
                     var targetOdd = parseInt(this.dataset.odd);
