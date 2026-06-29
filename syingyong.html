@@ -30,6 +30,7 @@
         .btn-hist-hit { background: #c0392b; color: #fff; }
         .btn-keep { background: #16a085; color: #fff; }
         .btn-diff { background: #8e44ad; color: #fff; }
+        .btn-top3 { background: #e67e22; color: #fff; }
         .number-grid { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
         .zone-row { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
         .n-cell { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; cursor: pointer; background: #fff; transition: 0.1s; color: #333; }
@@ -174,6 +175,7 @@
         <div class="flex-row" style="margin-top:6px;">
             <button class="btn btn-keep btn-sm" id="btnKeepOnly">⭐ 只保留组合</button>
             <button class="btn btn-keep btn-sm" id="btnKeepDigits">⭐ 保留数字</button>
+            <button class="btn btn-top3 btn-sm" id="btnExcludeTop3">📊 排除前三组合</button>
         </div>
         <div class="flex-row" style="margin-top:6px;">
             <button class="btn btn-danger btn-sm" id="btnExcludePairs">排除双数字组合</button>
@@ -201,12 +203,13 @@
         <div class="bottom-remain">当前剩余组合：<span class="badge" id="filteredBadgeBottom">1,107,568</span></div>
     </div>
 </div>
-<!-- 模态框省略，与之前相同 -->
+<!-- 模态框 -->
 <div class="modal-overlay" id="pairModalOverlay"><div class="modal-box"><div class="modal-title">输入双数字组合（每行一组，如 01,05）</div><textarea class="modal-textarea" id="pairModalTextarea" placeholder="例如：&#10;01,05&#10;03,08&#10;12,23"></textarea><div class="modal-buttons"><button class="btn btn-outline" id="btnPairModalCancel">取消</button><button class="btn btn-danger" id="btnPairModalConfirm">确认排除</button></div></div></div>
 <div class="modal-overlay" id="multiModalOverlay"><div class="modal-box"><div class="modal-title">输入多数字组合（每行一组，至少2个数字）</div><textarea class="modal-textarea" id="multiModalTextarea" placeholder="例如：&#10;1,2,3&#10;04,08,15,22"></textarea><div class="modal-buttons"><button class="btn btn-outline" id="btnMultiModalCancel">取消</button><button class="btn btn-danger" id="btnMultiModalConfirm">确认排除</button></div></div></div>
 <div class="modal-overlay" id="multiHitModalOverlay"><div class="modal-box"><div class="modal-title">输入多数字组合，并勾选排除命中个数</div><textarea class="modal-textarea" id="multiHitModalTextarea" placeholder="每行一组，可带蓝球"></textarea><div class="checkbox-group" id="multiHitCheckboxes"><label><input type="checkbox" class="hit-check" value="0">中0个</label><label><input type="checkbox" class="hit-check" value="1">中1个</label><label><input type="checkbox" class="hit-check" value="2">中2个</label><label><input type="checkbox" class="hit-check" value="3">中3个</label></div><div class="modal-buttons"><button class="btn btn-outline" id="btnMultiHitModalCancel">取消</button><button class="btn btn-danger" id="btnMultiHitModalConfirm">确认排除</button></div></div></div>
 <div class="modal-overlay" id="keepOnlyModalOverlay"><div class="modal-box"><div class="modal-title">输入要保留的组合（每行一组）</div><textarea class="modal-textarea" id="keepOnlyModalTextarea" placeholder="例如：&#10;01,02,03,04,05,06"></textarea><div class="modal-buttons"><button class="btn btn-outline" id="btnKeepOnlyModalCancel">取消</button><button class="btn btn-keep" id="btnKeepOnlyModalConfirm">确认保留</button></div></div></div>
 <div class="modal-overlay" id="keepDigitsModalOverlay"><div class="modal-box"><div class="modal-title">选择要保留的数字（可多选）</div><div class="number-grid" id="keepDigitsGrid"><div class="zone-row" id="keepZone1"></div><div class="zone-row" id="keepZone2"></div><div class="zone-row" id="keepZone3"></div></div><div class="tag" style="margin-top:8px;">已选 <span id="keepDigitsCount">0</span> 个</div><div class="modal-buttons"><button class="btn btn-outline" id="btnKeepDigitsModalCancel">取消</button><button class="btn btn-keep" id="btnKeepDigitsModalConfirm">确认保留</button></div></div></div>
+<div class="modal-overlay" id="top3ModalOverlay"><div class="modal-box"><div class="modal-title">输入要排除的前三位组合（每行一组）</div><textarea class="modal-textarea" id="top3ModalTextarea" placeholder="例如：&#10;01,02,03&#10;05,10,15&#10;11,22,33"></textarea><div class="modal-buttons"><button class="btn btn-outline" id="btnTop3ModalCancel">取消</button><button class="btn btn-danger" id="btnTop3ModalConfirm">确认排除</button></div></div></div>
 <script>
 (function() {
 var TOTAL = 1107568;
@@ -1038,27 +1041,25 @@ function exportXLSX(){
                         ws3['!cols'] = [{wch:10},{wch:12}];
                         XLSX.utils.book_append_sheet(wb, ws3, '组合对统计');
 
-                        // 前三统计（1-11开头）
+                        // 前三统计（全部4060种）
                         var top3Map = {};
                         for (var i = 0; i < result.length; i++) {
                             var nums = result[i].split(',').map(Number);
-                            if (nums[0] >= 1 && nums[0] <= 11) {
-                                var key = String(nums[0]).padStart(2,'0') + ',' + String(nums[1]).padStart(2,'0') + ',' + String(nums[2]).padStart(2,'0');
-                                top3Map[key] = (top3Map[key] || 0) + 1;
-                            }
+                            var key = String(nums[0]).padStart(2,'0') + ',' + String(nums[1]).padStart(2,'0') + ',' + String(nums[2]).padStart(2,'0');
+                            top3Map[key] = (top3Map[key] || 0) + 1;
                         }
                         var top3Arr = [];
                         for (var k in top3Map) {
                             if (top3Map.hasOwnProperty(k)) top3Arr.push({key: k, count: top3Map[k]});
                         }
                         top3Arr.sort(function(a,b){ return b.count - a.count; });
-                        var top3Data = [['前三位(1-11开头)','数量']];
+                        var top3Data = [['前三位','数量']];
                         for (var i = 0; i < top3Arr.length; i++) {
                             top3Data.push([top3Arr[i].key, top3Arr[i].count]);
                         }
                         var ws4 = XLSX.utils.aoa_to_sheet(top3Data);
                         ws4['!cols'] = [{wch:14},{wch:10}];
-                        XLSX.utils.book_append_sheet(wb, ws4, '前三统计_1到11开头');
+                        XLSX.utils.book_append_sheet(wb, ws4, '前三统计');
 
                         var descList = [];
                         for (var i=0;i<result.length;i++) {
@@ -1315,6 +1316,30 @@ function confirmMultiHitExclusion(){
     });
 }
 
+// 新增：排除前三组合相关函数
+function showTop3Modal(){ document.getElementById('top3ModalTextarea').value=''; document.getElementById('top3ModalOverlay').style.display='flex'; }
+function hideTop3Modal(){ document.getElementById('top3ModalOverlay').style.display='none'; }
+function confirmTop3Exclusion(){
+    var raw = document.getElementById('top3ModalTextarea').value.trim();
+    if (!raw) { alert('请输入至少一组前三位组合'); return; }
+    var lines = raw.split(/[\n\r]+/).filter(function(l){ return l.trim(); });
+    var top3Set = new Set();
+    for (var i=0; i<lines.length; i++) {
+        var line = lines[i].replace(/，/g,',').trim();
+        var nums = line.split(',').map(function(s){ return parseInt(s,10); }).filter(function(n){ return n>=1&&n<=33; });
+        if (nums.length >= 3) {
+            var key = String(nums[0]).padStart(2,'0') + ',' + String(nums[1]).padStart(2,'0') + ',' + String(nums[2]).padStart(2,'0');
+            top3Set.add(key);
+        }
+    }
+    if (top3Set.size === 0) { alert('未识别到有效的前三位组合'); return; }
+    hideTop3Modal();
+    applyCustomFilter('排除前三组合', function(arr){
+        var key = String(arr[0]).padStart(2,'0') + ',' + String(arr[1]).padStart(2,'0') + ',' + String(arr[2]).padStart(2,'0');
+        return top3Set.has(key);
+    });
+}
+
 function init() {
     try {
         buildAll();
@@ -1392,10 +1417,13 @@ function init() {
 
         bind('btnKeepOnly', showKeepOnlyModal);
         bind('btnKeepDigits', showKeepDigitsModal);
+        bind('btnExcludeTop3', showTop3Modal);
         document.getElementById('btnKeepOnlyModalCancel').addEventListener('click', hideKeepOnlyModal);
         document.getElementById('btnKeepOnlyModalConfirm').addEventListener('click', confirmKeepOnly);
         document.getElementById('btnKeepDigitsModalCancel').addEventListener('click', hideKeepDigitsModal);
         document.getElementById('btnKeepDigitsModalConfirm').addEventListener('click', confirmKeepDigits);
+        document.getElementById('btnTop3ModalCancel').addEventListener('click', hideTop3Modal);
+        document.getElementById('btnTop3ModalConfirm').addEventListener('click', confirmTop3Exclusion);
 
         bind('btnExcludePairs', showPairModal);
         bind('btnExcludeMulti', showMultiModal);
