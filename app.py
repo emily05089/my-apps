@@ -1,17 +1,18 @@
 import os
 import re
 import io
+import time
 import fitz
 from PIL import Image
-from flask import Flask, request, render_template_string, jsonify
+from flask import Flask, request, render_template_string, Response
 from aip import AipOcr
 
 app = Flask(__name__)
 
-# ==================== ⚠️ 填入你的百度 API 凭证 ====================
-APP_ID = '123874873'           # 你的APP_ID
-API_KEY = 'je80X5GVDpDMs1tC6ykZAyN3' # 你的API_KEY
-SECRET_KEY = 'FMLU6MzUs21ujF7Y1wFIWCFv0nkeID7w' # 你的SECRET_KEY
+# ==================== 填入你的百度 API 凭证 ====================
+APP_ID = '123874873'
+API_KEY = 'je80X5GVDpDMs1tC6ykZAyN3'
+SECRET_KEY = 'FMLU6MzUs21ujF7Y1wFIWCFv0nkeID7w'
 # ===================================================================
 
 client = AipOcr(APP_ID, API_KEY, SECRET_KEY)
@@ -75,7 +76,7 @@ def parse_format(raw_text):
             multiplier = 1
     return "\n".join(output_lines)
 
-# ==================== 网页前端（带进度条反馈） ====================
+# ==================== 网页前端（带动态倒计时与时间估算） ====================
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html>
@@ -95,15 +96,16 @@ HTML_TEMPLATE = '''
         .btn:active { opacity: 0.8; }
         .file-input { display: none; }
         
-        .file-list { display: flex; flex-direction: column; gap: 10px; margin: 10px 0; border: 1px solid #eee; padding: 10px; border-radius: 8px; }
+        .file-list { margin: 10px 0; border: 1px solid #eee; padding: 10px; border-radius: 8px; }
         .file-item { display: flex; justify-content: space-between; padding: 8px; background: #fafafa; border: 1px solid #ddd; border-radius: 6px; }
         .btn-del { background: #dc3545; padding: 4px 8px; font-size: 12px; flex: 0; }
         
-        /* 进度条样式 */
-        #progress-section { display: none; margin: 15px 0; }
-        #progress-text { font-size: 14px; margin-bottom: 5px; }
-        #progress-bar { width: 100%; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
-        #progress-fill { height: 100%; width: 0%; background: #e60012; border-radius: 4px; transition: width 0.2s; }
+        #progress-section { display: none; margin: 15px 0; border: 1px solid #e60012; padding: 15px; border-radius: 8px; background: #fff5f5; }
+        #progress-text { font-size: 14px; margin-bottom: 5px; color: #333; }
+        #progress-detail { font-size: 12px; color: #666; margin-top: 5px; }
+        #progress-timer { font-size: 11px; color: #888; margin-top: 3px; }
+        #progress-bar { width: 100%; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; margin-top: 10px; }
+        #progress-fill { height: 100%; width: 0%; background: #e60012; border-radius: 4px; transition: width 0.3s; }
 
         textarea { width: 100%; height: 40vh; padding: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; margin-top: 15px; font-size: 14px; }
         .copy-btn { background: #28a745; margin-top: 10px; flex: 1; }
@@ -120,11 +122,12 @@ HTML_TEMPLATE = '''
         </div>
         <input type="file" id="fileInput" class="file-input" accept=".pdf,.jpg,.png,.jpeg" multiple onchange="handleFiles(this.files)">
         
-        <div id="fileListContainer" class="file-list"><div style="color:#999; text-align:center;">等待添加...</div></div>
+        <div id="fileListContainer" class="file-list"><div style="color:#999;text-align:center;">等待添加...</div></div>
         
-        <!-- 进度条展示区 -->
         <div id="progress-section">
             <div id="progress-text">准备中...</div>
+            <div id="progress-detail"></div>
+            <div id="progress-timer"></div>
             <div id="progress-bar"><div id="progress-fill"></div></div>
         </div>
 
@@ -138,6 +141,8 @@ HTML_TEMPLATE = '''
 
     <script>
         let selectedFiles = [];
+        let startTime = 0;
+        
         function handleFiles(files) {
             for(let i=0; i<files.length; i++) selectedFiles.push(files[i]);
             renderList(); document.getElementById('fileInput').value = '';
@@ -159,43 +164,67 @@ HTML_TEMPLATE = '''
         async function startUpload() {
             if(selectedFiles.length === 0){ alert("请先添加文件！"); return; }
             
-            // 清空旧结果，显示进度条
             document.getElementById('result').value = '';
             document.getElementById('error-message').style.display = 'none';
             const progSection = document.getElementById('progress-section');
             const progFill = document.getElementById('progress-fill');
             const progText = document.getElementById('progress-text');
+            const progDetail = document.getElementById('progress-detail');
+            const progTimer = document.getElementById('progress-timer');
+            
             progSection.style.display = 'block';
             progFill.style.width = '0%';
+            progText.innerText = '正在连接识别服务...';
+            progDetail.innerText = '准备中';
+            progTimer.innerText = '';
+            startTime = Date.now();
             
-            // 1. 告诉后台开始批量识别
             let formData = new FormData();
             for(let f of selectedFiles) formData.append('files', f);
             
             try {
-                // 2. 监听后台进度的流式推送
                 const response = await fetch('/stream_process', { method: 'POST', body: formData });
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
+                let lastMsgTime = Date.now();
 
-                // 3. 循环读取后台推送的进度
                 while(true) {
                     const { done, value } = await reader.read();
                     if(done) break;
                     const msg = decoder.decode(value);
-                    // 后台如果发来 "进度:当前/总数"，就更新进度条
+                    const now = Date.now();
+                    const diff = (now - lastMsgTime) / 1000;
+                    
                     if(msg.startsWith('进度:')) {
                         const parts = msg.replace('进度:', '').split('/');
                         const cur = parseInt(parts[0]);
                         const total = parseInt(parts[1]);
                         const pct = Math.round((cur / total) * 100);
                         progFill.style.width = pct + '%';
-                        progText.innerText = `识别中 ${cur}/${total}`;
+                        progText.innerText = `处理中 ${cur}/${total}`;
+                        
+                        // 估算剩余时间
+                        if(cur > 0 && diff > 0) {
+                            const avgTime = (now - startTime) / 1000 / cur;
+                            const remaining = Math.round(avgTime * (total - cur));
+                            if(remaining > 60) {
+                                progTimer.innerText = `⏱️ 预计剩余 ${Math.floor(remaining/60)} 分 ${remaining%60} 秒`;
+                            } else if(remaining > 0) {
+                                progTimer.innerText = `⏱️ 预计剩余 ${remaining} 秒`;
+                            } else {
+                                progTimer.innerText = `⏱️ 即将完成...`;
+                            }
+                        }
+                        lastMsgTime = now;
+                    } else if(msg.startsWith('消息:')) {
+                        progDetail.innerText = msg.replace('消息:', '');
                     } else if(msg.startsWith('结果:')) {
-                        // 最后收到结果，显示在文本框
                         document.getElementById('result').value = msg.replace('结果:', '');
-                        progText.innerText = '识别完成！';
-                        setTimeout(() => { progSection.style.display = 'none'; }, 2000);
+                        const totalTime = Math.round((Date.now() - startTime) / 1000);
+                        progText.innerText = `✅ 识别完成！`;
+                        progDetail.innerText = `共耗时 ${totalTime} 秒`;
+                        progTimer.innerText = '数据已就绪';
+                        setTimeout(() => { progSection.style.display = 'none'; }, 5000);
                     }
                 }
             } catch (error) {
@@ -215,44 +244,45 @@ HTML_TEMPLATE = '''
 </html>
 '''
 
-# ==================== 核心API路由（支持流式推送进度） ====================
+# ==================== 核心API路由（带时间反馈） ====================
 @app.route('/stream_process', methods=['POST'])
 def stream_process():
     uploaded_files = request.files.getlist('files')
     total = len(uploaded_files)
     full_result = []
     
-    # 定义一个生成器函数，逐步向浏览器推送数据
     def generate():
         yield f"进度:0/{total}\n"
         for idx, file in enumerate(uploaded_files):
             file_name = file.filename.lower()
             try:
+                yield f"消息:正在识别第 {idx+1} 张图...\n"
                 text_res = ""
                 if file_name.endswith('.pdf'):
                     pdf_doc = fitz.open(stream=file.read(), filetype="pdf")
-                    for page_num in range(len(pdf_doc)):
+                    page_count = len(pdf_doc)
+                    for page_num in range(page_count):
+                        yield f"消息:PDF 第 {page_num+1}/{page_count} 页提取中...\n"
                         pix = pdf_doc.load_page(page_num).get_pixmap(dpi=300)
                         img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
                         text_res += parse_format(parse_image_to_text_baidu(img)) + "\n"
                 elif file_name.endswith(('.jpg', '.png', '.jpeg')):
+                    yield f"消息:正在向百度发送识别请求...\n"
                     img = Image.open(file.stream)
                     text_res = parse_format(parse_image_to_text_baidu(img))
                 
                 full_result.append(text_res)
-                # 每处理完一张，就推送一次进度
                 yield f"进度:{idx+1}/{total}\n"
             except Exception as e:
                 full_result.append(f"【{file.filename} 识别失败】")
+                yield f"进度:{idx+1}/{total}\n"
         
-        # 全部处理完，推送最终结果
         yield f"结果:{''.join(full_result)}"
         
-    return app.response_class(generate(), mimetype='text/plain')
+    return Response(generate(), mimetype='text/plain')
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    # 普通页面加载，保持不变
     return render_template_string(HTML_TEMPLATE, result="")
 
 if __name__ == '__main__':
