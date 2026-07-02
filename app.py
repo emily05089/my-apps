@@ -14,7 +14,7 @@ API_KEY = 'je80X5GVDpDMs1tC6ykZAyN3'
 SECRET_KEY = 'FMLU6MzUs21ujF7YlWFIWCFv0nkeID7w'
 # ===================================================================
 
-client = AipOcr(123874873, je80X5GVDpDMs1tC6ykZAyN3, FMLU6MzUs21ujF7YlWFIWCFv0nkeID7w)
+client = AipOcr('123874873', 'je80X5GVDpDMs1tC6ykZAyN3', 'FMLU6MzUs21ujF7YlWFIWCFv0nkeID7w')
 
 def parse_image_to_text_baidu(img):
     try:
