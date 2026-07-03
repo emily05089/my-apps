@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 import sys
 import io
-# 强制控制台和 Flask 使用 utf-8 编码，防止报错
+import logging
+# 强制控制台和 Flask 使用 utf-8 编码
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+# 开启详细日志
+logging.basicConfig(level=logging.DEBUG)
 
 import os
 import re
@@ -28,22 +31,29 @@ def parse_image_to_text_baidu(img):
         img.save(img_byte_arr, format='PNG')
         image_bytes = img_byte_arr.getvalue()
         options = {"language_type": "CHN_ENG", "detect_direction": "true"}
+        
+        # === 核心调试 1：打印正在发送请求 ===
+        logging.debug(">>> 正在向百度发送 OCR 请求...")
+        
         result = client.basicAccurate(image_bytes, options)
+        
+        # === 核心调试 2：打印百度返回的原始结果 ===
+        logging.debug(">>> 百度原始返回结果 (JSON格式): %s", str(result))
+        
         text = ""
         if 'words_result' in result:
             for item in result['words_result']:
                 text += item['words'] + "\n"
         
-        # 关键监控：把百度识别出的原始内容直接打印在终端里
-        print("--- 百度 OCR 识别结果 ---")
-        print(text)
-        print("----------------------")
+        # === 核心调试 3：打印提取后的文字 ===
+        logging.debug(">>> 提取后的原始文字: \n%s", text)
         
         if text.strip() == "":
-            return "【注意：百度未识别出任何文字，可能图片太糊或反光】"
+            return "【提示：百度识别成功，但未提取到任何文字字符】"
         return text
     except Exception as e:
-        print("百度识别异常:", e)
+        # === 核心调试 4：打印具体的报错信息 ===
+        logging.debug("!!! 识别代码抛出异常: %s", str(e))
         return ""
 
 def parse_format(raw_text):
@@ -90,7 +100,7 @@ def parse_format(raw_text):
             multiplier = 1
     return "\n".join(output_lines)
 
-# ==================== 极简、稳定的网页前端 ====================
+# ==================== 网页前端 ====================
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html>
