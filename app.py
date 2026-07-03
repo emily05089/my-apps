@@ -2,11 +2,10 @@
 import sys
 import io
 import logging
-# 强制控制台和 Flask 使用 utf-8 编码
+# 终极强制编码防崩套件
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
-# 开启详细日志
-logging.basicConfig(level=logging.DEBUG)
+sys.setrecursionlimit(1000000)
 
 import os
 import re
@@ -18,7 +17,8 @@ from aip import AipOcr
 app = Flask(__name__)
 
 # ==================== 填入你的百度 API 凭证 ====================
-APP_ID = '你的AppID'
+# 注意：请确保这三串字符全部是英文和数字，绝对不要包含任何汉字或空格！
+APP_ID = '你的AppID' 
 API_KEY = '你的API Key'
 SECRET_KEY = '你的Secret Key'
 # ===================================================================
@@ -31,29 +31,20 @@ def parse_image_to_text_baidu(img):
         img.save(img_byte_arr, format='PNG')
         image_bytes = img_byte_arr.getvalue()
         options = {"language_type": "CHN_ENG", "detect_direction": "true"}
-        
-        # === 核心调试 1：打印正在发送请求 ===
-        logging.debug(">>> 正在向百度发送 OCR 请求...")
-        
+        print(">>> 正在向百度发送 OCR 请求...")
         result = client.basicAccurate(image_bytes, options)
-        
-        # === 核心调试 2：打印百度返回的原始结果 ===
-        logging.debug(">>> 百度原始返回结果 (JSON格式): %s", str(result))
-        
+        print(">>> 百度返回结果结构:", result.keys())
         text = ""
         if 'words_result' in result:
             for item in result['words_result']:
                 text += item['words'] + "\n"
-        
-        # === 核心调试 3：打印提取后的文字 ===
-        logging.debug(">>> 提取后的原始文字: \n%s", text)
-        
+        print(">>> 识别到的原始内容:\n", text)
         if text.strip() == "":
-            return "【提示：百度识别成功，但未提取到任何文字字符】"
+            return "【提示：图片识别成功，但无可提取文字】"
         return text
     except Exception as e:
-        # === 核心调试 4：打印具体的报错信息 ===
-        logging.debug("!!! 识别代码抛出异常: %s", str(e))
+        # 此处会将所有隐藏的异常打印出来
+        print("!!! 识别代码抛出异常:", str(e))
         return ""
 
 def parse_format(raw_text):
