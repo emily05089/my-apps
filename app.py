@@ -1,6 +1,12 @@
+# -*- coding: utf-8 -*-
+import sys
+import io
+# 强制控制台和 Flask 使用 utf-8 编码，防止报错
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
 import os
 import re
-import io
 import fitz
 from PIL import Image
 from flask import Flask, request, render_template_string
@@ -8,7 +14,7 @@ from aip import AipOcr
 
 app = Flask(__name__)
 
-# ==================== ⚠️ 填入你的百度 API 凭证 ====================
+# ==================== 填入你的百度 API 凭证 ====================
 APP_ID = '你的AppID'
 API_KEY = '你的API Key'
 SECRET_KEY = '你的Secret Key'
@@ -76,7 +82,7 @@ def parse_format(raw_text):
             multiplier = 1
     return "\n".join(output_lines)
 
-# ==================== 极度精简、稳定的网页前端 ====================
+# ==================== 网页前端 ====================
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html>
