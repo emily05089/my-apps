@@ -33,6 +33,14 @@ def parse_image_to_text_baidu(img):
         if 'words_result' in result:
             for item in result['words_result']:
                 text += item['words'] + "\n"
+        
+        # 关键监控：把百度识别出的原始内容直接打印在终端里
+        print("--- 百度 OCR 识别结果 ---")
+        print(text)
+        print("----------------------")
+        
+        if text.strip() == "":
+            return "【注意：百度未识别出任何文字，可能图片太糊或反光】"
         return text
     except Exception as e:
         print("百度识别异常:", e)
@@ -82,7 +90,7 @@ def parse_format(raw_text):
             multiplier = 1
     return "\n".join(output_lines)
 
-# ==================== 网页前端 ====================
+# ==================== 极简、稳定的网页前端 ====================
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html>
