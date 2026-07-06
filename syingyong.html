@@ -33,6 +33,7 @@
         .btn-diff { background: #8e44ad; color: #fff; }
         .btn-top3 { background: #e67e22; color: #fff; }
         .btn-sum { background: #2980b9; color: #fff; }
+        .btn-match { background: #e74c3c; color: #fff; }
         .number-grid { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
         .zone-row { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
         .n-cell { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; cursor: pointer; background: #fff; transition: 0.1s; color: #333; }
@@ -40,6 +41,7 @@
         .n-cell.on-or { background: #ffe0e0; border-color: #e74c3c; }
         .n-cell.on-and { background: #d5e8ff; border-color: #2980b9; }
         .n-cell.on-keep { background: #d4edda; border-color: #27ae60; }
+        .n-cell.on-match { background: #fff3cd; border-color: #f39c12; }
         .log { max-height: 100px; overflow-y: auto; font-size: 11px; color: #555; background: #f9fafb; border-radius: 10px; padding: 6px 10px; margin-top: 4px; }
         .progress-wrap { height: 5px; background: #eee; border-radius: 3px; margin: 4px 0; overflow: hidden; display: none; }
         .progress-bar { height: 100%; background: var(--primary); width: 0%; }
@@ -55,7 +57,7 @@
         .copy-unique-btn { background: #2980b9; color: #fff; border: none; padding: 4px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; white-space: nowrap; margin-left: 4px; }
         .note-box { font-size: 10px; color: #aaa; margin-top: 4px; line-height: 1.6; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; justify-content: center; align-items: center; }
-        .modal-box { background: #fff; border-radius: 16px; padding: 20px; width: 90%; max-width: 500px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
+        .modal-box { background: #fff; border-radius: 16px; padding: 20px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
         .modal-title { font-weight: 700; font-size: 16px; margin-bottom: 12px; }
         .modal-textarea { width: 100%; height: 150px; border: 1.5px solid var(--border); border-radius: 12px; padding: 10px; font-size: 14px; font-family: monospace; resize: vertical; background: #fafbfc; }
         .modal-textarea:focus { outline: none; border-color: var(--primary); background: #fff; }
@@ -69,6 +71,11 @@
         .zone-exclude-row .zone-name { font-weight: 600; font-size: 13px; margin-right: 8px; min-width: 70px; display: inline-block; }
         .checkbox-group { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0; }
         .checkbox-group label { display: flex; align-items: center; gap: 4px; font-size: 14px; cursor: pointer; }
+        .match-result-area { max-height: 600px; overflow-y: auto; margin-top: 10px; }
+        .match-group { background: #f8f9fa; border: 1px solid #e0e5ec; border-radius: 10px; padding: 10px; margin-bottom: 10px; }
+        .match-group-title { font-weight: 700; font-size: 14px; margin-bottom: 6px; color: #e74c3c; }
+        .match-group-list { font-family: monospace; font-size: 12px; max-height: 150px; overflow-y: auto; background: #fff; border-radius: 6px; padding: 6px 10px; line-height: 1.8; margin-bottom: 8px; }
+        .match-copy-btn { background: #e74c3c; color: #fff; border: none; padding: 4px 12px; border-radius: 12px; font-size: 11px; cursor: pointer; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -101,6 +108,7 @@
             <button class="btn btn-outline btn-sm" id="btnClearInput">清空</button>
             <button class="btn btn-warn btn-sm" id="btnStats">📊 统计全部历史</button>
             <button class="btn btn-outline btn-sm" id="btnResetAll">重置</button>
+            <button class="btn btn-match btn-sm" id="btnMatchAnalyze">🔍 匹配分析</button>
         </div>
         <div class="result-area" id="resultArea">
             <div style="display:flex; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
@@ -207,7 +215,7 @@
         <div class="bottom-remain">当前剩余组合：<span class="badge" id="filteredBadgeBottom">1,107,568</span></div>
     </div>
 </div>
-<!-- 模态框保持不变 -->
+<!-- 模态框 -->
 <div class="modal-overlay" id="pairModalOverlay"><div class="modal-box"><div class="modal-title">输入双数字组合（每行一组，如 01,05）</div><textarea class="modal-textarea" id="pairModalTextarea" placeholder="例如：&#10;01,05&#10;03,08&#10;12,23"></textarea><div class="modal-buttons"><button class="btn btn-outline" id="btnPairModalCancel">取消</button><button class="btn btn-danger" id="btnPairModalConfirm">确认排除</button></div></div></div>
 <div class="modal-overlay" id="multiModalOverlay"><div class="modal-box"><div class="modal-title">输入多数字组合（每行一组，至少2个数字）</div><textarea class="modal-textarea" id="multiModalTextarea" placeholder="例如：&#10;1,2,3&#10;04,08,15,22"></textarea><div class="modal-buttons"><button class="btn btn-outline" id="btnMultiModalCancel">取消</button><button class="btn btn-danger" id="btnMultiModalConfirm">确认排除</button></div></div></div>
 <div class="modal-overlay" id="multiHitModalOverlay"><div class="modal-box"><div class="modal-title">输入多数字组合，并勾选排除命中个数</div><textarea class="modal-textarea" id="multiHitModalTextarea" placeholder="每行一组，可带蓝球"></textarea><div class="checkbox-group" id="multiHitCheckboxes"><label><input type="checkbox" class="hit-check" value="0">中0个</label><label><input type="checkbox" class="hit-check" value="1">中1个</label><label><input type="checkbox" class="hit-check" value="2">中2个</label><label><input type="checkbox" class="hit-check" value="3">中3个</label></div><div class="modal-buttons"><button class="btn btn-outline" id="btnMultiHitModalCancel">取消</button><button class="btn btn-danger" id="btnMultiHitModalConfirm">确认排除</button></div></div></div>
@@ -225,6 +233,26 @@
         </div>
     </div>
 </div>
+<!-- 匹配分析模态框 -->
+<div class="modal-overlay" id="matchModalOverlay">
+    <div class="modal-box" style="max-width: 600px;">
+        <div class="modal-title">🔍 选择要匹配的数字</div>
+        <div class="number-grid" id="matchGrid">
+            <div class="zone-row" id="matchZone1"></div>
+            <div class="zone-row" id="matchZone2"></div>
+            <div class="zone-row" id="matchZone3"></div>
+        </div>
+        <div class="tag" style="margin-top:8px;">已选 <span id="matchCount">0</span> 个数字（1-33）</div>
+        <div class="modal-buttons">
+            <button class="btn btn-outline" id="btnMatchModalCancel">取消</button>
+            <button class="btn btn-match" id="btnMatchModalConfirm">🔍 开始分析</button>
+        </div>
+        <div class="match-result-area" id="matchResultArea" style="display:none;">
+            <hr>
+            <div id="matchResultContent"></div>
+        </div>
+    </div>
+</div>
 <script>
 (function() {
 var TOTAL = 1107568;
@@ -236,6 +264,7 @@ var busy = false;
 var orSel = new Set();
 var andSel = new Set();
 var keepDigitsSel = new Set();
+var matchSel = new Set();
 var historyCombos = [];
 var historyRedBlue = [];
 var lastInputSnapshot = '';
@@ -249,7 +278,6 @@ var undoStack = [];
 var redoStack = [];
 var MAX_UNDO = 50;
 
-// 正确的和值分布数据（21-183）
 var SUM_COUNT = {
     21:1,22:1,23:2,24:3,25:5,26:7,27:11,28:14,29:20,30:26,
     31:35,32:44,33:58,34:71,35:90,36:110,37:136,38:163,39:199,40:235,
@@ -267,24 +295,17 @@ var SUM_COUNT = {
     151:18,152:10,153:6,154:3,155:2,156:1,157:1,158:1,159:0,160:0,
     161:0,162:0,163:0,164:0,165:0,166:0,167:0,168:0,169:0,170:0,
     171:0,172:0,173:0,174:0,175:0,176:0,177:0,178:0,179:0,180:0,
-    181:1,182:1,183:1
-};
+    181:1,182:1,183:1};
 
-// 计算数组的和值
 function calcSum(arr) {
     var sum = 0;
-    for (var i = 0; i < arr.length; i++) {
-        sum += arr[i];
-    }
+    for (var i = 0; i < arr.length; i++) sum += arr[i];
     return sum;
 }
 
-// 预计算和值范围对应的组合数量（用于确认提示）
 function getSumRangeCount(minSum, maxSum) {
     var total = 0;
-    for (var s = minSum; s <= maxSum; s++) {
-        total += (SUM_COUNT[s] || 0);
-    }
+    for (var s = minSum; s <= maxSum; s++) total += (SUM_COUNT[s] || 0);
     return total;
 }
 
@@ -442,9 +463,7 @@ function hasArith3(arr) {
 function hasDiff3Same(arr) {
     if (arr.length < 4) return false;
     var diffs = [];
-    for (var i = 0; i < arr.length - 1; i++) {
-        diffs.push(arr[i+1] - arr[i]);
-    }
+    for (var i = 0; i < arr.length - 1; i++) diffs.push(arr[i+1] - arr[i]);
     var countMap = {};
     for (var i = 0; i < diffs.length; i++) {
         var d = diffs[i];
@@ -1020,16 +1039,6 @@ function prizeExport() {
     prizeWorker.postMessage({ type: 'start', redMasks: redMasks, historyRedBlue: historyData, batchSize: 50 });
 }
 
-function getStrWidth(str) {
-    var width = 0;
-    for (var i = 0; i < str.length; i++) {
-        var code = str.charCodeAt(i);
-        if (code > 127) width += 2;
-        else width += 1;
-    }
-    return width;
-}
-
 function exportXLSX(){
     if (busy) return alert('处理中，请等待当前操作完成');
     if (filteredCount === 0) return alert('无组合可导出');
@@ -1052,7 +1061,7 @@ function exportXLSX(){
                     var nums = unmask(masksLow[i], masksHigh[i]);
                     var comboStr = nums.map(function(n){ return String(n).padStart(2,'0'); }).join(',');
                     var sum = calcSum(nums);
-                    result.push({ combo: comboStr, sum: sum });
+                    result.push({ combo: comboStr, sum: sum, nums: nums });
                 }
             }
             done = end;
@@ -1062,23 +1071,15 @@ function exportXLSX(){
                 setTimeout(function() {
                     try {
                         var wb = XLSX.utils.book_new();
-                        
-                        // 组合列表 - 添加和值列
                         var sheetData = [['前区号码', '和值']];
-                        for (var i = 0; i < result.length; i++) {
-                            sheetData.push([result[i].combo, result[i].sum]);
-                        }
+                        for (var i = 0; i < result.length; i++) sheetData.push([result[i].combo, result[i].sum]);
                         var ws1 = XLSX.utils.aoa_to_sheet(sheetData);
                         ws1['!cols'] = [{wch: 22}, {wch: 8}];
                         XLSX.utils.book_append_sheet(wb, ws1, '组合列表');
 
                         var cnt = new Array(34).fill(0);
-                        for (var i=0;i<result.length;i++){ 
-                            var nums=result[i].combo.split(','); 
-                            for(var j=0;j<nums.length;j++) cnt[+nums[j]]++; 
-                        }
-                        var st=[];
-                        for(var i=1;i<=33;i++) st.push({n:i,c:cnt[i]});
+                        for (var i=0;i<result.length;i++){ var nums=result[i].combo.split(','); for(var j=0;j<nums.length;j++) cnt[+nums[j]]++; }
+                        var st=[]; for(var i=1;i<=33;i++) st.push({n:i,c:cnt[i]});
                         st.sort(function(a,b){return b.c-a.c;});
                         var statData=[['数字','次数','占比']];
                         for(var i=0;i<st.length;i++) statData.push([String(st[i].n).padStart(2,'0'), st[i].c, (st[i].c/(result.length*6)*100).toFixed(2)+'%']);
@@ -1087,10 +1088,7 @@ function exportXLSX(){
                         XLSX.utils.book_append_sheet(wb, ws2, '统计');
 
                         var pairMap = {}; var pairKeys = new Array(528); var idx=0;
-                        for (var a=1;a<=33;a++) for (var b=a+1;b<=33;b++) {
-                            var key = String(a).padStart(2,'0')+','+String(b).padStart(2,'0');
-                            pairMap[key]=idx; pairKeys[idx]=key; idx++;
-                        }
+                        for (var a=1;a<=33;a++) for (var b=a+1;b<=33;b++) { var key = String(a).padStart(2,'0')+','+String(b).padStart(2,'0'); pairMap[key]=idx; pairKeys[idx]=key; idx++; }
                         var pairCount = new Array(528).fill(0);
                         for (var i=0;i<result.length;i++) {
                             var nums = result[i].combo.split(',').map(Number);
@@ -1100,8 +1098,7 @@ function exportXLSX(){
                                 pairCount[pairMap[key]]++;
                             }
                         }
-                        var pairData=[['组合','出现次数']];
-                        var sortedPairs=[];
+                        var pairData=[['组合','出现次数']]; var sortedPairs=[];
                         for (var i=0;i<528;i++) sortedPairs.push({key:pairKeys[i],count:pairCount[i]});
                         sortedPairs.sort(function(a,b){return b.count-a.count;});
                         for (var i=0;i<sortedPairs.length;i++) pairData.push([sortedPairs[i].key, sortedPairs[i].count]);
@@ -1115,15 +1112,10 @@ function exportXLSX(){
                             var key = String(nums[0]).padStart(2,'0') + ',' + String(nums[1]).padStart(2,'0') + ',' + String(nums[2]).padStart(2,'0');
                             top3Map[key] = (top3Map[key] || 0) + 1;
                         }
-                        var top3Arr = [];
-                        for (var k in top3Map) {
-                            if (top3Map.hasOwnProperty(k)) top3Arr.push({key: k, count: top3Map[k]});
-                        }
+                        var top3Arr = []; for (var k in top3Map) { if (top3Map.hasOwnProperty(k)) top3Arr.push({key: k, count: top3Map[k]}); }
                         top3Arr.sort(function(a,b){ return b.count - a.count; });
                         var top3Data = [['前三位','数量']];
-                        for (var i = 0; i < top3Arr.length; i++) {
-                            top3Data.push([top3Arr[i].key, top3Arr[i].count]);
-                        }
+                        for (var i = 0; i < top3Arr.length; i++) top3Data.push([top3Arr[i].key, top3Arr[i].count]);
                         var ws4 = XLSX.utils.aoa_to_sheet(top3Data);
                         ws4['!cols'] = [{wch:14},{wch:10}];
                         XLSX.utils.book_append_sheet(wb, ws4, '前三统计');
@@ -1132,10 +1124,7 @@ function exportXLSX(){
                         for (var i=0;i<result.length;i++) {
                             var nums = result[i].combo.split(',').map(Number);
                             nums.sort(function(a,b){return b-a;});
-                            descList.push({
-                                combo: nums.map(function(n){return String(n).padStart(2,'0');}).join(','),
-                                sum: calcSum(nums)
-                            });
+                            descList.push({ combo: nums.map(function(n){return String(n).padStart(2,'0');}).join(','), sum: calcSum(nums) });
                         }
                         descList.sort(function(a,b){return b.combo.localeCompare(a.combo);});
                         var sheetDesc = [['前区号码(降序)', '和值']];
@@ -1147,15 +1136,8 @@ function exportXLSX(){
                         var from17List = [];
                         for (var i=0;i<result.length;i++) {
                             var nums = result[i].combo.split(',').map(Number);
-                            nums.sort(function(a,b){
-                                var ma = (a - 17 + 33) % 33 + 1;
-                                var mb = (b - 17 + 33) % 33 + 1;
-                                return ma - mb;
-                            });
-                            from17List.push({
-                                combo: nums.map(function(n){return String(n).padStart(2,'0');}).join(','),
-                                sum: calcSum(nums)
-                            });
+                            nums.sort(function(a,b){ var ma = (a - 17 + 33) % 33 + 1; var mb = (b - 17 + 33) % 33 + 1; return ma - mb; });
+                            from17List.push({ combo: nums.map(function(n){return String(n).padStart(2,'0');}).join(','), sum: calcSum(nums) });
                         }
                         from17List.sort(function(a,b){return a.combo.localeCompare(b.combo);});
                         var sheet17 = [['前区号码(17起)', '和值']];
@@ -1261,6 +1243,170 @@ function drawKeepDigitsGrid(){
             })(i);
         }
     });
+}
+
+// 匹配分析相关函数
+function drawMatchGrid(){
+    var zones = [
+        { id: 'matchZone1', min: 1, max: 11 },
+        { id: 'matchZone2', min: 12, max: 22 },
+        { id: 'matchZone3', min: 23, max: 33 }
+    ];
+    zones.forEach(function(z) {
+        var container = document.getElementById(z.id);
+        if (!container) return;
+        container.innerHTML = '';
+        for (var i = z.min; i <= z.max; i++) {
+            (function(idx) {
+                var cell = document.createElement('div');
+                cell.className = 'n-cell';
+                cell.textContent = String(idx).padStart(2,'0');
+                cell.addEventListener('click', function(){
+                    if (matchSel.has(idx)) matchSel.delete(idx);
+                    else matchSel.add(idx);
+                    drawMatchGrid();
+                    document.getElementById('matchCount').textContent = matchSel.size;
+                });
+                if (matchSel.has(idx)) cell.classList.add('on-match');
+                container.appendChild(cell);
+            })(i);
+        }
+    });
+}
+
+function showMatchModal(){
+    matchSel.clear();
+    drawMatchGrid();
+    document.getElementById('matchCount').textContent = '0';
+    document.getElementById('matchResultArea').style.display = 'none';
+    document.getElementById('matchResultContent').innerHTML = '';
+    document.getElementById('matchModalOverlay').style.display='flex';
+}
+
+function hideMatchModal(){
+    document.getElementById('matchModalOverlay').style.display='none';
+}
+
+function confirmMatchAnalysis(){
+    if (matchSel.size === 0) { alert('请至少选择一个数字'); return; }
+    if (filteredCount === 0) { alert('当前无剩余组合'); return; }
+    if (busy) { alert('处理中，请等待'); return; }
+    
+    var startTime = Date.now();
+    busy = true;
+    setStatus('匹配分析中...');
+    showProgress(0);
+    
+    var matchNums = Array.from(matchSel);
+    var matchSet = new Set(matchNums);
+    
+    // 收集所有匹配的组合，按匹配数分组
+    var match6 = [];
+    var match5 = [];
+    var match4 = [];
+    var match3 = [];
+    
+    var done = 0;
+    var BATCH = 100000;
+    
+    function step(start) {
+        try {
+            var end = Math.min(start + BATCH, TOTAL);
+            for (var i = start; i < end; i++) {
+                if (!filteredAlive[i]) continue;
+                var nums = unmask(masksLow[i], masksHigh[i]);
+                var matchCount = 0;
+                for (var j = 0; j < nums.length; j++) {
+                    if (matchSet.has(nums[j])) matchCount++;
+                }
+                var comboStr = nums.map(function(n){ return String(n).padStart(2,'0'); }).join(',');
+                if (matchCount === 6) match6.push(comboStr);
+                else if (matchCount === 5) match5.push(comboStr);
+                else if (matchCount === 4) match4.push(comboStr);
+                else if (matchCount === 3) match3.push(comboStr);
+            }
+            done = end;
+            showProgress(Math.round(done / TOTAL * 100));
+            if (done < TOTAL) {
+                setTimeout(function(){ step(done); }, 10);
+            } else {
+                // 排序
+                match6.sort();
+                match5.sort();
+                match4.sort();
+                match3.sort();
+                
+                var selectedNumsStr = matchNums.map(function(n){ return String(n).padStart(2,'0'); }).join(',');
+                var html = '<div style="font-weight:700;margin-bottom:8px;">匹配数字：' + selectedNumsStr + '（共' + matchNums.length + '个）</div>';
+                
+                if (match6.length > 0) {
+                    html += '<div class="match-group"><div class="match-group-title">🎯 匹配6个数字（共' + match6.length + '组）</div>';
+                    html += '<div class="match-group-list">';
+                    for (var i = 0; i < Math.min(match6.length, 200); i++) html += '<div>' + match6[i] + '</div>';
+                    if (match6.length > 200) html += '<div>...（仅显示前200组）</div>';
+                    html += '</div>';
+                    html += '<button class="match-copy-btn" data-type="6">📋 复制匹配6个（' + match6.length + '组）</button></div>';
+                }
+                
+                if (match5.length > 0) {
+                    html += '<div class="match-group"><div class="match-group-title">🎯 匹配5个数字（共' + match5.length + '组）</div>';
+                    html += '<div class="match-group-list">';
+                    for (var i = 0; i < Math.min(match5.length, 200); i++) html += '<div>' + match5[i] + '</div>';
+                    if (match5.length > 200) html += '<div>...（仅显示前200组）</div>';
+                    html += '</div>';
+                    html += '<button class="match-copy-btn" data-type="5">📋 复制匹配5个（' + match5.length + '组）</button></div>';
+                }
+                
+                if (match4.length > 0) {
+                    html += '<div class="match-group"><div class="match-group-title">🎯 匹配4个数字（共' + match4.length + '组）</div>';
+                    html += '<div class="match-group-list">';
+                    for (var i = 0; i < Math.min(match4.length, 200); i++) html += '<div>' + match4[i] + '</div>';
+                    if (match4.length > 200) html += '<div>...（仅显示前200组）</div>';
+                    html += '</div>';
+                    html += '<button class="match-copy-btn" data-type="4">📋 复制匹配4个（' + match4.length + '组）</button></div>';
+                }
+                
+                if (match3.length > 0) {
+                    html += '<div class="match-group"><div class="match-group-title">🎯 匹配3个数字（共' + match3.length + '组）</div>';
+                    html += '<div class="match-group-list">';
+                    for (var i = 0; i < Math.min(match3.length, 200); i++) html += '<div>' + match3[i] + '</div>';
+                    if (match3.length > 200) html += '<div>...（仅显示前200组）</div>';
+                    html += '</div>';
+                    html += '<button class="match-copy-btn" data-type="3">📋 复制匹配3个（' + match3.length + '组）</button></div>';
+                }
+                
+                if (match6.length === 0 && match5.length === 0 && match4.length === 0 && match3.length === 0) {
+                    html += '<div style="color:#999;text-align:center;padding:20px;">当前剩余组合中没有与所选数字匹配3个及以上的组合</div>';
+                }
+                
+                document.getElementById('matchResultContent').innerHTML = html;
+                document.getElementById('matchResultArea').style.display = 'block';
+                
+                // 绑定复制按钮
+                var copyBtns = document.querySelectorAll('.match-copy-btn');
+                copyBtns.forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        var type = this.dataset.type;
+                        var data;
+                        if (type === '6') data = match6;
+                        else if (type === '5') data = match5;
+                        else if (type === '4') data = match4;
+                        else if (type === '3') data = match3;
+                        if (data && data.length > 0) {
+                            copyText(data.join('\n'), data.length);
+                        }
+                    });
+                });
+                
+                finishOperation(startTime);
+                log('🔍 匹配分析完成：匹配6个=' + match6.length + '组，匹配5个=' + match5.length + '组，匹配4个=' + match4.length + '组，匹配3个=' + match3.length + '组');
+            }
+        } catch(e) {
+            log('❌ 匹配分析出错：'+e.message);
+            finishOperation(startTime);
+        }
+    }
+    step(0);
 }
 
 function showKeepOnlyModal(){ document.getElementById('keepOnlyModalTextarea').value=''; document.getElementById('keepOnlyModalOverlay').style.display='flex'; }
@@ -1412,7 +1558,6 @@ function confirmTop3Exclusion(){
     });
 }
 
-// 和值范围相关函数
 function showSumRangeModal(){
     document.getElementById('sumMinInput').value = '';
     document.getElementById('sumMaxInput').value = '';
@@ -1451,6 +1596,7 @@ function init() {
         buildHistMasks();
         drawGrids();
         drawKeepDigitsGrid();
+        drawMatchGrid();
 
         document.getElementById('btnApply').addEventListener('click', applyFilter);
         document.getElementById('btnClearInput').addEventListener('click', function(){
@@ -1468,8 +1614,8 @@ function init() {
             updateDisplay();
             document.getElementById('inputArea').value = '';
             document.getElementById('resultArea').style.display = 'none';
-            orSel.clear(); andSel.clear(); keepDigitsSel.clear();
-            drawGrids(); drawKeepDigitsGrid();
+            orSel.clear(); andSel.clear(); keepDigitsSel.clear(); matchSel.clear();
+            drawGrids(); drawKeepDigitsGrid(); drawMatchGrid();
             hideProgress(); setStatus('就绪');
             log('🔄 已重置（含固定状态）');
         });
@@ -1524,6 +1670,8 @@ function init() {
         bind('btnKeepDigits', showKeepDigitsModal);
         bind('btnExcludeTop3', showTop3Modal);
         bind('btnExcludeSumRange', showSumRangeModal);
+        bind('btnMatchAnalyze', showMatchModal);
+        
         document.getElementById('btnKeepOnlyModalCancel').addEventListener('click', hideKeepOnlyModal);
         document.getElementById('btnKeepOnlyModalConfirm').addEventListener('click', confirmKeepOnly);
         document.getElementById('btnKeepDigitsModalCancel').addEventListener('click', hideKeepDigitsModal);
@@ -1532,6 +1680,8 @@ function init() {
         document.getElementById('btnTop3ModalConfirm').addEventListener('click', confirmTop3Exclusion);
         document.getElementById('btnSumRangeModalCancel').addEventListener('click', hideSumRangeModal);
         document.getElementById('btnSumRangeModalConfirm').addEventListener('click', confirmSumRangeExclusion);
+        document.getElementById('btnMatchModalCancel').addEventListener('click', hideMatchModal);
+        document.getElementById('btnMatchModalConfirm').addEventListener('click', confirmMatchAnalysis);
 
         bind('btnExcludePairs', showPairModal);
         bind('btnExcludeMulti', showMultiModal);
