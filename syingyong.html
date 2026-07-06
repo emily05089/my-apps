@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>双应用前区筛选 · 增强版</title>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js">
+    </script>
     <style>
         :root { --bg: #f5f6fa; --card-bg: #ffffff; --primary: #4a6cf7; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; --text: #2c3e50; --border: #e0e5ec; --radius: 14px; }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
@@ -268,6 +269,15 @@ var SUM_COUNT = {
     171:0,172:0,173:0,174:0,175:0,176:0,177:0,178:0,179:0,180:0,
     181:1,182:1,183:1
 };
+
+// 计算数组的和值
+function calcSum(arr) {
+    var sum = 0;
+    for (var i = 0; i < arr.length; i++) {
+        sum += arr[i];
+    }
+    return sum;
+}
 
 // 预计算和值范围对应的组合数量（用于确认提示）
 function getSumRangeCount(minSum, maxSum) {
@@ -1038,7 +1048,12 @@ function exportXLSX(){
         try {
             var end = Math.min(start + BATCH, TOTAL);
             for (var i = start; i < end; i++) {
-                if (filteredAlive[i]) result.push(unmask(masksLow[i], masksHigh[i]).map(function(n){ return String(n).padStart(2,'0'); }).join(','));
+                if (filteredAlive[i]) {
+                    var nums = unmask(masksLow[i], masksHigh[i]);
+                    var comboStr = nums.map(function(n){ return String(n).padStart(2,'0'); }).join(',');
+                    var sum = calcSum(nums);
+                    result.push({ combo: comboStr, sum: sum });
+                }
             }
             done = end;
             showProgress(Math.round(done / TOTAL * 100));
@@ -1047,14 +1062,21 @@ function exportXLSX(){
                 setTimeout(function() {
                     try {
                         var wb = XLSX.utils.book_new();
-                        var sheetData = [['前区号码']];
-                        for (var i = 0; i < result.length; i++) sheetData.push([result[i]]);
+                        
+                        // 组合列表 - 添加和值列
+                        var sheetData = [['前区号码', '和值']];
+                        for (var i = 0; i < result.length; i++) {
+                            sheetData.push([result[i].combo, result[i].sum]);
+                        }
                         var ws1 = XLSX.utils.aoa_to_sheet(sheetData);
-                        ws1['!cols'] = [{wch: 22}];
+                        ws1['!cols'] = [{wch: 22}, {wch: 8}];
                         XLSX.utils.book_append_sheet(wb, ws1, '组合列表');
 
                         var cnt = new Array(34).fill(0);
-                        for (var i=0;i<result.length;i++){ var nums=result[i].split(','); for(var j=0;j<nums.length;j++) cnt[+nums[j]]++; }
+                        for (var i=0;i<result.length;i++){ 
+                            var nums=result[i].combo.split(','); 
+                            for(var j=0;j<nums.length;j++) cnt[+nums[j]]++; 
+                        }
                         var st=[];
                         for(var i=1;i<=33;i++) st.push({n:i,c:cnt[i]});
                         st.sort(function(a,b){return b.c-a.c;});
@@ -1071,7 +1093,7 @@ function exportXLSX(){
                         }
                         var pairCount = new Array(528).fill(0);
                         for (var i=0;i<result.length;i++) {
-                            var nums = result[i].split(',').map(Number);
+                            var nums = result[i].combo.split(',').map(Number);
                             for (var p=0;p<nums.length;p++) for (var q=p+1;q<nums.length;q++) {
                                 var a=nums[p], b=nums[q];
                                 var key = (a<b)?(String(a).padStart(2,'0')+','+String(b).padStart(2,'0')):(String(b).padStart(2,'0')+','+String(a).padStart(2,'0'));
@@ -1089,7 +1111,7 @@ function exportXLSX(){
 
                         var top3Map = {};
                         for (var i = 0; i < result.length; i++) {
-                            var nums = result[i].split(',').map(Number);
+                            var nums = result[i].combo.split(',').map(Number);
                             var key = String(nums[0]).padStart(2,'0') + ',' + String(nums[1]).padStart(2,'0') + ',' + String(nums[2]).padStart(2,'0');
                             top3Map[key] = (top3Map[key] || 0) + 1;
                         }
@@ -1108,32 +1130,38 @@ function exportXLSX(){
 
                         var descList = [];
                         for (var i=0;i<result.length;i++) {
-                            var nums = result[i].split(',').map(Number);
+                            var nums = result[i].combo.split(',').map(Number);
                             nums.sort(function(a,b){return b-a;});
-                            descList.push(nums.map(function(n){return String(n).padStart(2,'0');}).join(','));
+                            descList.push({
+                                combo: nums.map(function(n){return String(n).padStart(2,'0');}).join(','),
+                                sum: calcSum(nums)
+                            });
                         }
-                        descList.sort(function(a,b){return b.localeCompare(a);});
-                        var sheetDesc = [['前区号码(降序)']];
-                        for (var i=0;i<descList.length;i++) sheetDesc.push([descList[i]]);
+                        descList.sort(function(a,b){return b.combo.localeCompare(a.combo);});
+                        var sheetDesc = [['前区号码(降序)', '和值']];
+                        for (var i=0;i<descList.length;i++) sheetDesc.push([descList[i].combo, descList[i].sum]);
                         var wsDesc = XLSX.utils.aoa_to_sheet(sheetDesc);
-                        wsDesc['!cols'] = [{wch:22}];
+                        wsDesc['!cols'] = [{wch:22}, {wch:8}];
                         XLSX.utils.book_append_sheet(wb, wsDesc, '组合列表_降序');
 
                         var from17List = [];
                         for (var i=0;i<result.length;i++) {
-                            var nums = result[i].split(',').map(Number);
+                            var nums = result[i].combo.split(',').map(Number);
                             nums.sort(function(a,b){
                                 var ma = (a - 17 + 33) % 33 + 1;
                                 var mb = (b - 17 + 33) % 33 + 1;
                                 return ma - mb;
                             });
-                            from17List.push(nums.map(function(n){return String(n).padStart(2,'0');}).join(','));
+                            from17List.push({
+                                combo: nums.map(function(n){return String(n).padStart(2,'0');}).join(','),
+                                sum: calcSum(nums)
+                            });
                         }
-                        from17List.sort();
-                        var sheet17 = [['前区号码(17起)']];
-                        for (var i=0;i<from17List.length;i++) sheet17.push([from17List[i]]);
+                        from17List.sort(function(a,b){return a.combo.localeCompare(b.combo);});
+                        var sheet17 = [['前区号码(17起)', '和值']];
+                        for (var i=0;i<from17List.length;i++) sheet17.push([from17List[i].combo, from17List[i].sum]);
                         var ws17 = XLSX.utils.aoa_to_sheet(sheet17);
-                        ws17['!cols'] = [{wch:22}];
+                        ws17['!cols'] = [{wch:22}, {wch:8}];
                         XLSX.utils.book_append_sheet(wb, ws17, '组合列表_17起');
 
                         var now=new Date();
