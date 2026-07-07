@@ -1163,6 +1163,163 @@ function confirmSmartRepeat() {
     var minRepeat = parseInt(document.getElementById('smartRepeatMin').value);
     var maxRepeat = parseInt(document.getElementById('smartRepeatMax').value);
     if (isNaN(minRepeat) || isNaN(maxRepeat) || minRepeat < 1 || maxRepeat < 1 || minRepeat > maxRepeat) {
+        return alert('请输入有效的重复次数范围');
+    }
+    var selectedHits = [];
+    document.querySelectorAll('#smartRepeatHits input:checked').forEach(function(cb) {
+        selectedHits.push(parseInt(cb.value));
+    });
+    if (selectedHits.length === 0) return alert('请至少勾选一个排除命中个数');
+    
+    var freqMap = new Map();
+    for (var i = 0; i < historyCombos.length; i++) {
+        var key = historyCombos[i].map(function(n){ return String(n).padStart(2,'0'); }).join(',');
+        freqMap.set(key, (freqMap.get(key) || 0) + 1);
+    }
+    var targetCombos = [];
+    freqMap.forEach(function(count, key) {
+        if (count >= minRepeat && count <= maxRepeat) {
+            var nums = key.split(',').map(Number);
+            if (nums.length === 6) targetCombos.push(nums);
+        }
+    });
+    if (targetCombos.length === 0) {
+        alert('在重复次数 ' + minRepeat + '~' + maxRepeat + ' 范围内没有找到任何组合');
+        return;
+    }
+    if (!confirm('将使用 ' + targetCombos.length + ' 个重复组合作为条件，排除中' + selectedHits.join('、中') + '的组合，是否继续？')) return;
+    
+    hideSmartRepeatModal();
+    saveUndoState();
+    var startTime = Date.now();
+    busy = true;
+    setStatus('智能重复排除中...');
+    showProgress(0);
+    
+    var condMasks = targetCombos.map(function(c){ return maskFrom(c); });
+    var opts = { zero: false, two: false, three: false, four: false, five: false, six: false };
+    for (var i = 0; i < selectedHits.length; i++) {
+        if (selectedHits[i] === 2) opts.two = true;
+        if (selectedHits[i] === 3) opts.three = true;
+        if (selectedHits[i] === 4) opts.four = true;
+        if (selectedHits[i] === 5) opts.five = true;
+        if (selectedHits[i] === 6) opts.six = true;
+    }
+    doFilter(condMasks, opts).then(function(removed) {
+        log('智能重复排除完成：移除 ' + removed.toLocaleString() + ' 组，剩余 ' + filteredCount.toLocaleString() + ' 组');
+        finishOperation(startTime);
+    });
+}
+
+// 奖金范围排除
+function showPrizeRangeModal() {
+    document.getElementById('prizeRangeMin').value = '1';
+    document.getElementById('prizeRangeMax').value = '30000';
+    document.getElementById('prizeRangeModalOverlay').style.display = 'flex';
+}
+function hidePrizeRangeModal() { document.getElementById('prizeRangeModalOverlay').style.display = 'none'; }
+function confirmPrizeRange() {
+    if (busy) return alert('处理中');
+    if (filteredCount === 0) return alert('无剩余组合');
+    var minPrize = parseFloat(document.getElementById('prizeRangeMin').value);
+    var maxPrize = parseFloat(document.getElementById('prizeRangeMax').value);
+    if (isNaN(minPrize) || isNaN(maxPrize) || minPrize < 0 || maxPrize < 0 || minPrize > maxPrize) {
+        return alert('请输入有效的金额范围');
+    }
+    var sourceHistory = isPrizeHistoryFixed ? fixedHistoryRedBlue : historyRedBlue;
+    if (!sourceHistory.length) {
+        alert('历史中没有任何带蓝球的组合，无法计算奖金。');
+        return;
+    }
+    
+    if (!confirm('将删除前区组合，条件：该组合搭配1-16蓝球与基准历史票（共' + sourceHistory.length + '张）计算的总奖金在 ' + minPrize + '~' + maxPrize + ' 范围内。是否继续？')) return;
+    
+    hidePrizeRangeModal();
+    saveUndoState();
+    var startTime = Date.now();
+    busy = true;
+    setStatus('奖金范围排除中...');
+    showProgress(0);
+    
+    var tMasks = [];
+    var tBlues = [];
+    for (var j = 0; j < sourceHistory.length; j++) {
+        var t = sourceHistory[j];
+        var m = maskFrom(t.reds);
+        tMasks.push(m);
+        tBlues.push(t.blue);
+    }
+    
+    function prizeAmount(matchRed, matchBlue) {
+        if (matchRed === 6) return matchBlue ? 5000000 : 500000;
+        if (matchRed === 5) return matchBlue ? 3000 : 200;
+        if (matchRed === 4) return matchBlue ? 200 : 10;
+        if (matchRed === 3) return matchBlue ? 10 : 5;
+        if (matchRed === 2 && matchBlue) return 5;
+        if (matchRed === 1 && matchBlue) return 5;
+        if (matchRed === 0 && matchBlue) return 5;
+        return 0;
+    }
+    
+    var removed = 0;
+    var done = 0;
+    var BATCH = 5000;
+    
+    function step(start) {
+        try {
+            var end = Math.min(start + BATCH, TOTAL);
+            for (var i = start; i < end; i++) {
+                if (!filteredAlive[i]) continue;
+                var l = masksLow[i], h = masksHigh[i];
+                
+                var totalPrize = 0;
+                for (var b = 1; b <= 16; b++) {
+                    for (var t = 0; t < tMasks.length; t++) {
+                        var interLow = l & tMasks[t].l;
+                        var interHigh = h & tMasks[t].h;
+                        var matchRed = popcount32(interLow) + (interHigh & 1);
+                        var isBlueMatch = (tBlues[t] !== null && b === tBlues[t]) ? 1 : 0;
+                        totalPrize += prizeAmount(matchRed, isBlueMatch);
+                    }
+                }
+                
+                if (totalPrize >= minPrize && totalPrize <= maxPrize) {
+                    filteredAlive[i] = 0;
+                    removed++;
+                }
+            }
+            done = end;
+            showProgress(Math.round(done / TOTAL * 100));
+            if (done < TOTAL) {
+                setTimeout(function() { step(done); }, 10);
+            } else {
+                filteredCount -= removed;
+                updateDisplay();
+                log('奖金范围排除完成：删除 ' + removed.toLocaleString() + ' 组，剩余 ' + filteredCount.toLocaleString() + ' 组');
+                finishOperation(startTime);
+            }
+        } catch(e) {
+            log('奖金排除出错：' + e.message);
+            finishOperation(startTime);
+        }
+    }
+    step(0);
+}
+
+// 智能重复排除
+function showSmartRepeatModal() {
+    document.getElementById('smartRepeatMin').value = '1';
+    document.getElementById('smartRepeatMax').value = '22';
+    document.querySelectorAll('#smartRepeatHits input').forEach(function(cb) { cb.checked = false; });
+    document.getElementById('smartRepeatModalOverlay').style.display = 'flex';
+}
+function hideSmartRepeatModal() { document.getElementById('smartRepeatModalOverlay').style.display = 'none'; }
+function confirmSmartRepeat() {
+    if (busy) return alert('处理中');
+    if (filteredCount === 0) return alert('无剩余组合');
+    var minRepeat = parseInt(document.getElementById('smartRepeatMin').value);
+    var maxRepeat = parseInt(document.getElementById('smartRepeatMax').value);
+    if (isNaN(minRepeat) || isNaN(maxRepeat) || minRepeat < 1 || maxRepeat < 1 || minRepeat > maxRepeat) {
         return alert('请输入有效的重复次数范围（最小不大于最大）');
     }
     var selectedHits = [];
@@ -1698,6 +1855,8 @@ function init() {
         document.getElementById('btnPrizeRangeConfirm').addEventListener('click', confirmPrizeRange);
 
         bind('btnExcludePairs', showPairModal);
+        bind('btnSmartRepeat', showSmartRepeatModal);
+        bind('btnPrizeRange', showPrizeRangeModal);
         bind('btnExcludeMulti', showMultiModal);
         bind('btnExcludeMultiHit', showMultiHitModal);
 
