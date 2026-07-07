@@ -224,7 +224,8 @@
         <div class="note-box">※ 智能重复排除：根据历史统计中组合的重复次数范围，一键排除中N个的组合。<br>※ 奖金范围排除：根据基准历史票计算奖金，删除中奖金额在指定范围内的前区组合。</div>
     </div>
 </div>
-<!-- 模态框 -->
+
+<!-- 所有模态框 -->
 <div class="modal-overlay" id="pairModalOverlay"><div class="modal-box"><div class="modal-title">输入双数字组合（每行一组，如 01,05）</div><textarea class="modal-textarea" id="pairModalTextarea" placeholder="例如：&#10;01,05&#10;03,08&#10;12,23"></textarea><div class="modal-buttons"><button class="btn btn-outline" id="btnPairModalCancel">取消</button><button class="btn btn-danger" id="btnPairModalConfirm">确认排除</button></div></div></div>
 <div class="modal-overlay" id="multiModalOverlay"><div class="modal-box"><div class="modal-title">输入多数字组合（每行一组，至少2个数字）</div><textarea class="modal-textarea" id="multiModalTextarea" placeholder="例如：&#10;1,2,3&#10;04,08,15,22"></textarea><div class="modal-buttons"><button class="btn btn-outline" id="btnMultiModalCancel">取消</button><button class="btn btn-danger" id="btnMultiModalConfirm">确认排除</button></div></div></div>
 <div class="modal-overlay" id="multiHitModalOverlay"><div class="modal-box"><div class="modal-title">输入多数字组合，并勾选排除命中个数</div><textarea class="modal-textarea" id="multiHitModalTextarea" placeholder="每行一组，可带蓝球"></textarea><div class="checkbox-group" id="multiHitCheckboxes"><label><input type="checkbox" class="hit-check" value="0">中0个</label><label><input type="checkbox" class="hit-check" value="1">中1个</label><label><input type="checkbox" class="hit-check" value="2">中2个</label><label><input type="checkbox" class="hit-check" value="3">中3个</label></div><div class="modal-buttons"><button class="btn btn-outline" id="btnMultiHitModalCancel">取消</button><button class="btn btn-danger" id="btnMultiHitModalConfirm">确认排除</button></div></div></div>
@@ -261,7 +262,6 @@
         </div>
     </div>
 </div>
-<!-- 智能重复排除模态框 -->
 <div class="modal-overlay" id="smartRepeatModalOverlay">
     <div class="modal-box">
         <div class="modal-title">🎲 智能重复排除</div>
@@ -281,13 +281,12 @@
         </div>
     </div>
 </div>
-<!-- 奖金范围排除模态框 -->
 <div class="modal-overlay" id="prizeRangeModalOverlay">
     <div class="modal-box">
         <div class="modal-title">💸 奖金范围排除</div>
+        <div class="note-box" style="margin-bottom:10px;">将每个剩余前区组合搭配1-16蓝球作为中奖号码，与基准历史票匹配计算总奖金。总奖金在范围内的组合将被删除。</div>
         <input type="number" class="modal-input" id="prizeRangeMin" placeholder="最小金额（如 1）" min="0" value="1">
         <input type="number" class="modal-input" id="prizeRangeMax" placeholder="最大金额（如 30000）" min="0" value="30000">
-        <div class="note-box">将删除所有前区组合，只要该组合的任意蓝球选项与基准历史票计算出的奖金在指定范围内。</div>
         <div class="modal-buttons">
             <button class="btn btn-outline" id="btnPrizeRangeCancel">取消</button>
             <button class="btn btn-smart" id="btnPrizeRangeConfirm">确认删除</button>
@@ -1150,7 +1149,7 @@ function drawMatchGrid(){
     });
 }
 
-// 智能重复排除相关函数
+// 智能重复排除
 function showSmartRepeatModal() {
     document.getElementById('smartRepeatMin').value = '1';
     document.getElementById('smartRepeatMax').value = '22';
@@ -1212,7 +1211,7 @@ function confirmSmartRepeat() {
     });
 }
 
-// 奖金范围排除相关函数
+// 奖金范围排除（已修复）
 function showPrizeRangeModal() {
     document.getElementById('prizeRangeMin').value = '1';
     document.getElementById('prizeRangeMax').value = '30000';
@@ -1232,7 +1231,8 @@ function confirmPrizeRange() {
         alert('历史中没有任何带蓝球的组合，无法计算奖金。请先输入并应用筛选，或固定历史。');
         return;
     }
-    if (!confirm('将删除中奖金额在 ' + minPrize + '~' + maxPrize + ' 之间的前区组合，是否继续？')) return;
+    
+    if (!confirm('将删除前区组合，条件：该组合搭配1-16蓝球作为中奖号码，与基准历史票（共' + sourceHistory.length + '张）计算的总奖金在 ' + minPrize + '~' + maxPrize + ' 范围内。\n\n是否继续？')) return;
     
     hidePrizeRangeModal();
     saveUndoState();
@@ -1241,14 +1241,13 @@ function confirmPrizeRange() {
     setStatus('奖金范围排除中...');
     showProgress(0);
     
-    var tMasks = [], tBlues = [];
+    var tMasks = [];
+    var tBlues = [];
     for (var j = 0; j < sourceHistory.length; j++) {
         var t = sourceHistory[j];
-        if (t.blue !== null) {
-            var m = maskFrom(t.reds);
-            tMasks.push(m);
-            tBlues.push(t.blue);
-        }
+        var m = maskFrom(t.reds);
+        tMasks.push(m);
+        tBlues.push(t.blue);
     }
     
     function prizeAmount(matchRed, matchBlue) {
@@ -1264,29 +1263,28 @@ function confirmPrizeRange() {
     
     var removed = 0;
     var done = 0;
-    var BATCH = 10000;
+    var BATCH = 5000;
+    
     function step(start) {
         try {
             var end = Math.min(start + BATCH, TOTAL);
             for (var i = start; i < end; i++) {
                 if (!filteredAlive[i]) continue;
                 var l = masksLow[i], h = masksHigh[i];
-                var shouldDelete = false;
-                for (var t = 0; t < tMasks.length; t++) {
-                    var interLow = l & tMasks[t].l;
-                    var interHigh = h & tMasks[t].h;
-                    var matchRed = popcount32(interLow) + (interHigh & 1);
-                    for (var b = 1; b <= 16; b++) {
-                        var isBlueMatch = (b === tBlues[t]) ? 1 : 0;
+                
+                var totalPrize = 0;
+                for (var b = 1; b <= 16; b++) {
+                    for (var t = 0; t < tMasks.length; t++) {
+                        var interLow = l & tMasks[t].l;
+                        var interHigh = h & tMasks[t].h;
+                        var matchRed = popcount32(interLow) + (interHigh & 1);
+                        var isBlueMatch = (tBlues[t] !== null && b === tBlues[t]) ? 1 : 0;
                         var prize = prizeAmount(matchRed, isBlueMatch);
-                        if (prize >= minPrize && prize <= maxPrize) {
-                            shouldDelete = true;
-                            break;
-                        }
+                        totalPrize += prize;
                     }
-                    if (shouldDelete) break;
                 }
-                if (shouldDelete) {
+                
+                if (totalPrize >= minPrize && totalPrize <= maxPrize) {
                     filteredAlive[i] = 0;
                     removed++;
                 }
@@ -1294,7 +1292,7 @@ function confirmPrizeRange() {
             done = end;
             showProgress(Math.round(done / TOTAL * 100));
             if (done < TOTAL) {
-                setTimeout(function() { step(done); }, 5);
+                setTimeout(function() { step(done); }, 10);
             } else {
                 filteredCount -= removed;
                 updateDisplay();
@@ -1309,7 +1307,7 @@ function confirmPrizeRange() {
     step(0);
 }
 
-// 匹配分析相关函数
+// 匹配分析
 function showMatchModal(){
     matchSel.clear();
     drawMatchGrid();
@@ -1362,22 +1360,38 @@ function confirmMatchAnalysis(){
                 var selectedNumsStr = matchNums.map(function(n){ return String(n).padStart(2,'0'); }).join(',');
                 var html = '<div style="font-weight:700;margin-bottom:8px;">匹配数字：' + selectedNumsStr + '（共' + matchNums.length + '个）</div>';
                 
-                function addMatchGroup(label, data, count) {
-                    if (data.length > 0) {
-                        html += '<div class="match-group"><div class="match-group-title">🎯 ' + label + '（共' + data.length + '组）</div>';
-                        html += '<div class="match-group-list">';
-                        for (var i = 0; i < Math.min(data.length, 200); i++) html += '<div>' + data[i] + '</div>';
-                        if (data.length > 200) html += '<div>...（仅显示前200组）</div>';
-                        html += '</div>';
-                        html += '<button class="match-copy-btn" data-count="' + count + '">📋 复制' + label + '（' + data.length + '组）</button></div>';
-                    }
+                if (match6.length > 0) {
+                    html += '<div class="match-group"><div class="match-group-title">🎯 匹配6个数字（共' + match6.length + '组）</div>';
+                    html += '<div class="match-group-list">';
+                    for (var i = 0; i < Math.min(match6.length, 200); i++) html += '<div>' + match6[i] + '</div>';
+                    if (match6.length > 200) html += '<div>...（仅显示前200组）</div>';
+                    html += '</div>';
+                    html += '<button class="match-copy-btn" data-type="6">📋 复制匹配6个（' + match6.length + '组）</button></div>';
                 }
-                
-                addMatchGroup('匹配6个数字', match6, 6);
-                addMatchGroup('匹配5个数字', match5, 5);
-                addMatchGroup('匹配4个数字', match4, 4);
-                addMatchGroup('匹配3个数字', match3, 3);
-                
+                if (match5.length > 0) {
+                    html += '<div class="match-group"><div class="match-group-title">🎯 匹配5个数字（共' + match5.length + '组）</div>';
+                    html += '<div class="match-group-list">';
+                    for (var i = 0; i < Math.min(match5.length, 200); i++) html += '<div>' + match5[i] + '</div>';
+                    if (match5.length > 200) html += '<div>...（仅显示前200组）</div>';
+                    html += '</div>';
+                    html += '<button class="match-copy-btn" data-type="5">📋 复制匹配5个（' + match5.length + '组）</button></div>';
+                }
+                if (match4.length > 0) {
+                    html += '<div class="match-group"><div class="match-group-title">🎯 匹配4个数字（共' + match4.length + '组）</div>';
+                    html += '<div class="match-group-list">';
+                    for (var i = 0; i < Math.min(match4.length, 200); i++) html += '<div>' + match4[i] + '</div>';
+                    if (match4.length > 200) html += '<div>...（仅显示前200组）</div>';
+                    html += '</div>';
+                    html += '<button class="match-copy-btn" data-type="4">📋 复制匹配4个（' + match4.length + '组）</button></div>';
+                }
+                if (match3.length > 0) {
+                    html += '<div class="match-group"><div class="match-group-title">🎯 匹配3个数字（共' + match3.length + '组）</div>';
+                    html += '<div class="match-group-list">';
+                    for (var i = 0; i < Math.min(match3.length, 200); i++) html += '<div>' + match3[i] + '</div>';
+                    if (match3.length > 200) html += '<div>...（仅显示前200组）</div>';
+                    html += '</div>';
+                    html += '<button class="match-copy-btn" data-type="3">📋 复制匹配3个（' + match3.length + '组）</button></div>';
+                }
                 if (match6.length === 0 && match5.length === 0 && match4.length === 0 && match3.length === 0) {
                     html += '<div style="color:#999;text-align:center;padding:20px;">当前剩余组合中没有与所选数字匹配3个及以上的组合</div>';
                 }
@@ -1388,12 +1402,12 @@ function confirmMatchAnalysis(){
                 var copyBtns = document.querySelectorAll('.match-copy-btn');
                 copyBtns.forEach(function(btn) {
                     btn.addEventListener('click', function() {
-                        var cnt = parseInt(this.dataset.count);
+                        var type = this.dataset.type;
                         var data;
-                        if (cnt === 6) data = match6;
-                        else if (cnt === 5) data = match5;
-                        else if (cnt === 4) data = match4;
-                        else if (cnt === 3) data = match3;
+                        if (type === '6') data = match6;
+                        else if (type === '5') data = match5;
+                        else if (type === '4') data = match4;
+                        else if (type === '3') data = match3;
                         if (data && data.length > 0) {
                             copyText(data.join('\n'), data.length);
                         }
@@ -1717,7 +1731,7 @@ function init() {
         });
 
         updateDisplay();
-        log('✅ 增强版就绪，历史数据共 '+HISTORY_LINES.length+' 条，和值分布数据已加载');
+        log('✅ 增强版就绪，历史数据共 '+HISTORY_LINES.length+' 条');
     } catch(e) {
         alert('初始化失败：' + e.message + '\n请刷新页面重试。');
         console.error(e);
