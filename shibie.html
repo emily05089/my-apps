@@ -120,7 +120,6 @@
       display: inline-block;
       box-shadow: 0 0 0 2px #bbdefb;
     }
-    /* 🔴 红球固定3行：11列 */
     .ball-grid.red-grid {
       display: grid;
       grid-template-columns: repeat(11, 28px);
@@ -128,7 +127,6 @@
       justify-content: center;
       margin-bottom: 0.3rem;
     }
-    /* 🔵 蓝球2行：8列 */
     .ball-grid.blue-grid {
       display: grid;
       grid-template-columns: repeat(8, 28px);
@@ -243,7 +241,6 @@
       font-size: 0.8rem;
       font-weight: 700;
     }
-    /* 输出框背景改为深棕色，非黑色 */
     .output-area {
       background: #3e3629;
       border-radius: 1rem;
@@ -261,8 +258,8 @@
       margin-top: 0.1rem;
       line-height: 1.4;
     }
-    /* 复制和清空输出按钮：暖灰色，非红非黑 */
-    .copy-btn, .clear-output-btn {
+    .copy-btn,
+    .clear-output-btn {
       background: #d9c8ad;
       color: #3e2e1f;
       border: 1px solid #b89b7a;
@@ -270,11 +267,9 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.08);
       transition: 0.2s;
     }
-    .copy-btn:hover, .clear-output-btn:hover {
+    .copy-btn:hover,
+    .clear-output-btn:hover {
       background: #cbb592;
-    }
-    .clear-output-btn {
-      background: #d9c8ad;
     }
     .dantuo-extra {
       font-size: 0.7rem;
@@ -302,231 +297,231 @@
   </style>
 </head>
 <body>
-<div class="container">
-  <h1><span>⚬</span> 双识别工具</h1>
-  
-  <div class="tabs">
-    <button class="tab-btn active" id="tabSingle">🎯 单式·复式</button>
-    <button class="tab-btn" id="tabDantuo">🧩 胆拖投注</button>
-  </div>
+  <div class="container">
+    <h1><span>⚬</span> 双识别工具</h1>
 
-  <!-- 单式/复式模块 -->
-  <div id="moduleSingle" class="module active">
-    <div class="ball-selector">
-      <div class="section-title"><span class="red-dot"></span> 红球 (至少选6个，1-33)</div>
-      <div class="ball-grid red-grid" id="singleRedContainer"></div>
-      <div class="section-title"><span class="blue-dot"></span> 蓝球 (至少选1个，1-16)</div>
-      <div class="ball-grid blue-grid" id="singleBlueContainer"></div>
+    <div class="tabs">
+      <button class="tab-btn active" id="tabSingle">🎯 单式·复式</button>
+      <button class="tab-btn" id="tabDantuo">🧩 胆拖投注</button>
     </div>
-    <div class="action-row">
-      <div class="multi-group">
-        <label>🔁 倍数</label>
-        <input type="number" id="singleMultiplier" value="1" min="1" step="1">
+
+    <div id="moduleSingle" class="module active">
+      <div class="ball-selector">
+        <div class="section-title"><span class="red-dot"></span> 红球 (至少选6个，1-33)</div>
+        <div class="ball-grid red-grid" id="singleRedContainer"></div>
+        <div class="section-title"><span class="blue-dot"></span> 蓝球 (至少选1个，1-16)</div>
+        <div class="ball-grid blue-grid" id="singleBlueContainer"></div>
       </div>
+      <div class="action-row">
+        <div class="multi-group">
+          <label>🔁 倍数</label>
+          <input type="number" id="singleMultiplier" value="1" min="1" step="1">
+        </div>
+        <div style="display: flex; gap:0.3rem;">
+          <button class="btn" id="clearSingleBtn">🗑️ 清空</button>
+          <button class="btn btn-primary" id="generateSingleBtn">✅ 确定</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="moduleDantuo" class="module">
+      <div class="ball-selector">
+        <div class="section-title"><span class="red-dot"></span> 胆码 (1~5个)</div>
+        <div class="ball-grid red-grid" id="danRedContainer"></div>
+        <div class="section-title"><span class="red-dot"></span> 拖码 (胆+拖≥7)</div>
+        <div class="ball-grid red-grid" id="tuoRedContainer"></div>
+        <div class="dantuo-extra">📌 胆码+拖码≥7，且不重复</div>
+        <div class="section-title"><span class="blue-dot"></span> 蓝球 (至少1个)</div>
+        <div class="ball-grid blue-grid" id="dantuoBlueContainer"></div>
+      </div>
+      <div class="action-row">
+        <div class="multi-group">
+          <label>🔁 倍数</label>
+          <input type="number" id="dantuoMultiplier" value="1" min="1" step="1">
+        </div>
+        <div style="display: flex; gap:0.3rem;">
+          <button class="btn" id="clearDantuoBtn">🗑️ 清空</button>
+          <button class="btn btn-primary" id="generateDantuoBtn">✅ 确定</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="output-header">
+      <h3>📋 生成结果</h3>
       <div style="display: flex; gap:0.3rem;">
-        <button class="btn" id="clearSingleBtn">🗑️ 清空</button>
-        <button class="btn btn-primary" id="generateSingleBtn">✅ 确定</button>
+        <button class="btn copy-btn" id="copyOutputBtn">📋 复制</button>
+        <button class="btn clear-output-btn" id="clearOutputBtn">🗑️ 清空输出</button>
       </div>
     </div>
+    <div class="output-area" id="outputBox"></div>
   </div>
 
-  <!-- 胆拖模块 -->
-  <div id="moduleDantuo" class="module">
-    <div class="ball-selector">
-      <div class="section-title"><span class="red-dot"></span> 胆码 (1~5个)</div>
-      <div class="ball-grid red-grid" id="danRedContainer"></div>
-      <div class="section-title"><span class="red-dot"></span> 拖码 (胆+拖≥7)</div>
-      <div class="ball-grid red-grid" id="tuoRedContainer"></div>
-      <div class="dantuo-extra">📌 胆码+拖码≥7，且不重复</div>
-      <div class="section-title"><span class="blue-dot"></span> 蓝球 (至少1个)</div>
-      <div class="ball-grid blue-grid" id="dantuoBlueContainer"></div>
-    </div>
-    <div class="action-row">
-      <div class="multi-group">
-        <label>🔁 倍数</label>
-        <input type="number" id="dantuoMultiplier" value="1" min="1" step="1">
-      </div>
-      <div style="display: flex; gap:0.3rem;">
-        <button class="btn" id="clearDantuoBtn">🗑️ 清空</button>
-        <button class="btn btn-primary" id="generateDantuoBtn">✅ 确定</button>
-      </div>
-    </div>
-  </div>
+  <script>
+    (function () {
+      let selectedSingleReds = new Set();
+      let selectedSingleBlues = new Set();
+      let selectedDanReds = new Set();
+      let selectedTuoReds = new Set();
+      let selectedDantuoBlues = new Set();
+      let outputLines = [];
 
-  <!-- 输出区域 -->
-  <div class="output-header">
-    <h3>📋 生成结果</h3>
-    <div style="display: flex; gap:0.3rem;">
-      <button class="btn copy-btn" id="copyOutputBtn">📋 复制</button>
-      <button class="btn clear-output-btn" id="clearOutputBtn">🗑️ 清空输出</button>
-    </div>
-  </div>
-  <div class="output-area" id="outputBox"></div>
-</div>
+      const singleRedContainer = document.getElementById('singleRedContainer');
+      const singleBlueContainer = document.getElementById('singleBlueContainer');
+      const danRedContainer = document.getElementById('danRedContainer');
+      const tuoRedContainer = document.getElementById('tuoRedContainer');
+      const dantuoBlueContainer = document.getElementById('dantuoBlueContainer');
+      const outputBox = document.getElementById('outputBox');
+      const singleMultiplierInput = document.getElementById('singleMultiplier');
+      const dantuoMultiplierInput = document.getElementById('dantuoMultiplier');
 
-<script>
-  (function() {
-    let selectedSingleReds = new Set();
-    let selectedSingleBlues = new Set();
-    let selectedDanReds = new Set();
-    let selectedTuoReds = new Set();
-    let selectedDantuoBlues = new Set();
-    let outputLines = [];
+      document.getElementById('tabSingle').addEventListener('click', () => {
+        document.getElementById('moduleSingle').classList.add('active');
+        document.getElementById('moduleDantuo').classList.remove('active');
+        document.getElementById('tabSingle').classList.add('active');
+        document.getElementById('tabDantuo').classList.remove('active');
+      });
+      document.getElementById('tabDantuo').addEventListener('click', () => {
+        document.getElementById('moduleDantuo').classList.add('active');
+        document.getElementById('moduleSingle').classList.remove('active');
+        document.getElementById('tabDantuo').classList.add('active');
+        document.getElementById('tabSingle').classList.remove('active');
+      });
 
-    const singleRedContainer = document.getElementById('singleRedContainer');
-    const singleBlueContainer = document.getElementById('singleBlueContainer');
-    const danRedContainer = document.getElementById('danRedContainer');
-    const tuoRedContainer = document.getElementById('tuoRedContainer');
-    const dantuoBlueContainer = document.getElementById('dantuoBlueContainer');
-    const outputBox = document.getElementById('outputBox');
-    const singleMultiplierInput = document.getElementById('singleMultiplier');
-    const dantuoMultiplierInput = document.getElementById('dantuoMultiplier');
-
-    document.getElementById('tabSingle').addEventListener('click', ()=>{
-      document.getElementById('moduleSingle').classList.add('active');
-      document.getElementById('moduleDantuo').classList.remove('active');
-      document.getElementById('tabSingle').classList.add('active');
-      document.getElementById('tabDantuo').classList.remove('active');
-    });
-    document.getElementById('tabDantuo').addEventListener('click', ()=>{
-      document.getElementById('moduleDantuo').classList.add('active');
-      document.getElementById('moduleSingle').classList.remove('active');
-      document.getElementById('tabDantuo').classList.add('active');
-      document.getElementById('tabSingle').classList.remove('active');
-    });
-
-    function renderBalls(container, total, selectedSet, ballType, exclusiveSets = null) {
-      container.innerHTML = '';
-      for (let i = 1; i <= total; i++) {
-        const ball = document.createElement('div');
-        ball.className = `ball ${ballType}`;
-        ball.textContent = i;
-        if (selectedSet.has(i)) ball.classList.add('selected');
-        ball.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const num = i;
-          if (exclusiveSets) {
-            const otherSet = exclusiveSets.otherSet;
-            if (otherSet && otherSet.has(num)) {
-              alert('胆码和拖码不能包含相同号码！');
-              return;
+      function renderBalls(container, total, selectedSet, ballType, exclusiveSets = null) {
+        container.innerHTML = '';
+        for (let i = 1; i <= total; i++) {
+          const ball = document.createElement('div');
+          ball.className = `ball ${ballType}`;
+          ball.textContent = i;
+          if (selectedSet.has(i)) ball.classList.add('selected');
+          ball.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const num = i;
+            if (exclusiveSets) {
+              const otherSet = exclusiveSets.otherSet;
+              if (otherSet && otherSet.has(num)) {
+                alert('胆码和拖码不能包含相同号码！');
+                return;
+              }
             }
-          }
-          if (selectedSet.has(num)) {
-            selectedSet.delete(num);
-          } else {
-            if (ballType === 'red-ball' && container === danRedContainer && selectedSet.size >= 5) {
-              alert('胆码最多5个');
-              return;
+            if (selectedSet.has(num)) {
+              selectedSet.delete(num);
+            } else {
+              if (ballType === 'red-ball' && container === danRedContainer && selectedSet.size >= 5) {
+                alert('胆码最多5个');
+                return;
+              }
+              selectedSet.add(num);
             }
-            selectedSet.add(num);
-          }
-          renderAllBalls();
-        });
-        container.appendChild(ball);
+            renderAllBalls();
+          });
+          container.appendChild(ball);
+        }
       }
-    }
 
-    function renderAllBalls() {
-      renderBalls(singleRedContainer, 33, selectedSingleReds, 'red-ball');
-      renderBalls(singleBlueContainer, 16, selectedSingleBlues, 'blue-ball');
-      renderBalls(danRedContainer, 33, selectedDanReds, 'red-ball', { otherSet: selectedTuoReds });
-      renderBalls(tuoRedContainer, 33, selectedTuoReds, 'red-ball', { otherSet: selectedDanReds });
-      renderBalls(dantuoBlueContainer, 16, selectedDantuoBlues, 'blue-ball');
-    }
-    renderAllBalls();
-
-    function getMultiplier(inputEl) {
-      let val = parseInt(inputEl.value, 10);
-      if (isNaN(val) || val < 1) val = 1;
-      inputEl.value = val;
-      return val;
-    }
-
-    function appendOutput(lines) {
-      if (!lines || lines.length === 0) return;
-      outputLines.push(...lines);
-      outputBox.textContent = outputLines.join('\n');
-      outputBox.scrollTop = outputBox.scrollHeight;
-    }
-
-    function clearOutput() {
-      outputLines = [];
-      outputBox.textContent = '';
-    }
-
-    function resetSingle() {
-      selectedSingleReds.clear();
-      selectedSingleBlues.clear();
-      singleMultiplierInput.value = 1;
+      function renderAllBalls() {
+        renderBalls(singleRedContainer, 33, selectedSingleReds, 'red-ball');
+        renderBalls(singleBlueContainer, 16, selectedSingleBlues, 'blue-ball');
+        renderBalls(danRedContainer, 33, selectedDanReds, 'red-ball', { otherSet: selectedTuoReds });
+        renderBalls(tuoRedContainer, 33, selectedTuoReds, 'red-ball', { otherSet: selectedDanReds });
+        renderBalls(dantuoBlueContainer, 16, selectedDantuoBlues, 'blue-ball');
+      }
       renderAllBalls();
-    }
-    function resetDantuo() {
-      selectedDanReds.clear();
-      selectedTuoReds.clear();
-      selectedDantuoBlues.clear();
-      dantuoMultiplierInput.value = 1;
-      renderAllBalls();
-    }
 
-    function generateSingle() {
-      const reds = Array.from(selectedSingleReds).sort((a,b)=>a-b);
-      const blues = Array.from(selectedSingleBlues).sort((a,b)=>a-b);
-      if (reds.length < 6) { alert('红球至少6个'); return; }
-      if (blues.length === 0) { alert('蓝球至少1个'); return; }
-      const mul = getMultiplier(singleMultiplierInput);
-      const redStr = reds.join(',');
-      const gen = [];
-      for (let b of blues) {
-        const line = `${redStr}-${b}`;
-        for (let i=0; i<mul; i++) gen.push(line);
+      function getMultiplier(inputEl) {
+        let val = parseInt(inputEl.value, 10);
+        if (isNaN(val) || val < 1) val = 1;
+        inputEl.value = val;
+        return val;
       }
-      appendOutput(gen);
-      resetSingle();
-    }
 
-    function generateDantuo() {
-      const dan = Array.from(selectedDanReds).sort((a,b)=>a-b);
-      const tuo = Array.from(selectedTuoReds).sort((a,b)=>a-b);
-      const blues = Array.from(selectedDantuoBlues).sort((a,b)=>a-b);
-      if (dan.length < 1 || dan.length > 5) { alert('胆码1~5个'); return; }
-      if (dan.length + tuo.length < 7) { alert('胆+拖至少7个'); return; }
-      if (dan.length + tuo.length > 33) { alert('总数不能超33'); return; }
-      if (blues.length === 0) { alert('蓝球至少1个'); return; }
-      for (let d of dan) {
-        if (selectedTuoReds.has(d)) { alert('胆拖重复！'); return; }
+      function appendOutput(lines) {
+        if (!lines || lines.length === 0) return;
+        outputLines.push(...lines);
+        outputBox.textContent = outputLines.join('\n');
+        outputBox.scrollTop = outputBox.scrollHeight;
       }
-      const mul = getMultiplier(dantuoMultiplierInput);
-      const danStr = dan.join(',');
-      const tuoStr = tuo.join(',');
-      const gen = [];
-      for (let b of blues) {
-        const line = `胆:${danStr},拖:${tuoStr}-${b}`;
-        for (let i=0; i<mul; i++) gen.push(line);
+
+      function clearOutput() {
+        if (outputLines.length === 0) return;
+        if (confirm('确定要清空所有生成记录吗？')) {
+          outputLines = [];
+          outputBox.textContent = '';
+        }
       }
-      appendOutput(gen);
-      resetDantuo();
-    }
 
-    document.getElementById('clearSingleBtn').addEventListener('click', resetSingle);
-    document.getElementById('clearDantuoBtn').addEventListener('click', resetDantuo);
-    document.getElementById('generateSingleBtn').addEventListener('click', generateSingle);
-    document.getElementById('generateDantuoBtn').addEventListener('click', generateDantuo);
+      function resetSingle() {
+        selectedSingleReds.clear();
+        selectedSingleBlues.clear();
+        singleMultiplierInput.value = 1;
+        renderAllBalls();
+      }
+      function resetDantuo() {
+        selectedDanReds.clear();
+        selectedTuoReds.clear();
+        selectedDantuoBlues.clear();
+        dantuoMultiplierInput.value = 1;
+        renderAllBalls();
+      }
 
-    document.getElementById('copyOutputBtn').addEventListener('click', ()=>{
-      const text = outputBox.textContent || '';
-      if (!text.trim()) { alert('无内容'); return; }
-      navigator.clipboard.writeText(text).then(()=>alert('已复制'));
-    });
+      function generateSingle() {
+        const reds = Array.from(selectedSingleReds).sort((a, b) => a - b);
+        const blues = Array.from(selectedSingleBlues).sort((a, b) => a - b);
+        if (reds.length < 6) { alert('红球至少6个'); return; }
+        if (blues.length === 0) { alert('蓝球至少1个'); return; }
+        const mul = getMultiplier(singleMultiplierInput);
+        const redStr = reds.join(',');
+        const gen = [];
+        for (let b of blues) {
+          const line = `${redStr}-${b}`;
+          for (let i = 0; i < mul; i++) gen.push(line);
+        }
+        appendOutput(gen);
+        resetSingle();
+      }
 
-    document.getElementById('clearOutputBtn').addEventListener('click', clearOutput);
-    outputBox.addEventListener('dblclick', clearOutput);
+      function generateDantuo() {
+        const dan = Array.from(selectedDanReds).sort((a, b) => a - b);
+        const tuo = Array.from(selectedTuoReds).sort((a, b) => a - b);
+        const blues = Array.from(selectedDantuoBlues).sort((a, b) => a - b);
+        if (dan.length < 1 || dan.length > 5) { alert('胆码1~5个'); return; }
+        if (dan.length + tuo.length < 7) { alert('胆+拖至少7个'); return; }
+        if (dan.length + tuo.length > 33) { alert('总数不能超33'); return; }
+        if (blues.length === 0) { alert('蓝球至少1个'); return; }
+        for (let d of dan) {
+          if (selectedTuoReds.has(d)) { alert('胆拖重复！'); return; }
+        }
+        const mul = getMultiplier(dantuoMultiplierInput);
+        const danStr = dan.join(',');
+        const tuoStr = tuo.join(',');
+        const gen = [];
+        for (let b of blues) {
+          const line = `胆:${danStr},拖:${tuoStr}-${b}`;
+          for (let i = 0; i < mul; i++) gen.push(line);
+        }
+        appendOutput(gen);
+        resetDantuo();
+      }
 
-    singleMultiplierInput.addEventListener('change', ()=>getMultiplier(singleMultiplierInput));
-    dantuoMultiplierInput.addEventListener('change', ()=>getMultiplier(dantuoMultiplierInput));
-    getMultiplier(singleMultiplierInput);
-    getMultiplier(dantuoMultiplierInput);
-  })();
-</script>
+      document.getElementById('clearSingleBtn').addEventListener('click', resetSingle);
+      document.getElementById('clearDantuoBtn').addEventListener('click', resetDantuo);
+      document.getElementById('generateSingleBtn').addEventListener('click', generateSingle);
+      document.getElementById('generateDantuoBtn').addEventListener('click', generateDantuo);
+
+      document.getElementById('copyOutputBtn').addEventListener('click', () => {
+        const text = outputBox.textContent || '';
+        if (!text.trim()) { alert('无内容'); return; }
+        navigator.clipboard.writeText(text).then(() => alert('已复制'));
+      });
+
+      document.getElementById('clearOutputBtn').addEventListener('click', clearOutput);
+      outputBox.addEventListener('dblclick', clearOutput);
+
+      singleMultiplierInput.addEventListener('change', () => getMultiplier(singleMultiplierInput));
+      dantuoMultiplierInput.addEventListener('change', () => getMultiplier(dantuoMultiplierInput));
+      getMultiplier(singleMultiplierInput);
+      getMultiplier(dantuoMultiplierInput);
+    })();
+  </script>
 </body>
 </html>
