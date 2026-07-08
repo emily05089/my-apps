@@ -120,7 +120,7 @@
       display: inline-block;
       box-shadow: 0 0 0 2px #bbdefb;
     }
-    /* 红球固定3行：11列 */
+    /* 🔴 红球固定3行：11列 */
     .ball-grid.red-grid {
       display: grid;
       grid-template-columns: repeat(11, 28px);
@@ -128,7 +128,7 @@
       justify-content: center;
       margin-bottom: 0.3rem;
     }
-    /* 蓝球固定2行：8列 */
+    /* 🔵 蓝球2行：8列 */
     .ball-grid.blue-grid {
       display: grid;
       grid-template-columns: repeat(8, 28px);
@@ -217,6 +217,7 @@
       display: inline-flex;
       align-items: center;
       gap: 0.2rem;
+      background: #f3ede5;
       transition: 0.2s;
     }
     .btn-primary {
@@ -242,8 +243,9 @@
       font-size: 0.8rem;
       font-weight: 700;
     }
+    /* 输出框背景改为深棕色，非黑色 */
     .output-area {
-      background: #2e241a;
+      background: #3e3629;
       border-radius: 1rem;
       padding: 0.8rem;
       color: #f7e7ce;
@@ -254,20 +256,25 @@
       overflow-y: auto;
       white-space: pre-wrap;
       word-break: break-word;
-      box-shadow: inset 0 0 8px rgba(0,0,0,0.5);
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.3);
       border: 1px solid #5c4a35;
       margin-top: 0.1rem;
       line-height: 1.4;
     }
-    .copy-btn {
-      background: #5b4635;
-      color: #fbeedb;
-      border: none;
+    /* 复制和清空输出按钮：暖灰色，非红非黑 */
+    .copy-btn, .clear-output-btn {
+      background: #d9c8ad;
+      color: #3e2e1f;
+      border: 1px solid #b89b7a;
+      font-weight: 600;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+      transition: 0.2s;
+    }
+    .copy-btn:hover, .clear-output-btn:hover {
+      background: #cbb592;
     }
     .clear-output-btn {
-      background: #4a3a2c;
-      color: #f0dbb4;
-      border: none;
+      background: #d9c8ad;
     }
     .dantuo-extra {
       font-size: 0.7rem;
@@ -303,6 +310,7 @@
     <button class="tab-btn" id="tabDantuo">🧩 胆拖投注</button>
   </div>
 
+  <!-- 单式/复式模块 -->
   <div id="moduleSingle" class="module active">
     <div class="ball-selector">
       <div class="section-title"><span class="red-dot"></span> 红球 (至少选6个，1-33)</div>
@@ -322,6 +330,7 @@
     </div>
   </div>
 
+  <!-- 胆拖模块 -->
   <div id="moduleDantuo" class="module">
     <div class="ball-selector">
       <div class="section-title"><span class="red-dot"></span> 胆码 (1~5个)</div>
@@ -344,6 +353,7 @@
     </div>
   </div>
 
+  <!-- 输出区域 -->
   <div class="output-header">
     <h3>📋 生成结果</h3>
     <div style="display: flex; gap:0.3rem;">
