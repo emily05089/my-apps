@@ -120,7 +120,7 @@
       display: inline-block;
       box-shadow: 0 0 0 2px #bbdefb;
     }
-    /* 🔴 红球固定3行：使用固定尺寸grid，绝不换行 */
+    /* 红球固定3行：11列 */
     .ball-grid.red-grid {
       display: grid;
       grid-template-columns: repeat(11, 28px);
@@ -128,7 +128,7 @@
       justify-content: center;
       margin-bottom: 0.3rem;
     }
-    /* 🔵 蓝球固定2行：8列 */
+    /* 蓝球固定2行：8列 */
     .ball-grid.blue-grid {
       display: grid;
       grid-template-columns: repeat(8, 28px);
@@ -217,7 +217,6 @@
       display: inline-flex;
       align-items: center;
       gap: 0.2rem;
-      background: #f3ede5;
       transition: 0.2s;
     }
     .btn-primary {
@@ -260,17 +259,14 @@
       margin-top: 0.1rem;
       line-height: 1.4;
     }
-    /* 🔴 醒目的输出清空按钮 */
-    .clear-output-btn {
-      background: #c0392b !important;
-      color: white !important;
-      border: none !important;
-      font-weight: 700 !important;
-      box-shadow: 0 3px 8px rgba(180, 40, 40, 0.3);
-    }
     .copy-btn {
       background: #5b4635;
       color: #fbeedb;
+      border: none;
+    }
+    .clear-output-btn {
+      background: #4a3a2c;
+      color: #f0dbb4;
       border: none;
     }
     .dantuo-extra {
@@ -281,7 +277,6 @@
       margin: 0.2rem 0 0.3rem;
       color: #4b3824;
     }
-    /* 小屏幕微调 */
     @media (max-width: 380px) {
       .ball-grid.red-grid {
         grid-template-columns: repeat(11, 24px);
@@ -308,7 +303,6 @@
     <button class="tab-btn" id="tabDantuo">🧩 胆拖投注</button>
   </div>
 
-  <!-- 单式/复式模块 -->
   <div id="moduleSingle" class="module active">
     <div class="ball-selector">
       <div class="section-title"><span class="red-dot"></span> 红球 (至少选6个，1-33)</div>
@@ -328,7 +322,6 @@
     </div>
   </div>
 
-  <!-- 胆拖模块 -->
   <div id="moduleDantuo" class="module">
     <div class="ball-selector">
       <div class="section-title"><span class="red-dot"></span> 胆码 (1~5个)</div>
@@ -351,7 +344,6 @@
     </div>
   </div>
 
-  <!-- 输出区域 -->
   <div class="output-header">
     <h3>📋 生成结果</h3>
     <div style="display: flex; gap:0.3rem;">
@@ -380,7 +372,6 @@
     const singleMultiplierInput = document.getElementById('singleMultiplier');
     const dantuoMultiplierInput = document.getElementById('dantuoMultiplier');
 
-    // 标签切换
     document.getElementById('tabSingle').addEventListener('click', ()=>{
       document.getElementById('moduleSingle').classList.add('active');
       document.getElementById('moduleDantuo').classList.remove('active');
@@ -449,7 +440,6 @@
       outputBox.scrollTop = outputBox.scrollHeight;
     }
 
-    // 清空输出（直接清除，无确认）
     function clearOutput() {
       outputLines = [];
       outputBox.textContent = '';
@@ -519,9 +509,7 @@
       navigator.clipboard.writeText(text).then(()=>alert('已复制'));
     });
 
-    // 🔴 输出清空按钮功能
     document.getElementById('clearOutputBtn').addEventListener('click', clearOutput);
-    // 双击输出框也可清空
     outputBox.addEventListener('dblclick', clearOutput);
 
     singleMultiplierInput.addEventListener('change', ()=>getMultiplier(singleMultiplierInput));
