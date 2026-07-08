@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.5">
+  <title>双识别工具 · 号码生成器</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    }
+    body {
+      background: linear-gradient(145deg, #f5f0ea 0%, #e8e0d5 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1.5rem;
+    }
+    .container {
+      max-width: 850px;
+      width: 100%;
+      background: rgba(255, 250, 245, 0.9);
+      backdrop-filter: blur(18px);
+      background: #fffbf5;
+      border-radius: 2.5rem;
+      box-shadow: 0 30px 50px rgba(0, 0, 0, 0.15), inset 0 1px 0 #fff;
+      padding: 2rem 2rem 2.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      border: 1px solid #e7d7c0;
+    }
+    h1 {
+      text-align: center;
+      font-weight: 500;
+      font-size: 2.1rem;
+      color: #4a3724;
+      letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    h1 span {
+      background: #c9372c;
+      color: #fff;
+      font-size: 1.8rem;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .tabs {
+      display: flex;
+      gap: 0.8rem;
+      background: #f2e5d2;
+      padding: 0.5rem;
+      border-radius: 60px;
+      margin-bottom: 0.2rem;
+    }
+    .tab-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 0.8rem 1rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border-radius: 40px;
+      color: #5e4a34;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      letter-spacing: 0.5px;
+      background: transparent;
+    }
+    .tab-btn.active {
+      background: white;
+      color: #b23b2c;
+      box-shadow: 0 6px 14px rgba(180, 100, 60, 0.25);
+      font-weight: 700;
+    }
+    .module {
+      display: none;
+      flex-direction: column;
+      gap: 1.6rem;
+    }
+    .module.active {
+      display: flex;
+    }
+    .ball-selector {
+      background: #fef9f2;
+      border-radius: 1.8rem;
+      padding: 1.3rem 1.2rem;
+      box-shadow: inset 0 1px 6px rgba(0,0,0,0.03), 0 8px 18px rgba(120, 70, 30, 0.08);
+    }
+    .red-section, .blue-section {
+      margin-bottom: 1.3rem;
+    }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 600;
+      margin-bottom: 0.8rem;
+      color: #4d3824;
+    }
+    .red-dot {
+      width: 14px;
+      height: 14px;
+      background: #d32f2f;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 0 2px #fbc4c4;
+    }
+    .blue-dot {
+      width: 14px;
+      height: 14px;
+      background: #1565c0;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 0 2px #bbdefb;
+    }
+    .ball-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      align-items: center;
+    }
+    .ball {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1rem;
+      background: white;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 2px solid #e5d5c0;
+      color: #3e2e1f;
+    }
+    .red-ball {
+      background: #fff5f0;
+      border-color: #f5bc9c;
+    }
+    .red-ball.selected {
+      background: #c62828;
+      border-color: #b71c1c;
+      color: white;
+      box-shadow: 0 0 0 3px #f9a19a;
+      transform: scale(1.02);
+    }
+    .blue-ball {
+      background: #f0f4ff;
+      border-color: #b0c8f0;
+    }
+    .blue-ball.selected {
+      background: #0d47a1;
+      border-color: #002171;
+      color: white;
+      box-shadow: 0 0 0 3px #7baaf7;
+    }
+    .action-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 1rem;
+      gap: 0.8rem;
+    }
+    .multi-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #f4ede4;
+      padding: 0.3rem 1rem;
+      border-radius: 2.5rem;
+    }
+    .multi-group label {
+      font-weight: 600;
+      color: #4e3b28;
+      font-size: 0.9rem;
+    }
+    .multi-group input {
+      width: 70px;
+      padding: 0.5rem 0.4rem;
+      border: 1px solid #dac09a;
+      border-radius: 1.5rem;
+      text-align: center;
+      font-weight: 600;
+      background: white;
+      outline: none;
+    }
+    .btn {
+      background: white;
+      border: none;
+      padding: 0.6rem 1.3rem;
+      border-radius: 2.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: #f3ede5;
+      color: #4f3b29;
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      border: 1px solid #d9c4a5;
+      font-size: 0.9rem;
+    }
+    .btn-primary {
+      background: #b34134;
+      color: white;
+      border: none;
+      box-shadow: 0 6px 14px rgba(170, 70, 40, 0.35);
+      font-weight: 700;
+      letter-spacing: 0.4px;
+    }
+    .btn-primary:hover {
+      background: #9e3027;
+    }
+    .btn-clear {
+      background: #f9f3ea;
+      border-color: #cfb594;
+    }
+    .output-area {
+      background: #2e241a;
+      border-radius: 1.5rem;
+      padding: 1.3rem;
+      color: #f7e7ce;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.9rem;
+      min-height: 130px;
+      max-height: 280px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      box-shadow: inset 0 0 12px rgba(0,0,0,0.5);
+      border: 1px solid #5c4a35;
+      margin-top: 0.2rem;
+    }
+    .copy-btn {
+      background: #5b4635;
+      color: #fbeedb;
+      border: none;
+      margin-left: 0.5rem;
+      padding: 0.35rem 1.2rem;
+      border-radius: 2rem;
+      font-weight: 500;
+    }
+    .dantuo-extra {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      color: #4b3824;
+      font-weight: 500;
+      background: #f6eddf;
+      padding: 0.3rem 1.2rem;
+      border-radius: 2rem;
+    }
+    hr {
+      border: 0.5px solid #ddceb8;
+      margin: 0.4rem 0 0.8rem;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1><span>⚬</span> 双识别工具</h1>
+  
+  <div class="tabs">
+    <button class="tab-btn active" id="tabSingle">🎯 单式·复式</button>
+    <button class="tab-btn" id="tabDantuo">🧩 胆拖投注</button>
+  </div>
+
+  <!-- 单式/复式模块 -->
+  <div id="moduleSingle" class="module active">
+    <div class="ball-selector">
+      <div class="red-section">
+        <div class="section-title"><span class="red-dot"></span> 红球 (至少选6个，1-33)</div>
+        <div class="ball-grid" id="singleRedContainer"></div>
+      </div>
+      <div class="blue-section">
+        <div class="section-title"><span class="blue-dot"></span> 蓝球 (至少选1个，1-16)</div>
+        <div class="ball-grid" id="singleBlueContainer"></div>
+      </div>
+    </div>
+    <div class="action-row">
+      <div class="multi-group">
+        <label>🔁 倍数</label>
+        <input type="number" id="singleMultiplier" value="1" min="1" step="1" placeholder="倍数">
+      </div>
+      <div style="display: flex; gap:0.6rem;">
+        <button class="btn" id="clearSingleBtn"><span>🗑️</span> 清空</button>
+        <button class="btn btn-primary" id="generateSingleBtn"><span>✅</span> 确定生成</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 胆拖模块 -->
+  <div id="moduleDantuo" class="module">
+    <div class="ball-selector">
+      <div class="red-section">
+        <div class="section-title"><span class="red-dot"></span> 胆码 (1~5个红球)</div>
+        <div class="ball-grid" id="danRedContainer"></div>
+      </div>
+      <div class="red-section">
+        <div class="section-title"><span class="red-dot"></span> 拖码 (与胆码合计至少7个，≤33)</div>
+        <div class="ball-grid" id="tuoRedContainer"></div>
+      </div>
+      <div class="dantuo-extra">
+        <span>📌 胆码+拖码总数 ≥ 7，且胆码与拖码不重复</span>
+      </div>
+      <div class="blue-section" style="margin-top:0.5rem;">
+        <div class="section-title"><span class="blue-dot"></span> 蓝球 (至少1个)</div>
+        <div class="ball-grid" id="dantuoBlueContainer"></div>
+      </div>
+    </div>
+    <div class="action-row">
+      <div class="multi-group">
+        <label>🔁 倍数</label>
+        <input type="number" id="dantuoMultiplier" value="1" min="1" step="1" placeholder="倍数">
+      </div>
+      <div style="display: flex; gap:0.6rem;">
+        <button class="btn" id="clearDantuoBtn"><span>🗑️</span> 清空</button>
+        <button class="btn btn-primary" id="generateDantuoBtn"><span>✅</span> 确定生成</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 输出区域 -->
+  <div style="display: flex; align-items: center; justify-content: space-between;">
+    <h3 style="color:#4d3824; margin:0;">📋 生成结果</h3>
+    <button class="btn copy-btn" id="copyOutputBtn">📋 复制全部</button>
+  </div>
+  <div class="output-area" id="outputBox"></div>
+</div>
+
+<script>
+  (function() {
+    // ----- 状态管理 -----
+    let selectedSingleReds = new Set();
+    let selectedSingleBlues = new Set();
+    
+    let selectedDanReds = new Set();   
+    let selectedTuoReds = new Set();   
+    let selectedDantuoBlues = new Set();
+    
+    let outputLines = [];
+
+    const singleRedContainer = document.getElementById('singleRedContainer');
+    const singleBlueContainer = document.getElementById('singleBlueContainer');
+    const danRedContainer = document.getElementById('danRedContainer');
+    const tuoRedContainer = document.getElementById('tuoRedContainer');
+    const dantuoBlueContainer = document.getElementById('dantuoBlueContainer');
+    
+    const outputBox = document.getElementById('outputBox');
+    const singleMultiplierInput = document.getElementById('singleMultiplier');
+    const dantuoMultiplierInput = document.getElementById('dantuoMultiplier');
+    
+    // 标签切换
+    document.getElementById('tabSingle').addEventListener('click', ()=>{
+      document.getElementById('moduleSingle').classList.add('active');
+      document.getElementById('moduleDantuo').classList.remove('active');
+      document.getElementById('tabSingle').classList.add('active');
+      document.getElementById('tabDantuo').classList.remove('active');
+    });
+    document.getElementById('tabDantuo').addEventListener('click', ()=>{
+      document.getElementById('moduleDantuo').classList.add('active');
+      document.getElementById('moduleSingle').classList.remove('active');
+      document.getElementById('tabDantuo').classList.add('active');
+      document.getElementById('tabSingle').classList.remove('active');
+    });
+
+    // 渲染球
+    function renderBalls(container, total, selectedSet, ballType, exclusiveSets = null) {
+      container.innerHTML = '';
+      for (let i = 1; i <= total; i++) {
+        const ball = document.createElement('div');
+        ball.className = `ball ${ballType}`;
+        ball.textContent = i;
+        if (selectedSet.has(i)) {
+          ball.classList.add('selected');
+        }
+        ball.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const num = i;
+          if (exclusiveSets) {
+            const otherSet = exclusiveSets.otherSet;
+            if (otherSet && otherSet.has(num)) {
+              alert('胆码和拖码不能包含相同号码，请先取消另一边的选择。');
+              return;
+            }
+          }
+          
+          if (selectedSet.has(num)) {
+            selectedSet.delete(num);
+          } else {
+            if (ballType === 'red-ball' && container === danRedContainer && selectedSet.size >= 5) {
+              alert('胆码最多选择5个红球。');
+              return;
+            }
+            selectedSet.add(num);
+          }
+          renderAllBalls();
+        });
+        container.appendChild(ball);
+      }
+    }
+
+    function renderAllBalls() {
+      renderBalls(singleRedContainer, 33, selectedSingleReds, 'red-ball');
+      renderBalls(singleBlueContainer, 16, selectedSingleBlues, 'blue-ball');
+      
+      renderBalls(danRedContainer, 33, selectedDanReds, 'red-ball', { otherSet: selectedTuoReds });
+      renderBalls(tuoRedContainer, 33, selectedTuoReds, 'red-ball', { otherSet: selectedDanReds });
+      renderBalls(dantuoBlueContainer, 16, selectedDantuoBlues, 'blue-ball');
+    }
+
+    renderAllBalls();
+
+    function getMultiplier(inputEl) {
+      let val = parseInt(inputEl.value, 10);
+      if (isNaN(val) || val < 1) val = 1;
+      inputEl.value = val;
+      return val;
+    }
+
+    function appendOutput(linesArray) {
+      if (!linesArray || linesArray.length === 0) return;
+      outputLines.push(...linesArray);
+      outputBox.textContent = outputLines.join('\n');
+      outputBox.scrollTop = outputBox.scrollHeight;
+    }
+
+    // 重置单式选择
+    function resetSingleSelection() {
+      selectedSingleReds.clear();
+      selectedSingleBlues.clear();
+      singleMultiplierInput.value = 1;
+      renderAllBalls();
+    }
+
+    // 重置胆拖选择
+    function resetDantuoSelection() {
+      selectedDanReds.clear();
+      selectedTuoReds.clear();
+      selectedDantuoBlues.clear();
+      dantuoMultiplierInput.value = 1;
+      renderAllBalls();
+    }
+
+    // 单式/复式生成 (倍数=行数) ，生成后自动重置
+    function generateSingle() {
+      const reds = Array.from(selectedSingleReds).sort((a,b)=>a-b);
+      const blues = Array.from(selectedSingleBlues).sort((a,b)=>a-b);
+      
+      if (reds.length < 6) {
+        alert('红球至少选择6个号码。');
+        return;
+      }
+      if (blues.length === 0) {
+        alert('蓝球至少选择1个号码。');
+        return;
+      }
+      
+      const multiplier = getMultiplier(singleMultiplierInput);
+      const redString = reds.join(',');
+      const generated = [];
+      
+      for (let blue of blues) {
+        const baseLine = `${redString}-${blue}`;
+        for (let i = 0; i < multiplier; i++) {
+          generated.push(baseLine);
+        }
+      }
+      
+      appendOutput(generated);
+      // 生成后自动清空选择与倍数
+      resetSingleSelection();
+    }
+
+    // 胆拖生成 (格式: 胆:1,3,拖:4,5,6,7,8,9-5) ，生成后自动重置
+    function generateDantuo() {
+      const danReds = Array.from(selectedDanReds).sort((a,b)=>a-b);
+      const tuoReds = Array.from(selectedTuoReds).sort((a,b)=>a-b);
+      const blues = Array.from(selectedDantuoBlues).sort((a,b)=>a-b);
+      
+      if (danReds.length < 1 || danReds.length > 5) {
+        alert('胆码数量必须在1~5之间。');
+        return;
+      }
+      const totalReds = danReds.length + tuoReds.length;
+      if (totalReds < 7) {
+        alert('胆码+拖码总数至少为7个红球。');
+        return;
+      }
+      if (totalReds > 33) {
+        alert('胆码+拖码总数不能超过33。');
+        return;
+      }
+      if (blues.length === 0) {
+        alert('蓝球至少选择1个。');
+        return;
+      }
+      
+      for (let d of danReds) {
+        if (selectedTuoReds.has(d)) {
+          alert('胆码与拖码存在重复号码，请修正。');
+          return;
+        }
+      }
+      
+      const multiplier = getMultiplier(dantuoMultiplierInput);
+      const danStr = danReds.join(',');
+      const tuoStr = tuoReds.join(',');
+      const generated = [];
+      
+      for (let blue of blues) {
+        const line = `胆:${danStr},拖:${tuoStr}-${blue}`;
+        for (let i = 0; i < multiplier; i++) {
+          generated.push(line);
+        }
+      }
+      
+      appendOutput(generated);
+      // 生成后自动清空选择与倍数
+      resetDantuoSelection();
+    }
+
+    // 手动清空按钮
+    document.getElementById('clearSingleBtn').addEventListener('click', resetSingleSelection);
+    document.getElementById('clearDantuoBtn').addEventListener('click', resetDantuoSelection);
+    
+    document.getElementById('generateSingleBtn').addEventListener('click', generateSingle);
+    document.getElementById('generateDantuoBtn').addEventListener('click', generateDantuo);
+
+    document.getElementById('copyOutputBtn').addEventListener('click', () => {
+      const text = outputBox.textContent || '';
+      if (!text.trim()) {
+        alert('暂无内容可复制');
+        return;
+      }
+      navigator.clipboard.writeText(text).then(()=>{
+        alert('已复制到剪贴板');
+      }).catch(()=>{
+        alert('复制失败，请手动复制');
+      });
+    });
+
+    outputBox.addEventListener('dblclick', function(e){
+      if(confirm('是否清空所有输出记录？')){
+        outputLines = [];
+        outputBox.textContent = '';
+      }
+    });
+
+    singleMultiplierInput.addEventListener('change', function(){ getMultiplier(singleMultiplierInput); });
+    dantuoMultiplierInput.addEventListener('change', function(){ getMultiplier(dantuoMultiplierInput); });
+    
+    getMultiplier(singleMultiplierInput);
+    getMultiplier(dantuoMultiplierInput);
+  })();
+</script>
+</body>
+</html>
