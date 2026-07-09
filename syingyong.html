@@ -772,6 +772,7 @@ function fallbackCopy(text, n) {
 
 // 修复后的排除历史中4个和5个功能 - 使用用户输入的历史组合
 // 排除历史中N个功能 - 使用预加载的历史组合数据（HIST_MASKS）
+// 排除历史中N个功能 - 修复版
 function applyExcludeHistByCount(targetCount) {
     if (busy) return alert('处理中');
     if (filteredCount === 0) return alert('无剩余组合');
@@ -780,43 +781,55 @@ function applyExcludeHistByCount(targetCount) {
         return;
     }
     var name = '排除历史中' + targetCount + '个';
-    if (!confirm('确认执行 ['+name+']？\n\n将删除当前剩余组合中，与预加载的任何一组历史组合恰好有' + targetCount + '个相同数字的组合。\n当前预加载历史组合共 ' + HIST_MASKS.length + ' 组。')) return;
+    if (!confirm('确认执行 ['+name+']？\n\n对于每一条历史组合，生成所有与它恰好有' + targetCount + '个相同数字的组合，从当前剩余组合中删除。\n当前预加载历史组合共 ' + HIST_MASKS.length.toLocaleString() + ' 组。\n当前剩余组合：' + filteredCount.toLocaleString() + ' 组。')) return;
     saveUndoState();
     var startTime = Date.now();
     busy = true;
     setStatus(name + ' 过滤中...');
     showProgress(0);
-    var removed = 0, done = 0, BATCH = 30000;
-    function step(start) {
+    
+    // 收集所有需要删除的组合索引
+    var removeSet = new Set();
+    var totalHist = HIST_MASKS.length;
+    var doneHist = 0;
+    
+    function processHistBatch(startIdx) {
         try {
-            var end = Math.min(start + BATCH, TOTAL);
-            for (var i = start; i < end; i++) {
-                if (!filteredAlive[i]) continue;
-                var l = masksLow[i], h = masksHigh[i];
-                var shouldDelete = false;
-                for (var j = 0; j < HIST_MASKS.length; j++) {
-                    var interLow = l & HIST_MASKS[j].l;
-                    var interHigh = h & HIST_MASKS[j].h;
-                    var match = popcount32(interLow) + (interHigh & 1);
-                    if (match === targetCount) {
-                        shouldDelete = true;
-                        break;
+            var endIdx = Math.min(startIdx + 5, totalHist);
+            for (var h = startIdx; h < endIdx; h++) {
+                var hits = genHit(HIST_MASKS[h], targetCount);
+                for (var k = 0; k < hits.length; k++) {
+                    var idx = maskIndex.get(hits[k].l + '_' + hits[k].h);
+                    if (idx !== undefined) {
+                        removeSet.add(idx);
                     }
                 }
-                if (shouldDelete) { filteredAlive[i] = 0; removed++; }
             }
-            done = end;
-            showProgress(Math.round(done / TOTAL * 100));
-            if (done < TOTAL) setTimeout(function() { step(done); }, 5);
-            else {
+            doneHist = endIdx;
+            showProgress(Math.round(doneHist / totalHist * 100));
+            if (doneHist < totalHist) {
+                setTimeout(function() { processHistBatch(doneHist); }, 10);
+            } else {
+                // 执行删除
+                var removed = 0;
+                removeSet.forEach(function(idx) {
+                    if (filteredAlive[idx]) {
+                        filteredAlive[idx] = 0;
+                        removed++;
+                    }
+                });
                 filteredCount -= removed;
                 updateDisplay();
                 log('✅ ' + name + '：移除 ' + removed.toLocaleString() + ' 组，剩余 ' + filteredCount.toLocaleString() + ' 组');
                 finishOperation(startTime);
             }
-        } catch(e) { log('❌ 过滤出错：' + e.message); finishOperation(startTime); }
+        } catch(e) {
+            log('❌ 过滤出错：' + e.message);
+            finishOperation(startTime);
+        }
     }
-    step(0);
+    
+    processHistBatch(0);
 }
         function createPrizeWorker() {
     if (prizeWorker) { prizeWorker.terminate(); }
