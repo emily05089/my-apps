@@ -776,27 +776,36 @@ function fallbackCopy(text, n) {
 function applyExcludeHistByCount(targetCount) {
     if (busy) return alert('处理中');
     if (filteredCount === 0) return alert('无剩余组合');
-    if (HIST_MASKS.length === 0) {
-        alert('预加载的历史数据为空，请刷新页面。');
+
+    // 确保使用预加载历史数据 HIST_MASKS（3000+条）
+    if (typeof HIST_MASKS === 'undefined' || HIST_MASKS.length === 0) {
+        alert('预加载历史数据为空，请刷新页面。');
         return;
     }
+
     var name = '排除历史中' + targetCount + '个';
-    if (!confirm('确认执行 ['+name+']？\n\n对于每一条历史组合，生成所有与它恰好有' + targetCount + '个相同数字的组合，从当前剩余组合中删除。\n当前预加载历史组合共 ' + HIST_MASKS.length.toLocaleString() + ' 组。\n当前剩余组合：' + filteredCount.toLocaleString() + ' 组。')) return;
+    if (!confirm(
+        '【预加载历史数据】\n' +
+        '将删除所有与预加载的 ' + HIST_MASKS.length.toLocaleString() + ' 组历史号码中\n' +
+        '任意一组恰好有 ' + targetCount + ' 个相同数字的组合。\n\n' +
+        '当前剩余组合：' + filteredCount.toLocaleString() + ' 组。\n\n是否继续？'
+    )) return;
+
     saveUndoState();
     var startTime = Date.now();
     busy = true;
     setStatus(name + ' 过滤中...');
     showProgress(0);
-    
-    // 收集所有需要删除的组合索引
+
     var removeSet = new Set();
     var totalHist = HIST_MASKS.length;
     var doneHist = 0;
-    
+
     function processHistBatch(startIdx) {
         try {
             var endIdx = Math.min(startIdx + 5, totalHist);
             for (var h = startIdx; h < endIdx; h++) {
+                // 生成所有与当前历史组合恰好有 targetCount 个相同数字的组合
                 var hits = genHit(HIST_MASKS[h], targetCount);
                 for (var k = 0; k < hits.length; k++) {
                     var idx = maskIndex.get(hits[k].l + '_' + hits[k].h);
@@ -808,11 +817,10 @@ function applyExcludeHistByCount(targetCount) {
             doneHist = endIdx;
             showProgress(Math.round(doneHist / totalHist * 100));
             if (doneHist < totalHist) {
-                setTimeout(function() { processHistBatch(doneHist); }, 10);
+                setTimeout(function () { processHistBatch(doneHist); }, 10);
             } else {
-                // 执行删除
                 var removed = 0;
-                removeSet.forEach(function(idx) {
+                removeSet.forEach(function (idx) {
                     if (filteredAlive[idx]) {
                         filteredAlive[idx] = 0;
                         removed++;
@@ -823,11 +831,14 @@ function applyExcludeHistByCount(targetCount) {
                 log('✅ ' + name + '：移除 ' + removed.toLocaleString() + ' 组，剩余 ' + filteredCount.toLocaleString() + ' 组');
                 finishOperation(startTime);
             }
-        } catch(e) {
+        } catch (e) {
             log('❌ 过滤出错：' + e.message);
             finishOperation(startTime);
         }
     }
+
+    processHistBatch(0);
+}
     
     processHistBatch(0);
 }
