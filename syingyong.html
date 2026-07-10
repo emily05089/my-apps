@@ -129,23 +129,15 @@
         </div>
         <div class="log" id="logArea"><div>系统就绪</div></div>
     </div>
-        <div class="card">
+    <div class="card">
         <b>数字过滤（累积生效）</b>
         <div style="margin-top:8px;"><span style="color:#e74c3c;">● OR排除</span> <span class="tag">包含任一即删</span></div>
-        <div class="number-grid" id="orGrid">
-            <div class="zone-row" id="orZone1"></div>
-            <div class="zone-row" id="orZone2"></div>
-            <div class="zone-row" id="orZone3"></div>
-        </div>
+        <div class="number-grid" id="orGrid"><div class="zone-row" id="orZone1"></div><div class="zone-row" id="orZone2"></div><div class="zone-row" id="orZone3"></div></div>
         <button class="btn btn-outline btn-sm" id="btnApplyOR">✅ 应用OR过滤</button>
         <button class="btn btn-outline btn-sm" id="btnClearOR">清除OR选择</button>
         <div class="tag">已选 <span id="orCount">0</span> 个</div>
         <div style="margin-top:12px;"><span style="color:#2980b9;">● AND排除</span> <span class="tag">包含全部才删</span></div>
-        <div class="number-grid" id="andGrid">
-            <div class="zone-row" id="andZone1"></div>
-            <div class="zone-row" id="andZone2"></div>
-            <div class="zone-row" id="andZone3"></div>
-        </div>
+        <div class="number-grid" id="andGrid"><div class="zone-row" id="andZone1"></div><div class="zone-row" id="andZone2"></div><div class="zone-row" id="andZone3"></div></div>
         <button class="btn btn-outline btn-sm" id="btnApplyAND">✅ 应用AND过滤</button>
         <button class="btn btn-outline btn-sm" id="btnClearAND">清除AND选择</button>
         <div class="tag">已选 <span id="andCount">0</span> 个</div>
@@ -228,7 +220,7 @@
         <div class="note-box">※ 智能重复排除：根据历史统计中组合的重复次数范围，一键排除中N个的组合。<br>※ 奖金范围排除：根据基准历史票计算奖金，删除中奖金额在指定范围内的前区组合。<br>※ 保留多数字组合：输入多组数字（可带蓝球），只保留与每行数字都恰好匹配指定个数的组合。</div>
     </div>
 </div>
-<!-- 所有模态框 -->
+
 <div class="modal-overlay" id="pairModalOverlay"><div class="modal-box"><div class="modal-title">输入双数字组合（每行一组，如 01,05）</div><textarea class="modal-textarea" id="pairModalTextarea" placeholder="例如：&#10;01,05&#10;03,08&#10;12,23"></textarea><div class="modal-buttons"><button class="btn btn-outline" id="btnPairModalCancel">取消</button><button class="btn btn-danger" id="btnPairModalConfirm">确认排除</button></div></div></div>
 <div class="modal-overlay" id="multiModalOverlay"><div class="modal-box"><div class="modal-title">输入多数字组合（每行一组，至少2个数字）</div><textarea class="modal-textarea" id="multiModalTextarea" placeholder="例如：&#10;1,2,3&#10;04,08,15,22"></textarea><div class="modal-buttons"><button class="btn btn-outline" id="btnMultiModalCancel">取消</button><button class="btn btn-danger" id="btnMultiModalConfirm">确认排除</button></div></div></div>
 <div class="modal-overlay" id="multiHitModalOverlay"><div class="modal-box"><div class="modal-title">输入多数字组合，并勾选排除命中个数</div><textarea class="modal-textarea" id="multiHitModalTextarea" placeholder="每行一组，可带蓝球"></textarea><div class="checkbox-group" id="multiHitCheckboxes"><label><input type="checkbox" class="hit-check" value="0">中0个</label><label><input type="checkbox" class="hit-check" value="1">中1个</label><label><input type="checkbox" class="hit-check" value="2">中2个</label><label><input type="checkbox" class="hit-check" value="3">中3个</label></div><div class="modal-buttons"><button class="btn btn-outline" id="btnMultiHitModalCancel">取消</button><button class="btn btn-danger" id="btnMultiHitModalConfirm">确认排除</button></div></div></div>
@@ -243,7 +235,7 @@
 <div class="modal-overlay" id="checkComboModalOverlay"><div class="modal-box"><div class="modal-title">✅ 查询组合是否在剩余组合中</div><div class="number-grid" id="checkComboGrid"><div class="zone-row" id="checkZone1"></div><div class="zone-row" id="checkZone2"></div><div class="zone-row" id="checkZone3"></div></div><div class="tag" style="margin-top:8px;">已选 <span id="checkComboCount">0</span> 个数字（需选6个）</div><div class="modal-buttons"><button class="btn btn-outline" id="btnCheckComboCancel">取消</button><button class="btn btn-check" id="btnCheckComboConfirm">查询</button></div></div></div>
 
 <script>
-    (function() {
+(function() {
 var TOTAL = 1107568;
 var filteredAlive = new Uint8Array(TOTAL);
 var filteredCount = TOTAL;
@@ -268,7 +260,6 @@ var undoStack = [];
 var redoStack = [];
 var MAX_UNDO = 50;
 
-// 用户输入的历史组合（用于排除历史中4个/5个功能）
 var userHistoryMasks = [];
 function rebuildUserHistoryMasks() {
     userHistoryMasks = [];
@@ -283,23 +274,7 @@ function rebuildUserHistoryMasks() {
 }
 
 var SUM_COUNT = {
-    21:1,22:1,23:2,24:3,25:5,26:7,27:11,28:14,29:20,30:26,
-    31:35,32:44,33:58,34:71,35:90,36:110,37:136,38:163,39:199,40:235,
-    41:282,42:331,43:391,44:454,45:532,46:612,47:709,48:811,49:931,50:1057,
-    51:1206,52:1360,53:1540,54:1729,55:1945,56:2172,57:2430,58:2702,59:3009,60:3331,
-    61:3692,62:4070,63:4494,64:4935,65:5426,66:5938,67:6508,68:7097,69:7748,70:8416,
-    71:9152,72:9908,73:10743,74:11599,75:12535,76:13490,77:14528,78:15582,79:16720,80:17870,
-    81:19101,82:20332,83:21654,84:22977,85:24376,86:25760,87:27222,88:28664,89:30168,90:31632,
-    91:33151,92:34614,93:36110,94:37527,95:38955,96:40279,97:41590,98:42771,99:43914,100:44903,
-    101:45830,102:46581,103:47251,104:47723,105:48095,106:48255,107:48307,108:48140,109:47859,110:47355,
-    111:46737,112:45895,113:44943,114:43769,115:42488,116:40993,117:39401,118:37611,119:35741,120:33696,
-    121:31600,122:29366,123:27120,124:24787,125:22498,126:20190,127:17996,128:15849,129:13865,130:11986,
-    131:10295,132:8728,133:7344,134:6092,135:5011,136:4052,137:3248,138:2555,139:1989,140:1510,
-    141:1135,142:828,143:598,144:418,145:289,146:193,147:128,148:81,149:51,150:30,
-    151:18,152:10,153:6,154:3,155:2,156:1,157:1,158:1,159:0,160:0,
-    161:0,162:0,163:0,164:0,165:0,166:0,167:0,168:0,169:0,170:0,
-    171:0,172:0,173:0,174:0,175:0,176:0,177:0,178:0,179:0,180:0,
-    181:1,182:1,183:1
+    21:1,22:1,23:2,24:3,25:5,26:7,27:11,28:14,29:20,30:26,31:35,32:44,33:58,34:71,35:90,36:110,37:136,38:163,39:199,40:235,41:282,42:331,43:391,44:454,45:532,46:612,47:709,48:811,49:931,50:1057,51:1206,52:1360,53:1540,54:1729,55:1945,56:2172,57:2430,58:2702,59:3009,60:3331,61:3692,62:4070,63:4494,64:4935,65:5426,66:5938,67:6508,68:7097,69:7748,70:8416,71:9152,72:9908,73:10743,74:11599,75:12535,76:13490,77:14528,78:15582,79:16720,80:17870,81:19101,82:20332,83:21654,84:22977,85:24376,86:25760,87:27222,88:28664,89:30168,90:31632,91:33151,92:34614,93:36110,94:37527,95:38955,96:40279,97:41590,98:42771,99:43914,100:44903,101:45830,102:46581,103:47251,104:47723,105:48095,106:48255,107:48307,108:48140,109:47859,110:47355,111:46737,112:45895,113:44943,114:43769,115:42488,116:40993,117:39401,118:37611,119:35741,120:33696,121:31600,122:29366,123:27120,124:24787,125:22498,126:20190,127:17996,128:15849,129:13865,130:11986,131:10295,132:8728,133:7344,134:6092,135:5011,136:4052,137:3248,138:2555,139:1989,140:1510,141:1135,142:828,143:598,144:418,145:289,146:193,147:128,148:81,149:51,150:30,151:18,152:10,153:6,154:3,155:2,156:1,157:1,158:1,159:0,160:0,161:0,162:0,163:0,164:0,165:0,166:0,167:0,168:0,169:0,170:0,171:0,172:0,173:0,174:0,175:0,176:0,177:0,178:0,179:0,180:0,181:1,182:1,183:1
 };
 
 function calcSum(arr) { var sum = 0; for (var i = 0; i < arr.length; i++) sum += arr[i]; return sum; }
@@ -439,7 +414,8 @@ function finishOperation(startTime) {
     document.getElementById('btnPrizeExport').textContent = '💰 奖金计算与导出';
     if (startTime) { var elapsed = ((Date.now() - startTime) / 1000).toFixed(1); log('⏱️ 本次操作耗时：' + elapsed + ' 秒'); }
 }
-        function applyCustomFilter(name, filterFn) {
+
+function applyCustomFilter(name, filterFn) {
     if (busy) return alert('处理中'); if (filteredCount===0) return alert('无剩余');
     if (!confirm('确认执行 ['+name+']？')) return;
     saveUndoState();
@@ -770,29 +746,23 @@ function fallbackCopy(text, n) {
     document.body.removeChild(ta);
 }
 
-// 修复后的排除历史中4个和5个功能 - 使用用户输入的历史组合
-// 排除历史中N个功能 - 使用预加载的历史组合数据（HIST_MASKS）
-// 排除历史中N个功能 - 修复版
 function applyExcludeHistByCount(targetCount) {
     if (busy) return alert('处理中');
     if (filteredCount === 0) return alert('无剩余组合');
-    if (HIST_MASKS.length === 0) {
-        alert('预加载的历史数据为空，请刷新页面。');
+    if (typeof HIST_MASKS === 'undefined' || HIST_MASKS.length === 0) {
+        alert('预加载历史数据为空，请刷新页面。');
         return;
     }
     var name = '排除历史中' + targetCount + '个';
-    if (!confirm('确认执行 ['+name+']？\n\n对于每一条历史组合，生成所有与它恰好有' + targetCount + '个相同数字的组合，从当前剩余组合中删除。\n当前预加载历史组合共 ' + HIST_MASKS.length.toLocaleString() + ' 组。\n当前剩余组合：' + filteredCount.toLocaleString() + ' 组。')) return;
+    if (!confirm('确认执行 ['+name+']？\n\n将删除当前剩余组合中，与预加载的任何一组历史组合恰好有' + targetCount + '个相同数字的组合。\n当前预加载历史组合共 ' + HIST_MASKS.length.toLocaleString() + ' 组。\n当前剩余组合：' + filteredCount.toLocaleString() + ' 组。')) return;
     saveUndoState();
     var startTime = Date.now();
     busy = true;
     setStatus(name + ' 过滤中...');
     showProgress(0);
-    
-    // 收集所有需要删除的组合索引
     var removeSet = new Set();
     var totalHist = HIST_MASKS.length;
     var doneHist = 0;
-    
     function processHistBatch(startIdx) {
         try {
             var endIdx = Math.min(startIdx + 5, totalHist);
@@ -800,38 +770,26 @@ function applyExcludeHistByCount(targetCount) {
                 var hits = genHit(HIST_MASKS[h], targetCount);
                 for (var k = 0; k < hits.length; k++) {
                     var idx = maskIndex.get(hits[k].l + '_' + hits[k].h);
-                    if (idx !== undefined) {
-                        removeSet.add(idx);
-                    }
+                    if (idx !== undefined) removeSet.add(idx);
                 }
             }
             doneHist = endIdx;
             showProgress(Math.round(doneHist / totalHist * 100));
-            if (doneHist < totalHist) {
-                setTimeout(function() { processHistBatch(doneHist); }, 10);
-            } else {
-                // 执行删除
+            if (doneHist < totalHist) setTimeout(function() { processHistBatch(doneHist); }, 10);
+            else {
                 var removed = 0;
-                removeSet.forEach(function(idx) {
-                    if (filteredAlive[idx]) {
-                        filteredAlive[idx] = 0;
-                        removed++;
-                    }
-                });
+                removeSet.forEach(function(idx) { if (filteredAlive[idx]) { filteredAlive[idx] = 0; removed++; } });
                 filteredCount -= removed;
                 updateDisplay();
                 log('✅ ' + name + '：移除 ' + removed.toLocaleString() + ' 组，剩余 ' + filteredCount.toLocaleString() + ' 组');
                 finishOperation(startTime);
             }
-        } catch(e) {
-            log('❌ 过滤出错：' + e.message);
-            finishOperation(startTime);
-        }
+        } catch(e) { log('❌ 过滤出错：' + e.message); finishOperation(startTime); }
     }
-    
     processHistBatch(0);
 }
-        function createPrizeWorker() {
+
+function createPrizeWorker() {
     if (prizeWorker) { prizeWorker.terminate(); }
     var workerCode = [
         "self.onmessage = function(e) {",
@@ -1334,7 +1292,8 @@ function confirmPrizeRange() {
     }
     step(0);
 }
-        // 保留多数字组合（逐行判断）
+
+// 保留多数字组合（逐行判断）
 function showKeepMultiModal() {
     document.getElementById('keepMultiTextarea').value = '';
     document.querySelectorAll('#keepMultiHits input').forEach(function(cb) { cb.checked = false; });
