@@ -216,7 +216,7 @@
 <div class="container">
   <h1>
     🎱 双分组
-    <span class="icon">11组分类·拆分统计</span>
+    <span class="icon">11组分类·总数统计</span>
   </h1>
 
   <div class="input-area">
@@ -228,7 +228,7 @@
     <div class="hint">
       <span>✅ 蓝球后用 <code>-</code> 分隔</span>
       <span>✅ 胆拖必须含“拖”字</span>
-      <span>⚠️ 自动拆分为6数字组合并统计总数</span>
+      <span>📊 自动统计拆分后的6数字组合总数</span>
     </div>
   </div>
 
@@ -374,16 +374,12 @@
     return { type: 'dantuo', raw, danCount: danNums.length, tuoCount: tuoNums.length, danNums, tuoNums, blue };
   }
 
-  // 组合生成器：从数组中选择k个
   function combinations(arr, k) {
     if (k === 0) return [[]];
     if (arr.length < k) return [];
     const result = [];
     const f = (start, chosen) => {
-      if (chosen.length === k) {
-        result.push([...chosen]);
-        return;
-      }
+      if (chosen.length === k) { result.push([...chosen]); return; }
       for (let i = start; i <= arr.length - (k - chosen.length); i++) {
         chosen.push(arr[i]);
         f(i + 1, chosen);
@@ -394,31 +390,15 @@
     return result;
   }
 
-  function expandItem(item) {
-    const result = [];
+  function countExpanded(item) {
     if (item.type === 'standard') {
-      if (item.count === 6) {
-        result.push(formatCombo(item.nums, item.blue));
-      } else {
-        const combos = combinations(item.nums, 6);
-        for (let c of combos) {
-          result.push(formatCombo(c, item.blue));
-        }
-      }
+      if (item.count === 6) return 1;
+      return combinations(item.nums, 6).length;
     } else if (item.type === 'dantuo') {
       const need = 6 - item.danCount;
-      const combos = combinations(item.tuoNums, need);
-      for (let c of combos) {
-        const full = [...item.danNums, ...c].sort((a,b)=>a-b);
-        result.push(formatCombo(full, item.blue));
-      }
+      return combinations(item.tuoNums, need).length;
     }
-    return result;
-  }
-
-  function formatCombo(nums, blue) {
-    const red = nums.map(n => String(n).padStart(2, '0')).join(',');
-    return blue !== null ? `${red}-${String(blue).padStart(2, '0')}` : red;
+    return 0;
   }
 
   function process() {
@@ -438,15 +418,12 @@
         continue;
       }
 
-      // 展开为6数字组合
-      const expanded = expandItem(parsed);
-      totalCount += expanded.length;
+      totalCount += countExpanded(parsed);
 
-      // 匹配分组，放入展开后的组合
       let anyMatched = false;
       for (let g of groups) {
         if (g.test(parsed)) {
-          g.items.push(...expanded);
+          g.items.push(parsed.raw);
           anyMatched = true;
         }
       }
