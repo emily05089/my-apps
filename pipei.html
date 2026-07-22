@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>号码分析工具箱 · 复式/胆拖全面支持</title>
+    <title>号码分析工具箱 · 分组统计 & 奖金可调</title>
     <style>
         :root {
             --primary: #4A6CF7;
@@ -24,25 +24,15 @@
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            background: linear-gradient(135deg, #e8edf5, #dce3ed, #eef2f7);
+            background: linear-gradient(135deg, #e8edf5, #dce3ed);
             min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
             color: var(--text);
         }
-        .app-container {
-            width: 100%; max-width: 820px; background: var(--card-bg);
-            border-radius: 20px; box-shadow: var(--shadow); padding: 36px 30px;
-        }
+        .app-container { width: 100%; max-width: 860px; background: var(--card-bg); border-radius: 20px; box-shadow: var(--shadow); padding: 30px 28px; }
         .app-header { text-align: center; margin-bottom: 20px; }
         .app-header h1 { font-size: 1.6rem; font-weight: 700; color: var(--primary); }
-        .tab-bar {
-            display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border);
-            padding-bottom: 12px; justify-content: center;
-        }
-        .tab-btn {
-            padding: 8px 20px; border: none; background: #f1f5fa; border-radius: 20px;
-            font-weight: 600; font-size: 0.9rem; cursor: pointer; color: var(--text-light);
-            transition: all var(--transition);
-        }
+        .tab-bar { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border); padding-bottom: 12px; justify-content: center; }
+        .tab-btn { padding: 8px 20px; border: none; background: #f1f5fa; border-radius: 20px; font-weight: 600; font-size: 0.9rem; cursor: pointer; color: var(--text-light); transition: all var(--transition); }
         .tab-btn.active { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(74,108,247,0.3); }
 
         .mode-panel { display: none; }
@@ -50,52 +40,42 @@
 
         .base-number-display { display:none; background:#f8fafd; border:2px dashed var(--border); border-radius:var(--radius-sm); padding:16px 20px; margin-bottom:20px; text-align:center; }
         .base-number-display.visible { display:block; }
-        .num-ball {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 38px; height: 38px; border-radius: 50%;
-            background: linear-gradient(135deg, #4A6CF7, #5d7ef9); color: #fff; font-weight: 700;
-            margin: 0 3px; font-size: 0.9rem;
-        }
-        .btn {
-            display: inline-flex; align-items: center; gap: 6px; padding: 12px 24px;
-            border: none; border-radius: 50px; font-weight: 600; cursor: pointer;
-            transition: all var(--transition); font-size: 0.95rem;
-        }
-        .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(74,108,247,0.35); }
-        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+        .num-ball { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #4A6CF7, #5d7ef9); color: #fff; font-weight: 700; margin:0 2px; }
+
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 11px 22px; border: none; border-radius: 50px; font-weight: 600; cursor: pointer; transition: all var(--transition); font-size: 0.9rem; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-dark); }
         .btn-outline { background: #fff; color: var(--primary); border: 2px solid var(--primary); }
+        .btn-outline:hover { background: #f5f7ff; }
         .btn-block { width: 100%; justify-content: center; }
         .btn-lg { padding: 15px 36px; font-size: 1.1rem; }
         .btn-sm { padding: 6px 16px; font-size: 0.8rem; }
-        .btn-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
+        .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
 
         .results-container { display: none; margin-top: 20px; }
         .results-container.visible { display: block; animation: fadeInUp 0.3s; }
-        .summary-chip {
-            flex: 1 1 auto; min-width: 80px; text-align: center; background: #f8fafd;
-            border-radius: var(--radius-sm); padding: 10px 8px; font-size: 0.8rem; color: var(--text-light);
-            border: 1px solid var(--border); margin: 4px;
-        }
+        .summary-chip { flex: 1 1 auto; min-width: 80px; text-align: center; background: #f8fafd; border-radius: var(--radius-sm); padding: 10px 8px; font-size: 0.8rem; color: var(--text-light); border: 1px solid var(--border); margin:4px; }
         .summary-chip strong { display: block; font-size: 1.4rem; color: var(--text); }
 
         .stats-table-wrap { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 20px; }
         .stats-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        .stats-table th { background: #f1f5fa; padding: 10px 12px; font-weight: 600; }
-        .stats-table td { padding: 10px 12px; text-align: center; border-bottom: 1px solid #eef2f7; }
+        .stats-table th { background: #f1f5fa; padding: 8px 10px; font-weight: 600; }
+        .stats-table td { padding: 8px 10px; text-align: center; border-bottom: 1px solid #eef2f7; }
+
+        .group-block { background: #fafbfd; border: 1px solid #ddd; border-radius: 10px; padding: 14px; margin-bottom: 16px; }
+        .group-title { font-weight: 700; margin-bottom: 10px; font-size: 0.95rem; display: flex; justify-content: space-between; }
+        .hit-detail-block { background: #f9fbfd; border: 1px solid #e3eaf2; border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+        .hit-detail-header { display: flex; justify-content: space-between; padding: 10px 14px; background: #f0f5fb; }
+        .hit-detail-body { padding: 10px 14px; max-height: 200px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 6px; }
+        .combo-tag { background: #fff; border: 1px solid #ddd; border-radius: 20px; padding: 3px 10px; font-family: monospace; font-size: 0.78rem; }
+        .copy-btn { background: #fff; border: 1px solid #d0dae6; border-radius: 20px; padding: 4px 12px; font-size: 0.75rem; color: #4A6CF7; cursor: pointer; }
+
+        .switch-btn { background: #f1f5fa; border: none; border-radius: 20px; padding: 6px 16px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .switch-btn.active { background: var(--warning); color: #fff; }
 
         .input-text, .input-textarea { width:100%; padding:12px 14px; border:2px solid var(--border); border-radius:var(--radius-sm); font-family: monospace; background:#fafbfd; }
-        .input-textarea { min-height: 180px; resize: vertical; }
-        .toast { position:fixed; top:20px; left:50%; transform:translateX(-50%) translateY(-120px); background:#333; color:#fff; padding:10px 22px; border-radius:50px; z-index:2000; transition: transform 0.3s; }
+        .toast { position:fixed; top:20px; left:50%; transform:translateX(-50%) translateY(-120px); background:#333; color:#fff; padding:10px 22px; border-radius:50px; z-index:2000; transition: 0.3s; }
         .toast.show { transform: translateX(-50%) translateY(0); }
-        .match-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: 700; }
-        .badge-6 { background: #ffeaa7; color: #c79100; } .badge-5 { background: #ffe0d9; color: #d63031; }
-        .badge-4 { background: #ffe8d6; color: #e17055; } .badge-3,.badge-2,.badge-1,.badge-0 { background: #dfe6e9; color: #636e72; }
-        .highlight-row { background: #fffdf5 !important; font-weight: 700; }
-        .hit-detail-block { background: #f9fbfd; border: 1px solid #e3eaf2; border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
-        .hit-detail-header { display: flex; justify-content: space-between; padding: 12px 18px; background: #f0f5fb; }
-        .hit-detail-body { padding: 12px 18px; max-height: 260px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 8px; }
-        .combo-tag { background: #fff; border: 1px solid #e0e6ed; border-radius: 20px; padding: 5px 14px; font-family: monospace; font-size: 0.82rem; }
-        .copy-btn { background: #fff; border: 1px solid #d0dae6; border-radius: 20px; padding: 6px 16px; font-size: 0.8rem; color: #4A6CF7; cursor: pointer; }
 
         @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         @keyframes fadeInUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
@@ -103,19 +83,16 @@
 </head>
 <body>
 <div class="app-container">
-    <div class="app-header">
-        <h1>📊 号码分析工具箱</h1>
-    </div>
-
+    <div class="app-header"><h1>📊 号码分析工具箱</h1></div>
     <div class="tab-bar">
         <button class="tab-btn active" onclick="switchMode('match')">模式一：号码匹配分析</button>
         <button class="tab-btn" onclick="switchMode('ssq')">模式二：双色球奖金统计</button>
     </div>
 
-    <!-- 模式一：匹配分析 -->
+    <!-- 模式一 -->
     <div class="mode-panel active" id="modeMatch">
         <div class="base-number-display" id="baseNumberDisplay">
-            <div style="font-size:0.75rem; color:var(--text-light);">📌 当前基准号码</div>
+            <div style="font-size:0.75rem;">📌 当前基准号码</div>
             <div id="baseNumberBalls"></div>
         </div>
         <button class="btn btn-primary btn-block btn-lg" id="btnStart"><span id="btnStartText">开始分析</span></button>
@@ -124,10 +101,11 @@
             <div id="resultsSummary" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px;"></div>
             <div class="stats-table-wrap"><table class="stats-table"><thead><tr><th>命中数</th><th>组数</th><th>占比</th></tr></thead><tbody id="statsTableBody"></tbody></table></div>
             <div id="hitDetailsArea"></div>
+            <div id="groupMatchArea" style="margin-top:20px;"></div>
         </div>
     </div>
 
-    <!-- 模式二：双色球统计 -->
+    <!-- 模式二 -->
     <div class="mode-panel" id="modeSSQ">
         <div style="margin-bottom:14px;"><label style="font-weight:600;">📌 开奖号码（红球-蓝球）</label>
             <input type="text" class="input-text" id="ssqDrawInput" placeholder="01,02,03,04,05,06-01">
@@ -137,7 +115,10 @@
 胆:04,07,16,27 拖:05,08,14,15,20,30-09,10
 ..."></textarea>
         </div>
-        <button class="btn btn-primary btn-block btn-lg" onclick="analyzeSSQ()">🔍 统计奖项</button>
+        <div class="btn-row" style="margin-bottom:10px;">
+            <button class="btn btn-primary btn-lg" onclick="analyzeSSQ()">🔍 统计奖项</button>
+            <button class="switch-btn active" id="btnToggle3plus0" onclick="toggle3plus0()">中3+0奖金：5元</button>
+        </div>
         <div class="results-container" id="resultsContainerSSQ">
             <div id="ssqResultContent" style="background:#fafbfd; border:1px solid var(--border); border-radius:12px; padding:18px; font-family:monospace; white-space:pre-wrap; line-height:1.8;"></div>
             <button class="btn btn-outline btn-sm" style="margin-top:12px;" onclick="copySSQResult()">📋 一键复制结果</button>
@@ -145,7 +126,7 @@
     </div>
 </div>
 
-<!-- 弹窗1/2 (模式一) -->
+<!-- 弹窗1/2 -->
 <div id="modalOverlay1" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;"><div style="background:#fff;border-radius:18px;width:90%;max-width:500px;padding:22px;"><h3>📋 基准号码</h3><input class="input-text" id="baseInput" placeholder="01,02,03,04,05,06"><div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-outline btn-sm" onclick="closeModal1()">取消</button><button class="btn btn-primary btn-sm" onclick="confirmBaseNumber()">确认</button></div></div></div>
 <div id="modalOverlay2" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;"><div style="background:#fff;border-radius:18px;width:90%;max-width:550px;padding:22px;"><h3>📝 对比号码</h3><p>基准：<strong id="modal2BaseRef"></strong></p><textarea class="input-textarea" id="bulkInput" style="min-height:200px;" placeholder="每行一组，支持复式/胆拖"></textarea><div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-outline btn-sm" onclick="closeModal2()">取消</button><button class="btn btn-primary btn-sm" onclick="confirmBulkData()">分析</button></div></div></div>
 <div class="toast" id="toast"></div>
@@ -164,14 +145,12 @@
         else { document.querySelector('.tab-btn:nth-child(2)').classList.add('active'); $('modeSSQ').classList.add('active'); }
     };
 
-    // ---- 通用工具函数 ----
-    // 解析数字列表（返回去重数字数组）
+    // 通用解析
     function parseNumList(str) {
         if(!str) return [];
         let cleaned = str.replace(/，/g, ',').replace(/\s+/g, '');
         return cleaned.split(',').map(s=>s.trim()).filter(s=>/^\d{1,2}$/.test(s)).map(Number);
     }
-    // 生成组合 C(n,k)
     function combinations(arr, k) {
         if(k===0) return [[]];
         if(arr.length < k) return [];
@@ -182,50 +161,36 @@
         for(let c of combinations(rest, k)) result.push(c);
         return result;
     }
-    // 从红球数组生成所有6码组合（排序、补零）
-    function expandRedCombos(redNums) {
-        redNums = [...new Set(redNums)].sort((a,b)=>a-b);
-        if(redNums.length < 6) return [];
-        if(redNums.length === 6) return [redNums.map(n=>String(n).padStart(2,'0'))];
-        let combos = combinations(redNums, 6);
-        return combos.map(c => c.sort((a,b)=>a-b).map(n=>String(n).padStart(2,'0')));
-    }
 
-    // 解析一行红球部分（可能包含胆拖）
+    // 解析红球部分，返回 {combos (6红组合数组), redCount (原始红球个数)}
     function parseRedPart(redStr) {
-        // 判断是否包含“胆”或“拖”
         if(redStr.includes('胆') || redStr.includes('拖')) {
-            // 尝试提取胆码和拖码
             let danMatch = redStr.match(/胆\s*[:：]\s*([\d，,\s]+)/);
             let tuoMatch = redStr.match(/拖\s*[:：]\s*([\d，,\s]+)/);
             if(!danMatch || !tuoMatch) return { error: '胆拖格式错误' };
             let danNums = parseNumList(danMatch[1]);
             let tuoNums = parseNumList(tuoMatch[1]);
-            danNums = [...new Set(danNums)].sort((a,b)=>a-b);
-            tuoNums = [...new Set(tuoNums)].sort((a,b)=>a-b);
+            danNums = [...new Set(danNums)]; tuoNums = [...new Set(tuoNums)];
             if(danNums.length < 1 || danNums.length > 5) return { error: '胆码数量必须1-5个' };
-            if(tuoNums.length < 2) return { error: '拖码至少需要2个' };
-            // 检查胆拖是否有重复
+            if(tuoNums.length < 2) return { error: '拖码至少2个' };
             let intersection = danNums.filter(n=>tuoNums.includes(n));
-            if(intersection.length > 0) return { error: '胆码和拖码不能有重复' };
+            if(intersection.length > 0) return { error: '胆码和拖码不能重复' };
+            let redCount = danNums.length + tuoNums.length;
             let need = 6 - danNums.length;
-            if(tuoNums.length < need) return { error: `拖码数量不足，需要至少${need}个` };
+            if(tuoNums.length < need) return { error: `拖码不足，需至少${need}个` };
             let tuoCombos = combinations(tuoNums, need);
-            let result = tuoCombos.map(tc => {
-                let full = [...danNums, ...tc].sort((a,b)=>a-b);
-                return full.map(n=>String(n).padStart(2,'0'));
-            });
-            return { combos: result };
+            let combos = tuoCombos.map(tc => [...danNums, ...tc].sort((a,b)=>a-b).map(n=>String(n).padStart(2,'0')));
+            return { combos, redCount };
         } else {
-            // 普通红球列表
             let nums = parseNumList(redStr);
             if(nums.length < 6) return { error: '红球不足6个' };
-            let combos = expandRedCombos(nums);
-            return { combos };
+            let uniq = [...new Set(nums)].sort((a,b)=>a-b);
+            let combos = combinations(uniq, 6).map(c => c.map(n=>String(n).padStart(2,'0')));
+            return { combos, redCount: uniq.length };
         }
     }
 
-    // ---- 模式一逻辑 ----
+    // ===== 模式一逻辑 =====
     (()=>{
         let baseSet=null, baseDisp=[];
         function updateBaseDisplay(){
@@ -242,8 +207,7 @@
         window.openModal1 = ()=>{ $('baseInput').value=''; $('modalOverlay1').style.opacity='1'; $('modalOverlay1').style.pointerEvents='auto'; };
         window.closeModal1 = ()=>{ $('modalOverlay1').style.opacity='0'; $('modalOverlay1').style.pointerEvents='none'; };
         window.confirmBaseNumber = ()=>{
-            let raw = $('baseInput').value;
-            let nums = parseNumList(raw);
+            let nums = parseNumList($('baseInput').value);
             if(nums.length !== 6) { showToast('⚠️ 基准必须正好6个不同数字','warning'); return; }
             baseSet = new Set(nums);
             baseDisp = [...nums].sort((a,b)=>a-b).map(n=>String(n).padStart(2,'0'));
@@ -257,8 +221,10 @@
             let raw = $('bulkInput').value;
             if(!raw.trim()) { showToast('⚠️ 请输入号码','warning'); return; }
             let lines = raw.split(/\n|\r\n|\r/);
-            let counts = {0:0,1:0,2:0,3:0,4:0,5:0,6:0};
-            let totalLines=0, validLines=0, invalidLines=0;
+            let totalCounts = {0:0,1:0,2:0,3:0,4:0,5:0,6:0};
+            // 分组统计：key为红球个数，value为类似counts的对象
+            let groupStats = {};
+            let totalValid = 0, totalLines=0, invalidLines=0;
             let invalidEx = [];
             let seenCombos = new Set();
             let hit4=[], hit5=[], hit6=[];
@@ -266,17 +232,21 @@
             for(let line of lines){
                 let t = line.trim(); if(!t) continue;
                 totalLines++;
-                let parseRes = parseRedPart(t);
-                if(parseRes.error || !parseRes.combos || parseRes.combos.length===0){
+                let parsed = parseRedPart(t);
+                if(parsed.error || !parsed.combos || parsed.combos.length===0){
                     invalidLines++;
-                    if(invalidEx.length<5) invalidEx.push({line:t.substring(0,40), reason: parseRes.error||'无法生成组合'});
+                    if(invalidEx.length<5) invalidEx.push({line:t.substring(0,40), reason:parsed.error||'无法生成组合'});
                     continue;
                 }
-                for(let combo of parseRes.combos){
-                    validLines++;
+                let redCount = parsed.redCount;
+                if(!groupStats[redCount]) groupStats[redCount] = {0:0,1:0,2:0,3:0,4:0,5:0,6:0, total:0};
+                for(let combo of parsed.combos){
+                    totalValid++;
+                    groupStats[redCount].total++;
                     let hit = 0;
                     for(let n of combo) if(baseSet.has(parseInt(n))) hit++;
-                    counts[hit]++;
+                    totalCounts[hit]++;
+                    groupStats[redCount][hit]++;
                     let comboStr = combo.join(',');
                     if(!seenCombos.has(comboStr)){
                         seenCombos.add(comboStr);
@@ -287,29 +257,49 @@
                 }
             }
             closeModal2();
-            // 展示结果
+
+            // 显示总统计
             $('resultsSummary').innerHTML = `
                 <div class="summary-chip"><strong>${totalLines}</strong>输入行</div>
-                <div class="summary-chip" style="border-color:#27ae60;"><strong style="color:#27ae60;">${validLines}</strong>有效单注</div>
+                <div class="summary-chip" style="border-color:#27ae60;"><strong style="color:#27ae60;">${totalValid}</strong>有效单注</div>
                 <div class="summary-chip" style="${invalidLines?'border-color:#e74c3c;':''}"><strong>${invalidLines}</strong>无效行</div>
                 <div class="summary-chip"><strong>${baseDisp.join(',')}</strong>基准</div>`;
-            let rows=''; const max=Math.max(1,...Object.values(counts));
+            let rows='';
             for(let m=6; m>=0; m--){
-                let cnt=counts[m], pct=validLines?((cnt/validLines)*100).toFixed(2):'0.00';
+                let cnt=totalCounts[m], pct=totalValid?((cnt/totalValid)*100).toFixed(2):'0.00';
                 let label=m===6?'🎯全中':m===5?'🔥中5':m===4?'⭐中4':`中${m}`;
-                rows+=`<tr class="${m>=5&&cnt?'highlight-row':''}"><td><span class="match-badge badge-${m}">${label}</span></td><td><strong>${cnt}</strong></td><td>${pct}%</td></tr>`;
+                rows+=`<tr><td><span class="match-badge badge-${m}">${label}</span></td><td><strong>${cnt}</strong></td><td>${pct}%</td></tr>`;
             }
             $('statsTableBody').innerHTML = rows;
+
+            // 命中详情
             let detail='';
             [{l:'🎯全中6',d:hit6},{l:'🔥中5',d:hit5},{l:'⭐中4',d:hit4}].forEach(b=>{
                 if(b.d.length){
                     let uid='mlist_'+b.l;
-                    detail+=`<div class="hit-detail-block"><div class="hit-detail-header"><span>${b.l} (${b.d.length}种组合)</span><button class="copy-btn" onclick="copyList('${uid}')">复制</button></div><div class="hit-detail-body" id="${uid}">${b.d.map(c=>`<span class="combo-tag">${c}</span>`).join('')}</div></div>`;
+                    detail+=`<div class="hit-detail-block"><div class="hit-detail-header"><span>${b.l} (${b.d.length}种)</span><button class="copy-btn" onclick="copyList('${uid}')">复制</button></div><div class="hit-detail-body" id="${uid}">${b.d.map(c=>`<span class="combo-tag">${c}</span>`).join('')}</div></div>`;
                 }
             });
             $('hitDetailsArea').innerHTML = detail;
+
+            // 分组统计
+            let groupHtml = '<h3 style="margin-bottom:10px;">📊 按原始红球个数分组统计</h3>';
+            let sortedKeys = Object.keys(groupStats).map(Number).sort((a,b)=>a-b);
+            for(let k of sortedKeys){
+                let g = groupStats[k];
+                groupHtml += `<div class="group-block"><div class="group-title">🔹 红球${k}个 （共${g.total}注）</div>`;
+                groupHtml += '<table class="stats-table" style="margin-bottom:0;"><thead><tr><th>命中数</th><th>注数</th><th>占比</th></tr></thead><tbody>';
+                for(let m=6; m>=0; m--){
+                    let cnt = g[m]||0;
+                    let pct = g.total ? ((cnt/g.total)*100).toFixed(2) : '0.00';
+                    groupHtml += `<tr><td>中${m}个</td><td>${cnt}</td><td>${pct}%</td></tr>`;
+                }
+                groupHtml += '</tbody></table></div>';
+            }
+            $('groupMatchArea').innerHTML = groupHtml;
+
             $('resultsContainer').classList.add('visible');
-            showToast(`✅ 共生成 ${validLines} 注进行对比`);
+            showToast(`✅ 共 ${totalValid} 注参与对比`);
         };
         window.copyList = (id) => {
             let el = document.getElementById(id); if(!el) return;
@@ -324,9 +314,11 @@
         updateBtn();
     })();
 
-    // ---- 模式二逻辑 ----
+    // ===== 模式二逻辑 =====
+    let prize3plus0Money = 5; // 默认5元
+    let lastSSQResultText = '';
+
     function parseSSQLine(line) {
-        // 分割红球和蓝球部分（最后一个“-”）
         let lastDash = line.lastIndexOf('-');
         if(lastDash === -1) return { error: '缺少蓝球分隔符“-”' };
         let redPart = line.substring(0, lastDash).trim();
@@ -334,18 +326,92 @@
         if(!redPart || !bluePart) return { error: '红球或蓝球为空' };
         let blueNums = parseNumList(bluePart);
         if(blueNums.length === 0) return { error: '蓝球无效' };
-        // 解析红球部分（可能胆拖）
         let redRes = parseRedPart(redPart);
         if(redRes.error) return { error: redRes.error };
         if(!redRes.combos || redRes.combos.length===0) return { error: '无法生成红球组合' };
-        // 生成最终投注：红球组合 × 蓝球
         let tickets = [];
         for(let red of redRes.combos){
             for(let blue of blueNums){
                 tickets.push({ red: new Set(red.map(Number)), blue, redStr: red.join(',') });
             }
         }
-        return { tickets };
+        return { tickets, redCount: redRes.redCount };
+    }
+
+    function generateSSQResultText(draw, lines) {
+        const prizeMap = {
+            '6➕1': { red:6, blue:1, money: 5000000 },
+            '6➕0': { red:6, blue:0, money: 500000 },
+            '5➕1': { red:5, blue:1, money: 3000 },
+            '5➕0': { red:5, blue:0, money: 200 },
+            '4➕1': { red:4, blue:1, money: 200 },
+            '4➕0': { red:4, blue:0, money: 10 },
+            '3➕1': { red:3, blue:1, money: 10 },
+            '3➕0': { red:3, blue:0, money: prize3plus0Money },
+            '2➕1': { red:2, blue:1, money: 5 },
+            '1➕1': { red:1, blue:1, money: 5 },
+            '0➕1': { red:0, blue:1, money: 5 },
+            '2➕0': { red:2, blue:0, money: 0 },
+            '1➕0': { red:1, blue:0, money: 0 },
+            '0➕0': { red:0, blue:0, money: 0 }
+        };
+        const order = ['6➕1','6➕0','5➕1','5➕0','4➕1','4➕0','3➕1','3➕0','2➕1','1➕1','0➕1','2➕0','1➕0','0➕0'];
+
+        let groupStats = {};
+        let totalTickets = 0;
+        for(let line of lines){
+            let t = line.trim(); if(!t) continue;
+            let parsed = parseSSQLine(t);
+            if(parsed.error || !parsed.tickets) continue;
+            let rc = parsed.redCount;
+            if(!groupStats[rc]) {
+                groupStats[rc] = {};
+                for(let k of order) groupStats[rc][k] = 0;
+                groupStats[rc]._total = 0;
+            }
+            for(let ticket of parsed.tickets){
+                totalTickets++;
+                groupStats[rc]._total++;
+                let redHit = 0;
+                for(let n of ticket.red) if(draw.red.has(n)) redHit++;
+                let blueHit = (ticket.blue === draw.blue) ? 1 : 0;
+                let key = redHit + '➕' + blueHit;
+                if(groupStats[rc][key] !== undefined) groupStats[rc][key]++;
+            }
+        }
+
+        let resultText = '';
+        let sortedRC = Object.keys(groupStats).map(Number).sort((a,b)=>a-b);
+        for(let rc of sortedRC){
+            let g = groupStats[rc];
+            resultText += `\n===== 红球${rc}个 (共${g._total}注) =====\n`;
+            for(let k of order){
+                let cnt = g[k] || 0;
+                let money = prizeMap[k].money;
+                resultText += `${cnt}注${k}，共${(cnt*money).toLocaleString()}元\n`;
+            }
+            let groupTotal = 0;
+            for(let k of order) groupTotal += (g[k]||0) * prizeMap[k].money;
+            resultText += `小计：${groupTotal.toLocaleString()}元\n`;
+        }
+
+        // 总计
+        let grandTotal = 0;
+        let allCount = {};
+        for(let k of order) allCount[k] = 0;
+        for(let rc of sortedRC){
+            let g = groupStats[rc];
+            for(let k of order) allCount[k] += (g[k]||0);
+        }
+        resultText += `\n===== 📈 全部总计 (共${totalTickets}注) =====\n`;
+        for(let k of order){
+            let cnt = allCount[k];
+            let money = prizeMap[k].money;
+            grandTotal += cnt * money;
+            resultText += `${cnt}注${k}，共${(cnt*money).toLocaleString()}元\n`;
+        }
+        resultText += `\n💰 总奖金：${grandTotal.toLocaleString()}元`;
+        return resultText;
     }
 
     window.analyzeSSQ = function(){
@@ -356,58 +422,35 @@
         if(drawLine.error || !drawLine.tickets || drawLine.tickets.length!==1){
             showToast('⚠️ 开奖号码格式错误（需为单式）','warning'); return;
         }
-        let draw = drawLine.tickets[0]; // 开奖号码的红球Set和蓝球
+        let draw = drawLine.tickets[0];
         let lines = inputRaw.split(/\n|\r\n|\r/);
-        const prizeMap = {
-            '6➕1': { red:6, blue:1, money: 5000000 },
-            '6➕0': { red:6, blue:0, money: 500000 },
-            '5➕1': { red:5, blue:1, money: 3000 },
-            '5➕0': { red:5, blue:0, money: 200 },
-            '4➕1': { red:4, blue:1, money: 200 },
-            '4➕0': { red:4, blue:0, money: 10 },
-            '3➕1': { red:3, blue:1, money: 10 },
-            '3➕0': { red:3, blue:0, money: 5 },
-            '2➕1': { red:2, blue:1, money: 5 },
-            '1➕1': { red:1, blue:1, money: 5 },
-            '0➕1': { red:0, blue:1, money: 5 },
-            '2➕0': { red:2, blue:0, money: 0 },
-            '1➕0': { red:1, blue:0, money: 0 },
-            '0➕0': { red:0, blue:0, money: 0 }
-        };
-        const order = ['6➕1','6➕0','5➕1','5➕0','4➕1','4➕0','3➕1','3➕0','2➕1','1➕1','0➕1','2➕0','1➕0','0➕0'];
-        let count = {}; for(let k of order) count[k]=0;
-        let totalTickets = 0, invalidLines = 0;
-
-        for(let line of lines){
-            let t = line.trim(); if(!t) continue;
-            let parsed = parseSSQLine(t);
-            if(parsed.error || !parsed.tickets) { invalidLines++; continue; }
-            for(let ticket of parsed.tickets){
-                totalTickets++;
-                let redHit = 0;
-                for(let n of ticket.red) if(draw.red.has(n)) redHit++;
-                let blueHit = (ticket.blue === draw.blue) ? 1 : 0;
-                let key = redHit + '➕' + blueHit;
-                if(count[key] !== undefined) count[key]++;
-            }
-        }
-
-        let result = ''; let totalMoney = 0;
-        for(let k of order){
-            let c = count[k] || 0;
-            let m = prizeMap[k].money;
-            totalMoney += c * m;
-            result += `${c}注${k}，共${(c*m).toLocaleString()}元\n`;
-        }
-        result += `\n合计共${totalMoney.toLocaleString()}元（总注数：${totalTickets}）`;
-        $('ssqResultContent').textContent = result;
+        lastSSQResultText = generateSSQResultText(draw, lines);
+        $('ssqResultContent').textContent = lastSSQResultText;
         $('resultsContainerSSQ').classList.add('visible');
-        showToast(`✅ 统计完成，共解析${totalTickets}注`);
+        showToast('✅ 统计完成');
+    };
+
+    window.toggle3plus0 = function(){
+        if(prize3plus0Money === 5) {
+            prize3plus0Money = 0;
+            $('btnToggle3plus0').textContent = '中3+0奖金：0元';
+            $('btnToggle3plus0').classList.add('active');
+        } else {
+            prize3plus0Money = 5;
+            $('btnToggle3plus0').textContent = '中3+0奖金：5元';
+            $('btnToggle3plus0').classList.remove('active');
+        }
+        // 如果已有开奖号码和投注数据，自动重新计算
+        let drawRaw = $('ssqDrawInput').value.trim();
+        let inputRaw = $('ssqInput').value.trim();
+        if(drawRaw && inputRaw && $('resultsContainerSSQ').classList.contains('visible')){
+            analyzeSSQ(); // 直接重新分析
+        }
     };
 
     window.copySSQResult = () => {
-        let txt = $('ssqResultContent').textContent;
-        navigator.clipboard.writeText(txt).then(()=>showToast('已复制'));
+        if(!lastSSQResultText) { showToast('暂无结果可复制'); return; }
+        navigator.clipboard.writeText(lastSSQResultText).then(()=>showToast('已复制'));
     };
 </script>
 </body>
