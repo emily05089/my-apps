@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>号码分析工具箱 · 分组统计 & 奖金可调</title>
+    <title>号码分析工具箱 · 智能分组统计</title>
     <style>
         :root {
             --primary: #4A6CF7;
@@ -28,7 +28,7 @@
             min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
             color: var(--text);
         }
-        .app-container { width: 100%; max-width: 860px; background: var(--card-bg); border-radius: 20px; box-shadow: var(--shadow); padding: 30px 28px; }
+        .app-container { width: 100%; max-width: 900px; background: var(--card-bg); border-radius: 20px; box-shadow: var(--shadow); padding: 30px 28px; }
         .app-header { text-align: center; margin-bottom: 20px; }
         .app-header h1 { font-size: 1.6rem; font-weight: 700; color: var(--primary); }
         .tab-bar { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border); padding-bottom: 12px; justify-content: center; }
@@ -46,7 +46,6 @@
         .btn-primary { background: var(--primary); color: #fff; }
         .btn-primary:hover { background: var(--primary-dark); }
         .btn-outline { background: #fff; color: var(--primary); border: 2px solid var(--primary); }
-        .btn-outline:hover { background: #f5f7ff; }
         .btn-block { width: 100%; justify-content: center; }
         .btn-lg { padding: 15px 36px; font-size: 1.1rem; }
         .btn-sm { padding: 6px 16px; font-size: 0.8rem; }
@@ -162,7 +161,7 @@
         return result;
     }
 
-    // 解析红球部分，返回 {combos (6红组合数组), redCount (原始红球个数)}
+    // 解析红球部分，返回 {combos, groupKey}  groupKey例如 "单式6个"、"复式7个"、"胆拖1胆"
     function parseRedPart(redStr) {
         if(redStr.includes('胆') || redStr.includes('拖')) {
             let danMatch = redStr.match(/胆\s*[:：]\s*([\d，,\s]+)/);
@@ -175,18 +174,19 @@
             if(tuoNums.length < 2) return { error: '拖码至少2个' };
             let intersection = danNums.filter(n=>tuoNums.includes(n));
             if(intersection.length > 0) return { error: '胆码和拖码不能重复' };
-            let redCount = danNums.length + tuoNums.length;
             let need = 6 - danNums.length;
             if(tuoNums.length < need) return { error: `拖码不足，需至少${need}个` };
             let tuoCombos = combinations(tuoNums, need);
             let combos = tuoCombos.map(tc => [...danNums, ...tc].sort((a,b)=>a-b).map(n=>String(n).padStart(2,'0')));
-            return { combos, redCount };
+            let groupKey = `胆拖${danNums.length}胆`;
+            return { combos, groupKey };
         } else {
             let nums = parseNumList(redStr);
             if(nums.length < 6) return { error: '红球不足6个' };
             let uniq = [...new Set(nums)].sort((a,b)=>a-b);
             let combos = combinations(uniq, 6).map(c => c.map(n=>String(n).padStart(2,'0')));
-            return { combos, redCount: uniq.length };
+            let groupKey = uniq.length === 6 ? `单式6个` : `复式${uniq.length}个`;
+            return { combos, groupKey };
         }
     }
 
@@ -222,7 +222,6 @@
             if(!raw.trim()) { showToast('⚠️ 请输入号码','warning'); return; }
             let lines = raw.split(/\n|\r\n|\r/);
             let totalCounts = {0:0,1:0,2:0,3:0,4:0,5:0,6:0};
-            // 分组统计：key为红球个数，value为类似counts的对象
             let groupStats = {};
             let totalValid = 0, totalLines=0, invalidLines=0;
             let invalidEx = [];
@@ -238,15 +237,15 @@
                     if(invalidEx.length<5) invalidEx.push({line:t.substring(0,40), reason:parsed.error||'无法生成组合'});
                     continue;
                 }
-                let redCount = parsed.redCount;
-                if(!groupStats[redCount]) groupStats[redCount] = {0:0,1:0,2:0,3:0,4:0,5:0,6:0, total:0};
+                let gkey = parsed.groupKey;
+                if(!groupStats[gkey]) groupStats[gkey] = {0:0,1:0,2:0,3:0,4:0,5:0,6:0, total:0};
                 for(let combo of parsed.combos){
                     totalValid++;
-                    groupStats[redCount].total++;
+                    groupStats[gkey].total++;
                     let hit = 0;
                     for(let n of combo) if(baseSet.has(parseInt(n))) hit++;
                     totalCounts[hit]++;
-                    groupStats[redCount][hit]++;
+                    groupStats[gkey][hit]++;
                     let comboStr = combo.join(',');
                     if(!seenCombos.has(comboStr)){
                         seenCombos.add(comboStr);
@@ -258,12 +257,13 @@
             }
             closeModal2();
 
-            // 显示总统计
+            // 总摘要
             $('resultsSummary').innerHTML = `
                 <div class="summary-chip"><strong>${totalLines}</strong>输入行</div>
                 <div class="summary-chip" style="border-color:#27ae60;"><strong style="color:#27ae60;">${totalValid}</strong>有效单注</div>
                 <div class="summary-chip" style="${invalidLines?'border-color:#e74c3c;':''}"><strong>${invalidLines}</strong>无效行</div>
                 <div class="summary-chip"><strong>${baseDisp.join(',')}</strong>基准</div>`;
+            // 总统计表
             let rows='';
             for(let m=6; m>=0; m--){
                 let cnt=totalCounts[m], pct=totalValid?((cnt/totalValid)*100).toFixed(2):'0.00';
@@ -282,12 +282,19 @@
             });
             $('hitDetailsArea').innerHTML = detail;
 
-            // 分组统计
-            let groupHtml = '<h3 style="margin-bottom:10px;">📊 按原始红球个数分组统计</h3>';
-            let sortedKeys = Object.keys(groupStats).map(Number).sort((a,b)=>a-b);
-            for(let k of sortedKeys){
-                let g = groupStats[k];
-                groupHtml += `<div class="group-block"><div class="group-title">🔹 红球${k}个 （共${g.total}注）</div>`;
+            // 分组统计（先总计，再分类）
+            let groupHtml = '<h3 style="margin-bottom:10px;">📊 按投注类型分组统计</h3>';
+            // 排序：单式、复式按数字个数，胆拖按胆个数
+            let sortedKeys = Object.keys(groupStats).sort((a,b)=>{
+                let aIsDan = a.includes('胆拖'), bIsDan = b.includes('胆拖');
+                if(aIsDan && !bIsDan) return 1;
+                if(!aIsDan && bIsDan) return -1;
+                if(aIsDan && bIsDan) return parseInt(a) - parseInt(b);
+                return parseInt(a) - parseInt(b);
+            });
+            for(let key of sortedKeys){
+                let g = groupStats[key];
+                groupHtml += `<div class="group-block"><div class="group-title">🔹 ${key} （共${g.total}注）</div>`;
                 groupHtml += '<table class="stats-table" style="margin-bottom:0;"><thead><tr><th>命中数</th><th>注数</th><th>占比</th></tr></thead><tbody>';
                 for(let m=6; m>=0; m--){
                     let cnt = g[m]||0;
@@ -315,7 +322,7 @@
     })();
 
     // ===== 模式二逻辑 =====
-    let prize3plus0Money = 5; // 默认5元
+    let prize3plus0Money = 5;
     let lastSSQResultText = '';
 
     function parseSSQLine(line) {
@@ -335,7 +342,7 @@
                 tickets.push({ red: new Set(red.map(Number)), blue, redStr: red.join(',') });
             }
         }
-        return { tickets, redCount: redRes.redCount };
+        return { tickets, groupKey: redRes.groupKey };
     }
 
     function generateSSQResultText(draw, lines) {
@@ -363,54 +370,61 @@
             let t = line.trim(); if(!t) continue;
             let parsed = parseSSQLine(t);
             if(parsed.error || !parsed.tickets) continue;
-            let rc = parsed.redCount;
-            if(!groupStats[rc]) {
-                groupStats[rc] = {};
-                for(let k of order) groupStats[rc][k] = 0;
-                groupStats[rc]._total = 0;
+            let gkey = parsed.groupKey;
+            if(!groupStats[gkey]) {
+                groupStats[gkey] = {};
+                for(let k of order) groupStats[gkey][k] = 0;
+                groupStats[gkey]._total = 0;
             }
             for(let ticket of parsed.tickets){
                 totalTickets++;
-                groupStats[rc]._total++;
+                groupStats[gkey]._total++;
                 let redHit = 0;
                 for(let n of ticket.red) if(draw.red.has(n)) redHit++;
                 let blueHit = (ticket.blue === draw.blue) ? 1 : 0;
                 let key = redHit + '➕' + blueHit;
-                if(groupStats[rc][key] !== undefined) groupStats[rc][key]++;
+                if(groupStats[gkey][key] !== undefined) groupStats[gkey][key]++;
             }
         }
 
+        // 生成总计部分
         let resultText = '';
-        let sortedRC = Object.keys(groupStats).map(Number).sort((a,b)=>a-b);
-        for(let rc of sortedRC){
-            let g = groupStats[rc];
-            resultText += `\n===== 红球${rc}个 (共${g._total}注) =====\n`;
-            for(let k of order){
-                let cnt = g[k] || 0;
-                let money = prizeMap[k].money;
-                resultText += `${cnt}注${k}，共${(cnt*money).toLocaleString()}元\n`;
-            }
-            let groupTotal = 0;
-            for(let k of order) groupTotal += (g[k]||0) * prizeMap[k].money;
-            resultText += `小计：${groupTotal.toLocaleString()}元\n`;
-        }
-
-        // 总计
-        let grandTotal = 0;
         let allCount = {};
         for(let k of order) allCount[k] = 0;
-        for(let rc of sortedRC){
-            let g = groupStats[rc];
+        for(let gkey in groupStats){
+            let g = groupStats[gkey];
             for(let k of order) allCount[k] += (g[k]||0);
         }
-        resultText += `\n===== 📈 全部总计 (共${totalTickets}注) =====\n`;
+        let grandTotal = 0;
+        resultText += `===== 📈 全部总计 (共${totalTickets}注) =====\n`;
         for(let k of order){
             let cnt = allCount[k];
             let money = prizeMap[k].money;
             grandTotal += cnt * money;
             resultText += `${cnt}注${k}，共${(cnt*money).toLocaleString()}元\n`;
         }
-        resultText += `\n💰 总奖金：${grandTotal.toLocaleString()}元`;
+        resultText += `💰 总奖金：${grandTotal.toLocaleString()}元\n`;
+
+        // 分组详情
+        let sortedKeys = Object.keys(groupStats).sort((a,b)=>{
+            let aIsDan = a.includes('胆拖'), bIsDan = b.includes('胆拖');
+            if(aIsDan && !bIsDan) return 1;
+            if(!aIsDan && bIsDan) return -1;
+            if(aIsDan && bIsDan) return parseInt(a) - parseInt(b);
+            return parseInt(a) - parseInt(b);
+        });
+        for(let gkey of sortedKeys){
+            let g = groupStats[gkey];
+            resultText += `\n===== ${gkey} (共${g._total}注) =====\n`;
+            let groupTotal = 0;
+            for(let k of order){
+                let cnt = g[k] || 0;
+                let money = prizeMap[k].money;
+                groupTotal += cnt * money;
+                resultText += `${cnt}注${k}，共${(cnt*money).toLocaleString()}元\n`;
+            }
+            resultText += `小计：${groupTotal.toLocaleString()}元\n`;
+        }
         return resultText;
     }
 
@@ -440,11 +454,10 @@
             $('btnToggle3plus0').textContent = '中3+0奖金：5元';
             $('btnToggle3plus0').classList.remove('active');
         }
-        // 如果已有开奖号码和投注数据，自动重新计算
         let drawRaw = $('ssqDrawInput').value.trim();
         let inputRaw = $('ssqInput').value.trim();
         if(drawRaw && inputRaw && $('resultsContainerSSQ').classList.contains('visible')){
-            analyzeSSQ(); // 直接重新分析
+            analyzeSSQ();
         }
     };
 
