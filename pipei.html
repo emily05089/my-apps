@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>号码分析工具箱 · 智能分组统计</title>
+    <title>号码分析工具箱 · 顺序分组统计</title>
     <style>
         :root {
             --primary: #4A6CF7;
@@ -161,7 +161,7 @@
         return result;
     }
 
-    // 解析红球部分，返回 {combos, groupKey}  groupKey例如 "单式6个"、"复式7个"、"胆拖1胆"
+    // 解析红球部分，返回 {combos, groupKey}
     function parseRedPart(redStr) {
         if(redStr.includes('胆') || redStr.includes('拖')) {
             let danMatch = redStr.match(/胆\s*[:：]\s*([\d，,\s]+)/);
@@ -188,6 +188,23 @@
             let groupKey = uniq.length === 6 ? `单式6个` : `复式${uniq.length}个`;
             return { combos, groupKey };
         }
+    }
+
+    // 分组排序辅助函数
+    function sortGroupKeys(keys) {
+        return keys.sort((a, b) => {
+            function getType(key) {
+                if (key.startsWith('单式')) return 1;
+                if (key.startsWith('复式')) return 2;
+                if (key.startsWith('胆拖')) return 3;
+                return 4;
+            }
+            let typeA = getType(a), typeB = getType(b);
+            if (typeA !== typeB) return typeA - typeB;
+            let numA = parseInt(a.match(/\d+/)?.[0] || '0');
+            let numB = parseInt(b.match(/\d+/)?.[0] || '0');
+            return numA - numB;
+        });
     }
 
     // ===== 模式一逻辑 =====
@@ -282,16 +299,9 @@
             });
             $('hitDetailsArea').innerHTML = detail;
 
-            // 分组统计（先总计，再分类）
+            // 分组统计（先总计，再按顺序展示）
             let groupHtml = '<h3 style="margin-bottom:10px;">📊 按投注类型分组统计</h3>';
-            // 排序：单式、复式按数字个数，胆拖按胆个数
-            let sortedKeys = Object.keys(groupStats).sort((a,b)=>{
-                let aIsDan = a.includes('胆拖'), bIsDan = b.includes('胆拖');
-                if(aIsDan && !bIsDan) return 1;
-                if(!aIsDan && bIsDan) return -1;
-                if(aIsDan && bIsDan) return parseInt(a) - parseInt(b);
-                return parseInt(a) - parseInt(b);
-            });
+            let sortedKeys = sortGroupKeys(Object.keys(groupStats));
             for(let key of sortedKeys){
                 let g = groupStats[key];
                 groupHtml += `<div class="group-block"><div class="group-title">🔹 ${key} （共${g.total}注）</div>`;
@@ -387,7 +397,7 @@
             }
         }
 
-        // 生成总计部分
+        // 全部总计
         let resultText = '';
         let allCount = {};
         for(let k of order) allCount[k] = 0;
@@ -405,14 +415,8 @@
         }
         resultText += `💰 总奖金：${grandTotal.toLocaleString()}元\n`;
 
-        // 分组详情
-        let sortedKeys = Object.keys(groupStats).sort((a,b)=>{
-            let aIsDan = a.includes('胆拖'), bIsDan = b.includes('胆拖');
-            if(aIsDan && !bIsDan) return 1;
-            if(!aIsDan && bIsDan) return -1;
-            if(aIsDan && bIsDan) return parseInt(a) - parseInt(b);
-            return parseInt(a) - parseInt(b);
-        });
+        // 分组详情（按指定顺序）
+        let sortedKeys = sortGroupKeys(Object.keys(groupStats));
         for(let gkey of sortedKeys){
             let g = groupStats[gkey];
             resultText += `\n===== ${gkey} (共${g._total}注) =====\n`;
