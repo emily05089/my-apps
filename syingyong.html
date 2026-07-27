@@ -40,6 +40,7 @@
         .btn-prize-fix { background: #e91e63; color: #fff; }
         .btn-prize-fix.active { background: #4caf50; color: #fff; }
         .btn-rank { background: #e67e22; color: #fff; }
+        .btn-stats { background: #16a085; color: #fff; }
         .number-grid { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
         .zone-row { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
         .n-cell { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; cursor: pointer; background: #fff; transition: 0.1s; color: #333; }
@@ -64,7 +65,7 @@
         .copy-unique-btn { background: #2980b9; color: #fff; border: none; padding: 4px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; white-space: nowrap; margin-left: 4px; }
         .note-box { font-size: 10px; color: #aaa; margin-top: 4px; line-height: 1.6; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; justify-content: center; align-items: center; }
-        .modal-box { background: #fff; border-radius: 16px; padding: 20px; width: 90%; max-width: 900px; max-height: 85vh; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
+        .modal-box { background: #fff; border-radius: 16px; padding: 20px; width: 90%; max-width: 800px; max-height: 85vh; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
         .modal-title { font-weight: 700; font-size: 16px; margin-bottom: 12px; }
         .modal-textarea { width: 100%; height: 150px; border: 1.5px solid var(--border); border-radius: 12px; padding: 10px; font-size: 14px; font-family: monospace; resize: vertical; background: #fafbfc; }
         .modal-textarea:focus { outline: none; border-color: var(--primary); background: #fff; }
@@ -230,8 +231,11 @@
             <button class="btn btn-prize" id="btnPrizeExport" style="flex:1;">💰 奖金计算与导出</button>
         </div>
         <div class="flex-row" style="margin-top:8px;">
-            <button class="btn" id="btnShowRedContent" style="flex:1;">📋 显示红球内容</button>
-            <button class="btn btn-prize" id="btnShowPrizeContent" style="flex:1;">💰 显示奖金内容</button>
+            <button class="btn btn-stats btn-sm" id="btnShowDigitStats">📊 数字统计</button>
+            <button class="btn btn-stats btn-sm" id="btnShowTop3Stats">📊 前三统计</button>
+            <button class="btn btn-stats btn-sm" id="btnShowTop4Stats">📊 前四统计</button>
+            <button class="btn btn-stats btn-sm" id="btnShowTop5Stats">📊 前五统计</button>
+            <button class="btn btn-prize btn-sm" id="btnShowPrizeContent">💰 显示奖金内容</button>
         </div>
         <div id="exportHint" style="font-size:11px;color:#888;margin-top:4px;"></div>
         <div class="bottom-remain">当前剩余组合：<span class="badge" id="filteredBadgeBottom">1,107,568</span></div>
@@ -250,9 +254,9 @@
     </div>
 </div>
 
-<!-- 内容展示模态框（红球/奖金共用） -->
-<div class="modal-overlay" id="contentModalOverlay">
-    <div class="modal-box" style="max-width:950px;">
+<!-- 内容展示模态框 -->
+<div class="modal-overlay" id="contentModalOverlay" data-content-type="">
+    <div class="modal-box" style="max-width:900px;">
         <div class="modal-title" id="contentModalTitle">内容展示</div>
         <div class="content-modal-body" id="contentModalBody"></div>
         <div class="modal-buttons">
@@ -275,7 +279,7 @@
     </div>
 </div>
 
-<!-- 以下为原有其他模态框，保持不变 -->
+<!-- 其他模态框保持原样，此处省略，实际代码中需要保留 -->
 <div class="modal-overlay" id="multiModalOverlay"><div class="modal-box"><div class="modal-title">输入多数字组合（每行一组，至少2个数字）</div><textarea class="modal-textarea" id="multiModalTextarea" placeholder="例如：&#10;1,2,3&#10;04,08,15,22"></textarea><div class="modal-buttons"><button class="btn btn-outline" id="btnMultiModalCancel">取消</button><button class="btn btn-danger" id="btnMultiModalConfirm">确认排除</button></div></div></div>
 <div class="modal-overlay" id="multiHitModalOverlay"><div class="modal-box"><div class="modal-title">输入多数字组合，并勾选排除命中个数</div><textarea class="modal-textarea" id="multiHitModalTextarea" placeholder="每行一组，可带蓝球"></textarea><div class="checkbox-group" id="multiHitCheckboxes"><label><input type="checkbox" class="hit-check" value="0">中0个</label><label><input type="checkbox" class="hit-check" value="1">中1个</label><label><input type="checkbox" class="hit-check" value="2">中2个</label><label><input type="checkbox" class="hit-check" value="3">中3个</label></div><div class="modal-buttons"><button class="btn btn-outline" id="btnMultiHitModalCancel">取消</button><button class="btn btn-danger" id="btnMultiHitModalConfirm">确认排除</button></div></div></div>
 <div class="modal-overlay" id="keepOnlyModalOverlay"><div class="modal-box"><div class="modal-title">输入要保留的组合（每行一组）</div><textarea class="modal-textarea" id="keepOnlyModalTextarea" placeholder="例如：&#10;01,02,03,04,05,06"></textarea><div class="modal-buttons"><button class="btn btn-outline" id="btnKeepOnlyModalCancel">取消</button><button class="btn btn-keep" id="btnKeepOnlyModalConfirm">确认保留</button></div></div></div>
@@ -420,7 +424,6 @@ function finishOperation(startTime) {
     document.getElementById('btnApply').disabled=false; document.getElementById('btnApply').textContent='⚡应用筛选';
     document.getElementById('btnExport').disabled=false; document.getElementById('btnExport').textContent='📥 导出Excel（红球）';
     document.getElementById('btnPrizeExport').disabled=false; document.getElementById('btnPrizeExport').textContent='💰 奖金计算与导出';
-    document.getElementById('btnShowRedContent').disabled=false; document.getElementById('btnShowRedContent').textContent='📋 显示红球内容';
     document.getElementById('btnShowPrizeContent').disabled=false; document.getElementById('btnShowPrizeContent').textContent='💰 显示奖金内容';
     if(startTime) log('⏱️ 耗时：'+((Date.now()-startTime)/1000).toFixed(1)+' 秒');
     globalAbortFlag = false;
@@ -708,13 +711,9 @@ function confirmPrizeRange() { if (busy) return alert('处理中'); if (!filtere
 function showRemainingStats() { if (busy) return alert('处理中'); if (!filteredCount) return alert('无剩余'); if (filteredCount > 200000 && !confirm('组合较多，可能较慢，继续？')) return; var startTime = Date.now(); busy = true; setStatus('统计剩余情况中...'); showProgress(0); showGlobalCancel(); globalAbortFlag = false; var oddEvenCounts = {}, zonePatternCounts = {}, seq2Count = 0, seq3Count = 0, gap2Count = 0, gap3Count = 0, arith3Count = 0, diff3SameCount = 0, tail3Count = 0, tail2GroupCount = 0; var done = 0, BATCH = 50000; function step(start) { if (globalAbortFlag) { finishOperation(startTime); return; } try { var end = Math.min(start + BATCH, TOTAL); for (var i = start; i < end; i++) { if (!filteredAlive[i]) continue; var nums = unmask(masksLow[i], masksHigh[i]); var oe = countOddEven(nums); var oeKey = oe.odd + '奇' + oe.even + '偶'; oddEvenCounts[oeKey] = (oddEvenCounts[oeKey] || 0) + 1; var zp = getZonePattern(nums); zonePatternCounts[zp] = (zonePatternCounts[zp] || 0) + 1; if (hasSeq(nums, 2)) seq2Count++; if (hasSeq(nums, 3)) seq3Count++; if (hasGap(nums, 2)) gap2Count++; if (hasGap(nums, 3)) gap3Count++; if (hasArith3(nums)) arith3Count++; if (hasDiff3Same(nums)) diff3SameCount++; if (hasSameTail3(nums)) tail3Count++; if (hasSameTail2Groups(nums)) tail2GroupCount++; } done = end; showProgress(Math.round(done / TOTAL * 100)); if (done < TOTAL) setTimeout(function() { step(done); }, 10); else { var html = '<div class="match-group"><div class="match-group-title">📊 奇偶比分布</div>'; var oeEntries = []; for (var k in oddEvenCounts) { if (oddEvenCounts.hasOwnProperty(k)) oeEntries.push({ key: k, count: oddEvenCounts[k] }); } oeEntries.sort(function(a, b) { return b.count - a.count; }); for (var i = 0; i < oeEntries.length; i++) html += '<div><b>' + oeEntries[i].key + '</b>：' + oeEntries[i].count.toLocaleString() + ' 组</div>'; html += '</div><div class="match-group"><div class="match-group-title">📊 区间比分布</div>'; var zpEntries = []; for (var k in zonePatternCounts) { if (zonePatternCounts.hasOwnProperty(k)) { var formatted = k.split('').join(':'); zpEntries.push({ key: formatted, count: zonePatternCounts[k] }); } } zpEntries.sort(function(a, b) { return b.count - a.count; }); for (var i = 0; i < zpEntries.length; i++) html += '<div><b>' + zpEntries[i].key + '型</b>：' + zpEntries[i].count.toLocaleString() + ' 组</div>'; html += '</div><div class="match-group"><div class="match-group-title">📊 连号/隔号/等差</div>'; html += '<div><b>2连号</b>：' + seq2Count.toLocaleString() + ' 组</div><div><b>3连号</b>：' + seq3Count.toLocaleString() + ' 组</div><div><b>2隔号</b>：' + gap2Count.toLocaleString() + ' 组</div><div><b>3隔号</b>：' + gap3Count.toLocaleString() + ' 组</div><div><b>等差3+</b>：' + arith3Count.toLocaleString() + ' 组</div>'; html += '</div><div class="match-group"><div class="match-group-title">📊 特殊形态</div>'; html += '<div><b>相邻差3同</b>：' + diff3SameCount.toLocaleString() + ' 组</div><div><b>同尾数≥3个</b>：' + tail3Count.toLocaleString() + ' 组</div><div><b>同尾数组数≥2组</b>：' + tail2GroupCount.toLocaleString() + ' 组</div>'; html += '</div>'; document.getElementById('remainingStatsContent').innerHTML = html; document.getElementById('remainingStatsModalOverlay').style.display = 'flex'; finishOperation(startTime); } } catch (e) { log('❌ 出错：' + e.message); finishOperation(startTime); } } step(0); }
 function hideRemainingStatsModal() { document.getElementById('remainingStatsModalOverlay').style.display = 'none'; }
 
-// ========== 显示红球内容（完整子表）==========
-function showRedContent() {
-    if (busy) return alert('处理中'); if (!filteredCount) return alert('无剩余');
-    if (!confirm('将显示与导出Excel完全相同的红球内容，可能较慢，继续？')) return;
-    var startTime = Date.now(); busy = true;
-    document.getElementById('btnShowRedContent').disabled = true;
-    setStatus('收集红球数据...'); showProgress(0); showGlobalCancel(); globalAbortFlag = false;
+// 统计数据显示函数
+function collectRedStats(callback) {
+    var startTime = Date.now(); busy = true; showProgress(0); showGlobalCancel(); globalAbortFlag = false;
     var result = []; var done = 0, BATCH = 100000;
     var src = isPrizeHistoryFixed ? fixedHistoryRedBlue : historyRedBlue;
     var freq = new Map();
@@ -748,31 +747,7 @@ function showRedContent() {
         done = end; showProgress(Math.round(done / TOTAL * 100));
         if (done < TOTAL) setTimeout(function(){ step(done); }, 10);
         else {
-            finishOperation(startTime);
-            var modal = document.getElementById('contentModalOverlay');
-            document.getElementById('contentModalTitle').textContent = '红球内容（与导出Excel一致）';
-            var body = document.getElementById('contentModalBody');
-            var html = '';
-
-            // 子表1：组合列表
-            html += '<h4>组合列表</h4>';
-            html += '<table class="content-table"><thead><tr><th class="cb-cell">选</th><th>前区号码</th><th>和值</th><th>奇偶比</th><th>区间比</th><th>3连号</th><th>3隔号</th><th>等差3+</th><th>相邻差3同</th><th>同尾数≥3个</th><th>同尾数组数≥2组</th>';
-            for (var ri = 0; ri < allRepeatCounts.length; ri++) html += '<th>重复'+allRepeatCounts[ri]+'次最多中</th>';
-            html += '</tr></thead><tbody>';
-            for (var i = 0; i < result.length; i++) {
-                var r = result[i];
-                html += '<tr><td class="cb-cell"><input type="checkbox" class="red-cb" data-combo="' + r.combo + '"></td>';
-                html += '<td>' + r.combo + '</td><td>' + r.sum + '</td><td>' + r.oe + '</td><td>' + r.zp + '</td>';
-                html += '<td>' + r.isSeq3 + '</td><td>' + r.isGap3 + '</td><td>' + r.isArith3 + '</td><td>' + r.isDiff3Same + '</td><td>' + r.isTail3 + '</td><td>' + r.isTail2Group + '</td>';
-                for (var ri = 0; ri < allRepeatCounts.length; ri++) {
-                    var cnt = allRepeatCounts[ri];
-                    html += '<td>' + (r.repeatMatches[cnt] !== undefined ? r.repeatMatches[cnt]+'个' : '-') + '</td>';
-                }
-                html += '</tr>';
-            }
-            html += '</tbody></table>';
-
-            // 子表2：数字统计
+            // 数字统计
             var cntArr = new Array(34).fill(0);
             for (var i = 0; i < result.length; i++) {
                 var nums = result[i].combo.split(',').map(Number);
@@ -781,38 +756,8 @@ function showRedContent() {
             var st = [];
             for (var i = 1; i <= 33; i++) st.push({n:i, c:cntArr[i]});
             st.sort(function(a,b){return b.c-a.c;});
-            html += '<h4>数字统计</h4><table class="content-table"><thead><tr><th class="cb-cell">选</th><th>数字</th><th>次数</th><th>占比</th></tr></thead><tbody>';
-            for (var i = 0; i < st.length; i++) {
-                html += '<tr><td class="cb-cell"><input type="checkbox" class="red-cb" data-combo="' + String(st[i].n).padStart(2,'0') + '"></td>';
-                html += '<td>' + String(st[i].n).padStart(2,'0') + '</td><td>' + st[i].c + '</td><td>' + (st[i].c/(result.length*6)*100).toFixed(2)+'%</td></tr>';
-            }
-            html += '</tbody></table>';
 
-            // 子表3：组合对统计
-            var pairMap = {}, pairKeys = new Array(528), idx = 0;
-            for (var a = 1; a <= 33; a++) for (var b = a + 1; b <= 33; b++) {
-                var key = String(a).padStart(2,'0')+','+String(b).padStart(2,'0');
-                pairMap[key]=idx; pairKeys[idx]=key; idx++;
-            }
-            var pairCount = new Array(528).fill(0);
-            for (var i = 0; i < result.length; i++) {
-                var nums = result[i].combo.split(',').map(Number);
-                for (var p = 0; p < nums.length; p++) for (var q = p + 1; q < nums.length; q++) {
-                    var a=nums[p],b=nums[q];
-                    var key = (a<b)?(String(a).padStart(2,'0')+','+String(b).padStart(2,'0')):(String(b).padStart(2,'0')+','+String(a).padStart(2,'0'));
-                    pairCount[pairMap[key]]++;
-                }
-            }
-            var sortedPairs = []; for (var i = 0; i < 528; i++) sortedPairs.push({key:pairKeys[i],count:pairCount[i]});
-            sortedPairs.sort(function(a,b){return b.count-a.count;});
-            html += '<h4>组合对统计</h4><table class="content-table"><thead><tr><th class="cb-cell">选</th><th>组合</th><th>出现次数</th></tr></thead><tbody>';
-            for (var i = 0; i < sortedPairs.length; i++) {
-                html += '<tr><td class="cb-cell"><input type="checkbox" class="red-cb" data-combo="' + sortedPairs[i].key + '"></td>';
-                html += '<td>' + sortedPairs[i].key + '</td><td>' + sortedPairs[i].count + '</td></tr>';
-            }
-            html += '</tbody></table>';
-
-            // 子表4：前三统计
+            // 前三
             var top3Map = {};
             for (var i = 0; i < result.length; i++) {
                 var nums = result[i].combo.split(',').map(Number);
@@ -821,14 +766,8 @@ function showRedContent() {
             }
             var top3Arr = []; for (var k in top3Map) if (top3Map.hasOwnProperty(k)) top3Arr.push({key:k,count:top3Map[k]});
             top3Arr.sort(function(a,b){return b.count-a.count;});
-            html += '<h4>前三统计</h4><table class="content-table"><thead><tr><th class="cb-cell">选</th><th>前三位</th><th>数量</th></tr></thead><tbody>';
-            for (var i = 0; i < top3Arr.length; i++) {
-                html += '<tr><td class="cb-cell"><input type="checkbox" class="red-cb" data-combo="' + top3Arr[i].key + '"></td>';
-                html += '<td>' + top3Arr[i].key + '</td><td>' + top3Arr[i].count + '</td></tr>';
-            }
-            html += '</tbody></table>';
 
-            // 子表5：前四统计
+            // 前四
             var top4Map = {};
             for (var i = 0; i < result.length; i++) {
                 var nums = result[i].combo.split(',').map(Number);
@@ -837,14 +776,8 @@ function showRedContent() {
             }
             var top4Arr = []; for (var k in top4Map) if (top4Map.hasOwnProperty(k)) top4Arr.push({key:k,count:top4Map[k]});
             top4Arr.sort(function(a,b){return b.count-a.count;});
-            html += '<h4>前四统计</h4><table class="content-table"><thead><tr><th class="cb-cell">选</th><th>前四位</th><th>数量</th></tr></thead><tbody>';
-            for (var i = 0; i < top4Arr.length; i++) {
-                html += '<tr><td class="cb-cell"><input type="checkbox" class="red-cb" data-combo="' + top4Arr[i].key + '"></td>';
-                html += '<td>' + top4Arr[i].key + '</td><td>' + top4Arr[i].count + '</td></tr>';
-            }
-            html += '</tbody></table>';
 
-            // 子表6：前五统计
+            // 前五
             var top5Map = {};
             for (var i = 0; i < result.length; i++) {
                 var nums = result[i].combo.split(',').map(Number);
@@ -853,42 +786,95 @@ function showRedContent() {
             }
             var top5Arr = []; for (var k in top5Map) if (top5Map.hasOwnProperty(k)) top5Arr.push({key:k,count:top5Map[k]});
             top5Arr.sort(function(a,b){return b.count-a.count;});
-            html += '<h4>前五统计</h4><table class="content-table"><thead><tr><th class="cb-cell">选</th><th>前五位</th><th>数量</th></tr></thead><tbody>';
-            for (var i = 0; i < top5Arr.length; i++) {
-                html += '<tr><td class="cb-cell"><input type="checkbox" class="red-cb" data-combo="' + top5Arr[i].key + '"></td>';
-                html += '<td>' + top5Arr[i].key + '</td><td>' + top5Arr[i].count + '</td></tr>';
-            }
-            html += '</tbody></table>';
 
-            // 子表7：17起排列
-            html += '<h4>17起排列</h4><table class="content-table"><thead><tr><th class="cb-cell">选</th><th>前区号码</th></tr></thead><tbody>';
-            for (var i = 0; i < result.length; i++) {
-                var nums = result[i].combo.split(',').map(Number);
-                var sorted = nums.slice().sort(function(a,b){ return ((a-17+33)%33)-((b-17+33)%33); });
-                var str = sorted.map(function(n){return String(n).padStart(2,'0');}).join(',');
-                html += '<tr><td class="cb-cell"><input type="checkbox" class="red-cb" data-combo="' + str + '"></td><td>' + str + '</td></tr>';
-            }
-            html += '</tbody></table>';
-
-            // 子表8：降序排列
-            html += '<h4>降序排列</h4><table class="content-table"><thead><tr><th class="cb-cell">选</th><th>前区号码</th></tr></thead><tbody>';
-            for (var i = 0; i < result.length; i++) {
-                var nums = result[i].combo.split(',').map(Number);
-                var sorted = nums.slice().sort(function(a,b){ return b-a; });
-                var str = sorted.map(function(n){return String(n).padStart(2,'0');}).join(',');
-                html += '<tr><td class="cb-cell"><input type="checkbox" class="red-cb" data-combo="' + str + '"></td><td>' + str + '</td></tr>';
-            }
-            html += '</tbody></table>';
-
-            body.innerHTML = html;
-            modal.style.display = 'flex';
-            log('📋 红球内容已加载');
+            finishOperation(startTime);
+            callback({ digitStats: st, top3Stats: top3Arr, top4Stats: top4Arr, top5Stats: top5Arr });
         }
     }
     step(0);
 }
 
-// ========== 显示奖金内容（与导出CSV一致）==========
+function showDigitStats() {
+    if (busy) return alert('处理中'); if (!filteredCount) return alert('无剩余');
+    if (!confirm('将统计当前剩余组合的数字出现次数，继续？')) return;
+    collectRedStats(function(stats) {
+        var modal = document.getElementById('contentModalOverlay');
+        document.getElementById('contentModalTitle').textContent = '数字统计';
+        modal.dataset.contentType = 'digit';
+        var body = document.getElementById('contentModalBody');
+        var html = '<table class="content-table"><thead><tr><th class="cb-cell">选</th><th>数字</th><th>次数</th><th>占比</th></tr></thead><tbody>';
+        for (var i = 0; i < stats.digitStats.length; i++) {
+            var d = stats.digitStats[i];
+            html += '<tr><td class="cb-cell"><input type="checkbox" class="stat-cb" data-combo="' + String(d.n).padStart(2,'0') + '"></td>';
+            html += '<td>' + String(d.n).padStart(2,'0') + '</td><td>' + d.c + '</td><td>' + (d.c/(filteredCount*6)*100).toFixed(2)+'%</td></tr>';
+        }
+        html += '</tbody></table>';
+        body.innerHTML = html;
+        modal.style.display = 'flex';
+        log('📊 数字统计已加载');
+    });
+}
+
+function showTop3Stats() {
+    if (busy) return alert('处理中'); if (!filteredCount) return alert('无剩余');
+    if (!confirm('将统计当前剩余组合的前三位组合，继续？')) return;
+    collectRedStats(function(stats) {
+        var modal = document.getElementById('contentModalOverlay');
+        document.getElementById('contentModalTitle').textContent = '前三统计';
+        modal.dataset.contentType = 'top3';
+        var body = document.getElementById('contentModalBody');
+        var html = '<table class="content-table"><thead><tr><th class="cb-cell">选</th><th>前三位</th><th>数量</th></tr></thead><tbody>';
+        for (var i = 0; i < stats.top3Stats.length; i++) {
+            html += '<tr><td class="cb-cell"><input type="checkbox" class="stat-cb" data-combo="' + stats.top3Stats[i].key + '"></td>';
+            html += '<td>' + stats.top3Stats[i].key + '</td><td>' + stats.top3Stats[i].count + '</td></tr>';
+        }
+        html += '</tbody></table>';
+        body.innerHTML = html;
+        modal.style.display = 'flex';
+        log('📊 前三统计已加载');
+    });
+}
+
+function showTop4Stats() {
+    if (busy) return alert('处理中'); if (!filteredCount) return alert('无剩余');
+    if (!confirm('将统计当前剩余组合的前四位组合，继续？')) return;
+    collectRedStats(function(stats) {
+        var modal = document.getElementById('contentModalOverlay');
+        document.getElementById('contentModalTitle').textContent = '前四统计';
+        modal.dataset.contentType = 'top4';
+        var body = document.getElementById('contentModalBody');
+        var html = '<table class="content-table"><thead><tr><th class="cb-cell">选</th><th>前四位</th><th>数量</th></tr></thead><tbody>';
+        for (var i = 0; i < stats.top4Stats.length; i++) {
+            html += '<tr><td class="cb-cell"><input type="checkbox" class="stat-cb" data-combo="' + stats.top4Stats[i].key + '"></td>';
+            html += '<td>' + stats.top4Stats[i].key + '</td><td>' + stats.top4Stats[i].count + '</td></tr>';
+        }
+        html += '</tbody></table>';
+        body.innerHTML = html;
+        modal.style.display = 'flex';
+        log('📊 前四统计已加载');
+    });
+}
+
+function showTop5Stats() {
+    if (busy) return alert('处理中'); if (!filteredCount) return alert('无剩余');
+    if (!confirm('将统计当前剩余组合的前五位组合，继续？')) return;
+    collectRedStats(function(stats) {
+        var modal = document.getElementById('contentModalOverlay');
+        document.getElementById('contentModalTitle').textContent = '前五统计';
+        modal.dataset.contentType = 'top5';
+        var body = document.getElementById('contentModalBody');
+        var html = '<table class="content-table"><thead><tr><th class="cb-cell">选</th><th>前五位</th><th>数量</th></tr></thead><tbody>';
+        for (var i = 0; i < stats.top5Stats.length; i++) {
+            html += '<tr><td class="cb-cell"><input type="checkbox" class="stat-cb" data-combo="' + stats.top5Stats[i].key + '"></td>';
+            html += '<td>' + stats.top5Stats[i].key + '</td><td>' + stats.top5Stats[i].count + '</td></tr>';
+        }
+        html += '</tbody></table>';
+        body.innerHTML = html;
+        modal.style.display = 'flex';
+        log('📊 前五统计已加载');
+    });
+}
+
 function showPrizeContent() {
     if (busy) return alert('处理中'); if (!filteredCount) return alert('无剩余');
     var src = isPrizeHistoryFixed ? fixedHistoryRedBlue : historyRedBlue;
@@ -924,7 +910,8 @@ function showPrizeContent() {
             finishOperation();
             results.sort(function(a,b){ return b.prize - a.prize; });
             var modal = document.getElementById('contentModalOverlay');
-            document.getElementById('contentModalTitle').textContent = '奖金内容（与导出CSV一致）';
+            document.getElementById('contentModalTitle').textContent = '奖金内容';
+            modal.dataset.contentType = 'prize';
             var body = document.getElementById('contentModalBody');
             var html = '<table class="content-table"><thead><tr><th class="cb-cell">选</th><th>中奖号码</th><th>中奖金额（元）</th></tr></thead><tbody>';
             for (var i = 0; i < results.length; i++) {
@@ -940,7 +927,9 @@ function showPrizeContent() {
     step(0);
 }
 
-function copySelectedContent(className) {
+function copySelectedContent() {
+    var type = document.getElementById('contentModalOverlay').dataset.contentType;
+    var className = type === 'prize' ? 'prize-cb' : 'stat-cb';
     var checkboxes = document.querySelectorAll('.' + className + ':checked');
     var selected = [];
     checkboxes.forEach(function(cb) { selected.push(cb.dataset.combo); });
@@ -1030,16 +1019,16 @@ function init() {
         document.getElementById('btnClearBlue').addEventListener('click', clearBlueSelection);
         document.getElementById('btnBlueSelectCancel').addEventListener('click', hideBlueSelectModal);
         document.getElementById('btnBlueSelectConfirm').addEventListener('click', confirmBlueSelect);
-        document.getElementById('btnShowRedContent').addEventListener('click', showRedContent);
+        document.getElementById('btnShowDigitStats').addEventListener('click', showDigitStats);
+        document.getElementById('btnShowTop3Stats').addEventListener('click', showTop3Stats);
+        document.getElementById('btnShowTop4Stats').addEventListener('click', showTop4Stats);
+        document.getElementById('btnShowTop5Stats').addEventListener('click', showTop5Stats);
         document.getElementById('btnShowPrizeContent').addEventListener('click', showPrizeContent);
         document.getElementById('btnRankQuery').addEventListener('click', function() { document.getElementById('rankInput').value = ''; document.getElementById('rankResult').style.display = 'none'; document.getElementById('rankModalOverlay').style.display = 'flex'; });
         document.getElementById('btnRankCancel').addEventListener('click', function() { document.getElementById('rankModalOverlay').style.display = 'none'; });
         document.getElementById('btnRankConfirm').addEventListener('click', queryRank);
         document.getElementById('btnContentModalClose').addEventListener('click', function() { document.getElementById('contentModalOverlay').style.display = 'none'; });
-        document.getElementById('btnCopySelected').addEventListener('click', function() {
-            if (document.getElementById('contentModalTitle').textContent.indexOf('红球') !== -1) copySelectedContent('red-cb');
-            else copySelectedContent('prize-cb');
-        });
+        document.getElementById('btnCopySelected').addEventListener('click', copySelectedContent);
 
         function bind(id, fn) { document.getElementById(id).addEventListener('click', fn); }
         bind('btnAllOdd', function() { applyCustomFilter('全奇数', isAllOdd); });
