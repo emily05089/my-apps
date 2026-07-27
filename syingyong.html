@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>双应用前区筛选 · 终极完整版</title>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js">
+    </script>
     <style>
         :root { --bg: #f5f6fa; --card-bg: #ffffff; --primary: #4a6cf7; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; --text: #2c3e50; --border: #e0e5ec; --radius: 14px; }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
@@ -63,7 +64,7 @@
         .copy-unique-btn { background: #2980b9; color: #fff; border: none; padding: 4px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; white-space: nowrap; margin-left: 4px; }
         .note-box { font-size: 10px; color: #aaa; margin-top: 4px; line-height: 1.6; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; justify-content: center; align-items: center; }
-        .modal-box { background: #fff; border-radius: 16px; padding: 20px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
+        .modal-box { background: #fff; border-radius: 16px; padding: 20px; width: 90%; max-width: 800px; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
         .modal-title { font-weight: 700; font-size: 16px; margin-bottom: 12px; }
         .modal-textarea { width: 100%; height: 150px; border: 1.5px solid var(--border); border-radius: 12px; padding: 10px; font-size: 14px; font-family: monospace; resize: vertical; background: #fafbfc; }
         .modal-textarea:focus { outline: none; border-color: var(--primary); background: #fff; }
@@ -292,7 +293,6 @@
 <div class="modal-overlay" id="blueSelectModalOverlay"><div class="modal-box"><div class="modal-title">🔵 选择蓝球（可多选）</div><div class="number-grid" id="blueSelectGrid" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;"></div><div class="tag" style="margin-top:8px;text-align:center;">已选 <span id="blueSelectCount">0</span> 个</div><div class="modal-buttons" style="justify-content:space-between;"><button class="btn btn-outline" id="btnBlueSelectCancel">取消</button><button class="btn btn-fixed" id="btnBlueSelectConfirm">✅ 确认选择</button></div></div></div>
 <div class="modal-overlay" id="repeatPrizeModalOverlay"><div class="modal-box" style="max-width:600px;"><div class="modal-title">📈 选择中奖前区组合（6个数字）</div><div class="number-grid" id="repeatPrizeGrid"><div class="zone-row" id="rpZone1"></div><div class="zone-row" id="rpZone2"></div><div class="zone-row" id="rpZone3"></div></div><div class="tag" style="margin-top:8px;">已选 <span id="repeatPrizeCount">0</span> 个数字（需选6个）</div><div class="modal-buttons"><button class="btn btn-outline" id="btnRepeatPrizeCancel">取消</button><button class="btn btn-verify" id="btnRepeatPrizeConfirm">开始统计</button></div><div id="repeatPrizeResult" style="margin-top:12px; max-height:300px; overflow-y:auto; display:none;"></div></div></div>
 
-<!-- 全局取消按钮 -->
 <button class="cancel-float-btn" id="btnGlobalCancel" style="display:none;">❌ 取消当前计算</button>
 
 <script>
@@ -378,8 +378,7 @@ function prizeAmount(mr, mb) {
 function showGlobalCancel() { document.getElementById('btnGlobalCancel').style.display = 'block'; }
 function hideGlobalCancel() { document.getElementById('btnGlobalCancel').style.display = 'none'; }
 document.getElementById('btnGlobalCancel').addEventListener('click', function() {
-    globalAbortFlag = true;
-    prizeRangeAbortFlag = true;
+    globalAbortFlag = true; prizeRangeAbortFlag = true;
     document.getElementById('btnGlobalCancel').textContent = '正在取消...';
     document.getElementById('btnGlobalCancel').disabled = true;
     log('⏹️ 用户请求取消当前计算');
@@ -577,7 +576,137 @@ function switchSortMode(mode) { if (currentSortMode !== mode) { currentSortMode 
 function copyText(text, n) { if (navigator.clipboard) navigator.clipboard.writeText(text).then(function() { alert('已复制 ' + n + ' 条'); }); else fallbackCopy(text, n); }
 function fallbackCopy(text, n) { var ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); alert('已复制 ' + n + ' 条'); } catch (e) { alert('复制失败'); } document.body.removeChild(ta); }
 
-// ============== 新增功能：显示红球内容（表格+复选框） ==============
+function createPrizeWorker() {
+    if (prizeWorker) prizeWorker.terminate();
+    var code = "self.onmessage=function(e){var d=e.data;if(d.type==='start')compute(d.redMasks,d.historyRedBlue,d.batchSize,d.selectedBlues,d.prize3plus0Fixed);};" +
+        "function popcount32(v){v=v-((v>>>1)&0x55555555);v=(v&0x33333333)+((v>>>2)&0x33333333);v=(v+(v>>>4))&0x0F0F0F0F;v=(v+(v>>>8))&0x0F0F0F0F;v=(v+(v>>>16))&0x0F0F0F0F;return v&0x3F;}" +
+        "function prizeAmount(mr,mb,fixed3p0){if(mr===6)return mb?5e6:5e5;if(mr===5)return mb?3000:200;if(mr===4)return mb?200:10;if(mr===3)return mb?10:(fixed3p0?0:5);if(mr===2&&mb)return 5;if(mr===1&&mb)return 5;if(mr===0&&mb)return 5;return 0;}" +
+        "function compute(redMasks,history,batchSize,selectedBlues,fixed3p0){var total=redMasks.length;var blues=selectedBlues||[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16];var bc=blues.length;var prizes=new Uint32Array(total*bc);var tMasks=[],tBlues=[];for(var j=0;j<history.length;j++){var t=history[j];tMasks.push({l:t.redMaskL,h:t.redMaskH});tBlues.push(t.blue);}var cur=0;function batch(){var end=Math.min(cur+batchSize,total);for(var r=cur;r<end;r++){var rMask=redMasks[r];var base=r*bc;for(var t=0;t<tMasks.length;t++){var interLow=rMask.l&tMasks[t].l,interHigh=rMask.h&tMasks[t].h,mr=popcount32(interLow)+(interHigh&1);var tb=tBlues[t];for(var bi=0;bi<bc;bi++){var b=blues[bi];var prize=prizeAmount(mr,b===tb?1:0,fixed3p0);if(prize)prizes[base+bi]+=prize;}}}cur=end;self.postMessage({type:'progress',progress:Math.round(cur/total*100),current:cur,total:total});if(cur<total)setTimeout(batch,50);else{var rows=[];for(var r=0;r<total;r++){var reds=[];var low=redMasks[r].l,high=redMasks[r].h;for(var i=0;i<32;i++)if(low&(1<<i))reds.push(i+1);if(high&1)reds.push(33);var rs=reds.map(function(n){return(n<10?'0':'')+n;}).join(',');var base=r*bc;for(var bi=0;bi<bc;bi++)rows.push({str:'\"'+rs+'-'+(blues[bi]<10?'0':'')+blues[bi]+'\"',amount:prizes[base+bi]});}rows.sort(function(a,b){return b.amount-a.amount;});var csvRows=rows.map(function(r){return r.str+','+r.amount;});self.postMessage({type:'complete',rows:csvRows});}}batch();}";
+    var blob = new Blob([code], { type: 'application/javascript' }); var url = URL.createObjectURL(blob); prizeWorker = new Worker(url); URL.revokeObjectURL(url);
+    prizeWorker.onmessage = function(e) { var d = e.data; if (d.type === 'progress') { showProgress(d.progress); setStatus('计算奖金中... ' + d.current.toLocaleString() + ' / ' + d.total.toLocaleString()); } else if (d.type === 'complete') { setStatus('生成CSV...'); var csv = '\uFEFF"中奖号码","中奖金额（元）"\n' + d.rows.join('\n'); var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' }); var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '奖金计算_' + new Date().toISOString().slice(0,10) + '.csv'; document.body.appendChild(a); a.click(); document.body.removeChild(a); log('💰 奖金导出完成'); finishOperation(); } };
+}
+function prizeExport() {
+    if (busy) return alert('处理中'); if (!filteredCount) return alert('无剩余');
+    var src = isPrizeHistoryFixed ? fixedHistoryRedBlue : historyRedBlue; if (!src.length) { alert('无历史票'); return; }
+    var blues = selectedBlues ? Array.from(selectedBlues).sort(function(a,b){return a-b;}) : null;
+    if (!confirm('基于 ' + src.length + ' 张历史票计算奖金并导出，继续？')) return;
+    busy = true; document.getElementById('btnPrizeExport').disabled = true; document.getElementById('btnPrizeExport').textContent = '计算中...'; setStatus('准备Worker...'); showProgress(0); showGlobalCancel();
+    var redMasks = []; for (var i = 0; i < TOTAL; i++) if (filteredAlive[i]) redMasks.push({ l: masksLow[i], h: masksHigh[i] });
+    var histData = []; for (var j = 0; j < src.length; j++) { var t = src[j]; if (t.blue !== null) { var m = maskFrom(t.reds); histData.push({ redMaskL: m.l, redMaskH: m.h, blue: t.blue }); } }
+    if (!histData.length) { alert('无有效历史票'); finishOperation(); return; }
+    createPrizeWorker(); prizeWorker.postMessage({ type: 'start', redMasks: redMasks, historyRedBlue: histData, batchSize: 50, selectedBlues: blues, prize3plus0Fixed: prize3plus0Fixed });
+}
+
+function exportXLSX() {
+    if (busy) return alert('处理中'); if (!filteredCount) return alert('无组合');
+    var startTime = Date.now(); busy = true; document.getElementById('btnExport').disabled = true; document.getElementById('btnExport').textContent = '收集中...'; setStatus('导出中...'); showProgress(0); showGlobalCancel(); globalAbortFlag = false;
+    exportSnapshot = new Uint8Array(filteredAlive);
+    var result = []; var done = 0, BATCH = 100000;
+    var src = isPrizeHistoryFixed ? fixedHistoryRedBlue : historyRedBlue;
+    var freq = new Map();
+    for (var i = 0; i < src.length; i++) { var k = src[i].reds.map(function(n){return String(n).padStart(2,'0');}).join(','); freq.set(k, (freq.get(k)||0)+1); }
+    var repeatCombos = []; freq.forEach(function(cnt, key) { if (cnt >= 2) repeatCombos.push({ key: key, count: cnt, nums: key.split(',').map(Number) }); });
+    var allRepeatCounts = []; var rcSet = new Set(); for (var r = 0; r < repeatCombos.length; r++) rcSet.add(repeatCombos[r].count);
+    allRepeatCounts = Array.from(rcSet).sort(function(a,b){return b-a;});
+    function step(start) { if (globalAbortFlag) { finishOperation(startTime); log('⏹️ 已取消导出'); return; } var end = Math.min(start + BATCH, TOTAL); for (var i = start; i < end; i++) { if (exportSnapshot[i]) { var nums = unmask(masksLow[i], masksHigh[i]); var comboStr = nums.map(function(n){return String(n).padStart(2,'0');}).join(','); var sum = calcSum(nums); var oe = countOddEven(nums); var zp = getZonePattern(nums); var isSeq3 = hasSeq(nums,3)?'是':'否'; var isGap3 = hasGap(nums,3)?'是':'否'; var isArith3 = hasArith3(nums)?'是':'否'; var isDiff3Same = hasDiff3Same(nums)?'是':'否'; var isTail3 = hasSameTail3(nums)?'是':'否'; var isTail2Group = hasSameTail2Groups(nums)?'是':'否'; var maxMatchByRepeat = {}; for (var r = 0; r < repeatCombos.length; r++) { var rc = repeatCombos[r]; var match = 0; for (var j = 0; j < rc.nums.length; j++) if (nums.indexOf(rc.nums[j]) !== -1) match++; if (!maxMatchByRepeat[rc.count] || match > maxMatchByRepeat[rc.count]) maxMatchByRepeat[rc.count] = match; } var row = { combo: comboStr, sum: sum, oe: oe.odd+'奇'+oe.even+'偶', zp: zp.split('').join(':'), isSeq3: isSeq3, isGap3: isGap3, isArith3: isArith3, isDiff3Same: isDiff3Same, isTail3: isTail3, isTail2Group: isTail2Group, repeatMatches: maxMatchByRepeat }; result.push(row); } } done = end; showProgress(Math.round(done / TOTAL * 100)); if (done < TOTAL) setTimeout(function(){ step(done); }, 10); else { setTimeout(function() { try { var wb = XLSX.utils.book_new();
+    var headers = ['前区号码','和值','奇偶比','区间比','3连号','3隔号','等差3+','相邻差3同','同尾数≥3个','同尾数组数≥2组'];
+    for (var ri = 0; ri < allRepeatCounts.length; ri++) headers.push('重复'+allRepeatCounts[ri]+'次最多中');
+    var sheetData = [headers];
+    for (var i = 0; i < result.length; i++) { var row = [result[i].combo, result[i].sum, result[i].oe, result[i].zp, result[i].isSeq3, result[i].isGap3, result[i].isArith3, result[i].isDiff3Same, result[i].isTail3, result[i].isTail2Group]; for (var ri = 0; ri < allRepeatCounts.length; ri++) { var cnt = allRepeatCounts[ri]; row.push(result[i].repeatMatches[cnt] !== undefined ? result[i].repeatMatches[cnt]+'个' : '-'); } sheetData.push(row); }
+    var ws1 = XLSX.utils.aoa_to_sheet(sheetData); ws1['!cols'] = [{wch:22},{wch:8},{wch:12},{wch:10},{wch:8},{wch:8},{wch:8},{wch:12},{wch:14},{wch:16}]; for (var ri=0; ri<allRepeatCounts.length; ri++) ws1['!cols'].push({wch:14}); XLSX.utils.book_append_sheet(wb, ws1, '组合列表');
+    var cnt = new Array(34).fill(0); for (var i = 0; i < result.length; i++) { var nums = result[i].combo.split(','); for (var j = 0; j < nums.length; j++) cnt[+nums[j]]++; } var st = []; for (var i = 1; i <= 33; i++) st.push({n:i,c:cnt[i]}); st.sort(function(a,b){return b.c-a.c;}); var statData = [['数字','次数','占比']]; for (var i = 0; i < st.length; i++) statData.push([String(st[i].n).padStart(2,'0'), st[i].c, (st[i].c/(result.length*6)*100).toFixed(2)+'%']); var ws2 = XLSX.utils.aoa_to_sheet(statData); ws2['!cols'] = [{wch:8},{wch:12},{wch:10}]; XLSX.utils.book_append_sheet(wb, ws2, '统计');
+    var pairMap = {}; var pairKeys = new Array(528); var idx = 0; for (var a = 1; a <= 33; a++) for (var b = a + 1; b <= 33; b++) { var key = String(a).padStart(2,'0')+','+String(b).padStart(2,'0'); pairMap[key]=idx; pairKeys[idx]=key; idx++; } var pairCount = new Array(528).fill(0); for (var i = 0; i < result.length; i++) { var nums = result[i].combo.split(',').map(Number); for (var p = 0; p < nums.length; p++) for (var q = p + 1; q < nums.length; q++) { var a=nums[p],b=nums[q]; var key = (a<b)?(String(a).padStart(2,'0')+','+String(b).padStart(2,'0')):(String(b).padStart(2,'0')+','+String(a).padStart(2,'0')); pairCount[pairMap[key]]++; } } var pairData = [['组合','出现次数']]; var sortedPairs = []; for (var i = 0; i < 528; i++) sortedPairs.push({key:pairKeys[i],count:pairCount[i]}); sortedPairs.sort(function(a,b){return b.count-a.count;}); for (var i = 0; i < sortedPairs.length; i++) pairData.push([sortedPairs[i].key, sortedPairs[i].count]); var ws3 = XLSX.utils.aoa_to_sheet(pairData); ws3['!cols'] = [{wch:10},{wch:12}]; XLSX.utils.book_append_sheet(wb, ws3, '组合对统计');
+    var top3Map = {}; for (var i = 0; i < result.length; i++) { var nums = result[i].combo.split(',').map(Number); var key = nums.slice(0,3).map(function(n){return String(n).padStart(2,'0');}).join(','); top3Map[key] = (top3Map[key]||0)+1; } var top3Arr = []; for (var k in top3Map) { if (top3Map.hasOwnProperty(k)) top3Arr.push({key:k,count:top3Map[k]}); } top3Arr.sort(function(a,b){return b.count-a.count;}); var top3Data = [['前三位','数量']]; for (var i = 0; i < top3Arr.length; i++) top3Data.push([top3Arr[i].key, top3Arr[i].count]); var ws4 = XLSX.utils.aoa_to_sheet(top3Data); ws4['!cols'] = [{wch:14},{wch:10}]; XLSX.utils.book_append_sheet(wb, ws4, '前三统计');
+    var top4Map = {}; for (var i = 0; i < result.length; i++) { var nums = result[i].combo.split(',').map(Number); var key = nums.slice(0,4).map(function(n){return String(n).padStart(2,'0');}).join(','); top4Map[key] = (top4Map[key]||0)+1; } var top4Arr = []; for (var k in top4Map) { if (top4Map.hasOwnProperty(k)) top4Arr.push({key:k,count:top4Map[k]}); } top4Arr.sort(function(a,b){return b.count-a.count;}); var top4Data = [['前四位','数量']]; for (var i = 0; i < top4Arr.length; i++) top4Data.push([top4Arr[i].key, top4Arr[i].count]); var ws5 = XLSX.utils.aoa_to_sheet(top4Data); ws5['!cols'] = [{wch:18},{wch:10}]; XLSX.utils.book_append_sheet(wb, ws5, '前四统计');
+    var top5Map = {}; for (var i = 0; i < result.length; i++) { var nums = result[i].combo.split(',').map(Number); var key = nums.slice(0,5).map(function(n){return String(n).padStart(2,'0');}).join(','); top5Map[key] = (top5Map[key]||0)+1; } var top5Arr = []; for (var k in top5Map) { if (top5Map.hasOwnProperty(k)) top5Arr.push({key:k,count:top5Map[k]}); } top5Arr.sort(function(a,b){return b.count-a.count;}); var top5Data = [['前五位','数量']]; for (var i = 0; i < top5Arr.length; i++) top5Data.push([top5Arr[i].key, top5Arr[i].count]); var ws6 = XLSX.utils.aoa_to_sheet(top5Data); ws6['!cols'] = [{wch:22},{wch:10}]; XLSX.utils.book_append_sheet(wb, ws6, '前五统计');
+    var from17Data = [['前区号码(17起排列)']];
+    for (var i = 0; i < result.length; i++) { var nums = result[i].combo.split(',').map(Number); var sorted = nums.slice().sort(function(a,b){ return ((a-17+33)%33)-((b-17+33)%33); }); from17Data.push([sorted.map(function(n){return String(n).padStart(2,'0');}).join(',')]); }
+    var ws17 = XLSX.utils.aoa_to_sheet(from17Data); ws17['!cols'] = [{wch:22}]; XLSX.utils.book_append_sheet(wb, ws17, '17起排列');
+    var descData = [['前区号码(降序排列)']];
+    for (var i = 0; i < result.length; i++) { var nums = result[i].combo.split(',').map(Number); var sorted = nums.slice().sort(function(a,b){ return b-a; }); descData.push([sorted.map(function(n){return String(n).padStart(2,'0');}).join(',')]); }
+    var wsDesc = XLSX.utils.aoa_to_sheet(descData); wsDesc['!cols'] = [{wch:22}]; XLSX.utils.book_append_sheet(wb, wsDesc, '降序排列');
+    XLSX.writeFile(wb, '双应用_' + result.length + '组_' + new Date().toISOString().slice(0,10) + '.xlsx'); log('📥 导出' + result.length.toLocaleString() + '组'); document.getElementById('exportHint').textContent = '✅ 已导出'; } catch (e) { alert('导出失败：' + e.message); } finishOperation(startTime); }, 50); } }
+    step(0);
+}
+
+function drawGrids() { var zones = [{id:'orZone1',min:1,max:11},{id:'orZone2',min:12,max:22},{id:'orZone3',min:23,max:33}]; zones.forEach(function(z) { var c = document.getElementById(z.id); c.innerHTML = ''; for (var i = z.min; i <= z.max; i++) { (function(idx) { var cell = document.createElement('div'); cell.className = 'n-cell'; cell.textContent = String(idx).padStart(2,'0'); cell.onclick = function() { if (orSel.has(idx)) orSel.delete(idx); else orSel.add(idx); drawGrids(); }; if (orSel.has(idx)) cell.classList.add('on-or'); c.appendChild(cell); })(i); } }); var andZones = [{id:'andZone1',min:1,max:11},{id:'andZone2',min:12,max:22},{id:'andZone3',min:23,max:33}]; andZones.forEach(function(z) { var c = document.getElementById(z.id); c.innerHTML = ''; for (var i = z.min; i <= z.max; i++) { (function(idx) { var cell = document.createElement('div'); cell.className = 'n-cell'; cell.textContent = String(idx).padStart(2,'0'); cell.onclick = function() { if (andSel.has(idx)) andSel.delete(idx); else andSel.add(idx); drawGrids(); }; if (andSel.has(idx)) cell.classList.add('on-and'); c.appendChild(cell); })(i); } }); updateDisplay(); }
+function drawKeepDigitsGrid() { var zones = [{id:'keepZone1',min:1,max:11},{id:'keepZone2',min:12,max:22},{id:'keepZone3',min:23,max:33}]; zones.forEach(function(z) { var c = document.getElementById(z.id); c.innerHTML = ''; for (var i = z.min; i <= z.max; i++) { (function(idx) { var cell = document.createElement('div'); cell.className = 'n-cell'; cell.textContent = String(idx).padStart(2,'0'); cell.onclick = function() { if (keepDigitsSel.has(idx)) keepDigitsSel.delete(idx); else keepDigitsSel.add(idx); drawKeepDigitsGrid(); updateDisplay(); }; if (keepDigitsSel.has(idx)) cell.classList.add('on-keep'); c.appendChild(cell); })(i); } }); }
+function drawMatchGrid() { var zones = [{id:'matchZone1',min:1,max:11},{id:'matchZone2',min:12,max:22},{id:'matchZone3',min:23,max:33}]; zones.forEach(function(z) { var c = document.getElementById(z.id); c.innerHTML = ''; for (var i = z.min; i <= z.max; i++) { (function(idx) { var cell = document.createElement('div'); cell.className = 'n-cell'; cell.textContent = String(idx).padStart(2,'0'); cell.onclick = function() { if (matchSel.has(idx)) matchSel.delete(idx); else matchSel.add(idx); drawMatchGrid(); document.getElementById('matchCount').textContent = matchSel.size; }; if (matchSel.has(idx)) cell.classList.add('on-match'); c.appendChild(cell); })(i); } }); }
+function drawCheckComboGrid() { var zones = [{id:'checkZone1',min:1,max:11},{id:'checkZone2',min:12,max:22},{id:'checkZone3',min:23,max:33}]; zones.forEach(function(z) { var c = document.getElementById(z.id); c.innerHTML = ''; for (var i = z.min; i <= z.max; i++) { (function(idx) { var cell = document.createElement('div'); cell.className = 'n-cell'; cell.textContent = String(idx).padStart(2,'0'); cell.onclick = function() { if (checkComboSel.has(idx)) checkComboSel.delete(idx); else { if (checkComboSel.size >= 6) { alert('最多6个'); return; } checkComboSel.add(idx); } drawCheckComboGrid(); document.getElementById('checkComboCount').textContent = checkComboSel.size; }; if (checkComboSel.has(idx)) cell.classList.add('on-check'); c.appendChild(cell); })(i); } }); }
+function drawCalcPrizeGrid() { var zones = [{id:'calcPrizeZone1',min:1,max:11},{id:'calcPrizeZone2',min:12,max:22},{id:'calcPrizeZone3',min:23,max:33}]; zones.forEach(function(z) { var c = document.getElementById(z.id); c.innerHTML = ''; for (var i = z.min; i <= z.max; i++) { (function(idx) { var cell = document.createElement('div'); cell.className = 'n-cell'; cell.textContent = String(idx).padStart(2,'0'); cell.onclick = function() { if (calcPrizeSel.has(idx)) calcPrizeSel.delete(idx); else { if (calcPrizeSel.size >= 6) { alert('最多6个'); return; } calcPrizeSel.add(idx); } drawCalcPrizeGrid(); document.getElementById('calcPrizeCount').textContent = calcPrizeSel.size; }; if (calcPrizeSel.has(idx)) cell.classList.add('on-check'); c.appendChild(cell); })(i); } }); }
+
+function drawRepeatPrizeGrid() { var zones = [{id:'rpZone1',min:1,max:11},{id:'rpZone2',min:12,max:22},{id:'rpZone3',min:23,max:33}]; zones.forEach(function(z) { var c = document.getElementById(z.id); c.innerHTML = ''; for (var i = z.min; i <= z.max; i++) { (function(idx) { var cell = document.createElement('div'); cell.className = 'n-cell'; cell.textContent = String(idx).padStart(2,'0'); cell.onclick = function() { if (repeatPrizeSel.has(idx)) repeatPrizeSel.delete(idx); else { if (repeatPrizeSel.size >= 6) { alert('最多6个'); return; } repeatPrizeSel.add(idx); } drawRepeatPrizeGrid(); document.getElementById('repeatPrizeCount').textContent = repeatPrizeSel.size; }; if (repeatPrizeSel.has(idx)) cell.classList.add('on-check'); c.appendChild(cell); })(i); } }); }
+function showRepeatPrizeModal() { repeatPrizeSel.clear(); drawRepeatPrizeGrid(); document.getElementById('repeatPrizeCount').textContent = '0'; document.getElementById('repeatPrizeResult').style.display = 'none'; document.getElementById('repeatPrizeModalOverlay').style.display = 'flex'; }
+function hideRepeatPrizeModal() { document.getElementById('repeatPrizeModalOverlay').style.display = 'none'; }
+function confirmRepeatPrizeStats() { if (repeatPrizeSel.size !== 6) return alert('请选6个红球'); var target = Array.from(repeatPrizeSel).sort(function(a,b){return a-b;}); var src = isPrizeHistoryFixed ? fixedHistoryRedBlue : historyRedBlue; if (!src.length) return alert('无固定历史'); var freq = new Map(); for (var i = 0; i < src.length; i++) { var k = src[i].reds.map(function(n){return String(n).padStart(2,'0');}).join(','); freq.set(k, (freq.get(k)||0)+1); } var result = {}; freq.forEach(function(cnt, key) { if (cnt < 2) return; var nums = key.split(',').map(Number); var match = 0; for (var j = 0; j < nums.length; j++) if (target.indexOf(nums[j]) !== -1) match++; if (!result[cnt] || match > result[cnt]) result[cnt] = match; }); var html = '<div><b>中奖号码：' + target.map(function(n){return String(n).padStart(2,'0');}).join(',') + '</b></div>'; var sorted = Object.keys(result).sort(function(a,b){ return b-a; }); if (!sorted.length) html += '<div>无重复≥2的组合</div>'; else for (var i = 0; i < sorted.length; i++) html += '<div>重复' + sorted[i] + '次的组合最多中' + result[sorted[i]] + '个</div>'; document.getElementById('repeatPrizeResult').innerHTML = html; document.getElementById('repeatPrizeResult').style.display = 'block'; }
+
+function applyExcludeHistByCount(targetCount) {
+    if (busy) return alert('处理中'); if (!filteredCount) return alert('无剩余'); if (!HIST_MASKS.length) { alert('历史数据为空'); return; }
+    if (!confirm('删除与历史组合恰好有' + targetCount + '个相同数字的组合？')) return;
+    saveUndoState(); busy = true; setStatus('排除历史中' + targetCount + '个...'); showProgress(0); showGlobalCancel(); globalAbortFlag = false;
+    var removeSet = new Set(); var total = HIST_MASKS.length; var done = 0;
+    function process(start) { if (globalAbortFlag) { finishOperation(); log('⏹️ 已取消'); return; } var end = Math.min(start + 5, total); for (var h = start; h < end; h++) { var hits = genHit(HIST_MASKS[h], targetCount); for (var k = 0; k < hits.length; k++) { var idx = maskIndex.get(hits[k].l + '_' + hits[k].h); if (idx !== undefined) removeSet.add(idx); } } done = end; showProgress(Math.round(done / total * 100)); if (done < total) setTimeout(function() { process(done); }, 10); else { var removed = 0; removeSet.forEach(function(idx) { if (filteredAlive[idx]) { filteredAlive[idx] = 0; removed++; } }); filteredCount -= removed; updateDisplay(); log('✅ 排除历史中' + targetCount + '个：删除 ' + removed.toLocaleString() + ' 组'); finishOperation(); } }
+    process(0);
+}
+function applyKeepHistByCount(targetCount) {
+    if (busy) return alert('处理中'); if (!filteredCount) return alert('无剩余'); if (!HIST_MASKS.length) { alert('历史数据为空'); return; }
+    if (!confirm('只保留与历史组合恰好有' + targetCount + '个相同数字的组合？')) return;
+    saveUndoState(); busy = true; setStatus('保留历史中' + targetCount + '个...'); showProgress(0); showGlobalCancel(); globalAbortFlag = false;
+    var keepSet = new Set(); var total = HIST_MASKS.length; var done = 0;
+    function process(start) { if (globalAbortFlag) { finishOperation(); log('⏹️ 已取消'); return; } var end = Math.min(start + 5, total); for (var h = start; h < end; h++) { var hits = genHit(HIST_MASKS[h], targetCount); for (var k = 0; k < hits.length; k++) { var idx = maskIndex.get(hits[k].l + '_' + hits[k].h); if (idx !== undefined) keepSet.add(idx); } } done = end; showProgress(Math.round(done / total * 100)); if (done < total) setTimeout(function() { process(done); }, 10); else { var kept = 0; for (var i = 0; i < TOTAL; i++) { if (filteredAlive[i] && !keepSet.has(i)) filteredAlive[i] = 0; if (filteredAlive[i]) kept++; } filteredCount = kept; updateDisplay(); log('✅ 保留历史中' + targetCount + '个：剩余 ' + filteredCount.toLocaleString() + ' 组'); finishOperation(); } }
+    process(0);
+}
+
+function confirmMatchAnalysis() {
+    var sel = Array.from(matchSel); var input = document.getElementById('matchInputArea').value.trim(); var inputNums = [];
+    if (input) { input.split(/[\n\r]+/).forEach(function(l) { l = l.replace(/，/g, ',').trim(); l.split(',').forEach(function(p) { var n = parseInt(p,10); if (n>=1&&n<=33) inputNums.push(n); }); }); }
+    var allNums = sel.concat(inputNums); if (!allNums.length) return alert('请选择或输入数字'); if (!filteredCount) return alert('无剩余组合'); if (busy) return alert('处理中');
+    var startTime = Date.now(); busy = true; setStatus('匹配分析中...'); showProgress(0); showGlobalCancel(); globalAbortFlag = false;
+    var matchSet = new Set(allNums); var matchNums = Array.from(matchSet).sort(function(a,b){return a-b;});
+    var m6=[], m5=[], m4=[], m3=[], m2=[], m1=[]; var done = 0, BATCH = 100000;
+    function step(start) { if (globalAbortFlag) { finishOperation(startTime); log('⏹️ 已取消匹配分析'); return; } var end = Math.min(start + BATCH, TOTAL); for (var i = start; i < end; i++) { if (!filteredAlive[i]) continue; var nums = unmask(masksLow[i], masksHigh[i]); var c = 0; for (var j = 0; j < nums.length; j++) if (matchSet.has(nums[j])) c++; var str = nums.map(function(n){return String(n).padStart(2,'0');}).join(','); if (c===6) m6.push(str); else if (c===5) m5.push(str); else if (c===4) m4.push(str); else if (c===3) m3.push(str); else if (c===2) m2.push(str); else if (c===1) m1.push(str); } done = end; showProgress(Math.round(done / TOTAL * 100)); if (done < TOTAL) setTimeout(function(){ step(done); }, 10); else { var html = '<div><b>匹配数字：' + matchNums.map(function(n){return String(n).padStart(2,'0');}).join(',') + '</b></div>'; function addBlock(label, arr) { if (arr.length) html += '<div class="match-group"><div class="match-group-title">' + label + '（' + arr.length + '组）</div><div class="match-group-list">' + arr.slice(0,200).join('<br>') + '</div><button class="match-copy-btn" data-list="' + arr.join('|') + '">📋 复制这些号码</button></div>'; } addBlock('🎯 匹配6个', m6); addBlock('🎯 匹配5个', m5); addBlock('🎯 匹配4个', m4); addBlock('🎯 匹配3个', m3); addBlock('🎯 匹配2个', m2); addBlock('🎯 匹配1个', m1); document.getElementById('matchResultContent').innerHTML = html; document.getElementById('matchResultArea').style.display = 'block'; document.querySelectorAll('.match-copy-btn').forEach(function(btn) { btn.addEventListener('click', function() { copyText(this.dataset.list.split('|').join('\n'), this.dataset.list.split('|').length); }); }); finishOperation(startTime); } }
+    step(0);
+}
+function openMatchModal() {
+    matchSel.clear(); drawMatchGrid();
+    document.getElementById('matchInputArea').value = '';
+    document.getElementById('matchCount').textContent = '0';
+    document.getElementById('matchResultArea').style.display = 'none';
+    document.getElementById('matchResultContent').innerHTML = '';
+    document.getElementById('matchModalOverlay').style.display = 'flex';
+}
+function openTop3Modal() { document.getElementById('top3ModalTextarea').value = ''; document.getElementById('top3ModalOverlay').style.display = 'flex'; }
+
+function drawBlueSelectGrid() { var c = document.getElementById('blueSelectGrid'); c.innerHTML = ''; for (var i = 1; i <= 16; i++) { (function(idx) { var cell = document.createElement('div'); cell.className = 'n-cell'; cell.style.width='36px'; cell.style.height='36px'; cell.textContent = String(idx).padStart(2,'0'); cell.onclick = function() { if (!selectedBlues) selectedBlues = new Set(); if (selectedBlues.has(idx)) selectedBlues.delete(idx); else selectedBlues.add(idx); drawBlueSelectGrid(); document.getElementById('blueSelectCount').textContent = selectedBlues.size; }; if (selectedBlues && selectedBlues.has(idx)) cell.classList.add('on-check'); c.appendChild(cell); })(i); } }
+function showBlueSelectModal() { if (!selectedBlues) selectedBlues = new Set(); drawBlueSelectGrid(); document.getElementById('blueSelectCount').textContent = selectedBlues.size; document.getElementById('blueSelectModalOverlay').style.display = 'flex'; }
+function hideBlueSelectModal() { document.getElementById('blueSelectModalOverlay').style.display = 'none'; }
+function confirmBlueSelect() { if (!selectedBlues || !selectedBlues.size) { alert('请至少选一个'); return; } if (selectedBlues.size === 16) selectedBlues = null; updateBlueStatus(); hideBlueSelectModal(); }
+function clearBlueSelection() { selectedBlues = null; updateBlueStatus(); log('🔵 恢复全部蓝球'); }
+function updateBlueStatus() { var el = document.getElementById('blueStatus'); if (!selectedBlues) el.textContent = '（全部16个蓝球）'; else { var arr = Array.from(selectedBlues).sort(function(a,b){return a-b;}); el.textContent = '（已选：' + arr.map(function(n){return String(n).padStart(2,'0');}).join(',') + '）'; } }
+
+function togglePrize3plus0() {
+    prize3plus0Fixed = !prize3plus0Fixed;
+    var btn = document.getElementById('btnFix3plus0'); var statusEl = document.getElementById('prize3plus0Status');
+    if (prize3plus0Fixed) { btn.classList.add('active'); btn.textContent = '💰 中3+0奖金=0元 ✓'; statusEl.textContent = '（中3+0奖金=0元）'; log('💰 已切换：中3+0奖金=0元'); }
+    else { btn.classList.remove('active'); btn.textContent = '💰 中3+0奖金=0元'; statusEl.textContent = '（中3+0奖金=5元）'; log('💰 已恢复：中3+0奖金=5元'); }
+}
+
+function confirmTop3Exclusion() { var raw = document.getElementById('top3ModalTextarea').value.trim(); if (!raw) { alert('请输入至少一组开头数字'); return; } var lines = raw.split(/[\n\r]+/).filter(function(l) { return l.trim(); }); var prefixSets = []; for (var i = 0; i < lines.length; i++) { var line = lines[i].replace(/，/g, ',').replace(/\s+/g, ''); var parts = line.split(','); var nums = []; for (var j = 0; j < parts.length; j++) { var n = parseInt(parts[j], 10); if (n >= 1 && n <= 33) nums.push(n); } if (nums.length >= 1 && nums.length <= 6) { nums.sort(function(a,b){return a-b;}); prefixSets.push(nums); } } if (!prefixSets.length) { alert('未识别到有效组合'); return; } document.getElementById('top3ModalOverlay').style.display = 'none'; document.getElementById('top3ModalTextarea').value = ''; applyCustomFilter('排除开头组合', function(arr) { for (var s = 0; s < prefixSets.length; s++) { var prefix = prefixSets[s]; var match = true; for (var k = 0; k < prefix.length; k++) { if (arr[k] !== prefix[k]) { match = false; break; } } if (match) return true; } return false; }); }
+function confirmKeepOnly() { var raw = document.getElementById('keepOnlyModalTextarea').value.trim(); if (!raw) { alert('请输入至少一组组合'); return; } var lines = raw.split(/[\n\r]+/).filter(function(l) { return l.trim(); }); var keepSet = new Set(); for (var i = 0; i < lines.length; i++) { var line = lines[i].replace(/，/g, ',').trim(); var nums = line.split(',').map(function(s) { return parseInt(s, 10); }).filter(function(n) { return n >= 1 && n <= 33; }); if (nums.length === 6) { var key = nums.map(function(n) { return String(n).padStart(2, '0'); }).sort().join(','); keepSet.add(key); } } if (!keepSet.size) { alert('未识别到有效组合'); return; } document.getElementById('keepOnlyModalOverlay').style.display = 'none'; applyCustomFilter('只保留组合', function(arr) { var key = arr.map(function(n) { return String(n).padStart(2, '0'); }).sort().join(','); return !keepSet.has(key); }); }
+function confirmKeepDigits() { if (!keepDigitsSel.size) { alert('请至少选择一个数字'); return; } document.getElementById('keepDigitsModalOverlay').style.display = 'none'; applyCustomFilter('保留数字', function(arr) { return !arr.some(function(n) { return keepDigitsSel.has(n); }); }); }
+function confirmSumRangeExclusion() { var minSum = parseInt(document.getElementById('sumMinInput').value, 10); var maxSum = parseInt(document.getElementById('sumMaxInput').value, 10); if (isNaN(minSum) || isNaN(maxSum) || minSum < 21 || maxSum > 183 || minSum > maxSum) { alert('请输入有效和值范围'); return; } document.getElementById('sumRangeModalOverlay').style.display = 'none'; applyCustomFilter('删除和值范围', function(arr) { var sum = arr.reduce(function(a, b) { return a + b; }, 0); return sum >= minSum && sum <= maxSum; }); }
+function confirmCheckCombo() { if (checkComboSel.size !== 6) { alert('请选择恰好6个数字'); return; } var nums = Array.from(checkComboSel).sort(function(a,b){return a-b;}); var m = maskFrom(nums); var idx = maskIndex.get(m.l + '_' + m.h); alert(idx !== undefined && filteredAlive[idx] ? '✅ 组合在剩余中' : '❌ 组合不在剩余中'); document.getElementById('checkComboModalOverlay').style.display = 'none'; }
+function confirmSmartRepeat() { if (busy) return alert('处理中'); var minRepeat = parseInt(document.getElementById('smartRepeatMin').value); var maxRepeat = parseInt(document.getElementById('smartRepeatMax').value); if (isNaN(minRepeat) || isNaN(maxRepeat) || minRepeat < 1 || maxRepeat < 1 || minRepeat > maxRepeat) return alert('请输入有效范围'); var selectedHits = []; document.querySelectorAll('#smartRepeatHits input:checked').forEach(function(cb) { selectedHits.push(parseInt(cb.value)); }); if (!selectedHits.length) return alert('请勾选命中个数'); var freqMap = new Map(); for (var i = 0; i < historyCombos.length; i++) { var key = historyCombos[i].map(function(n) { return String(n).padStart(2, '0'); }).join(','); freqMap.set(key, (freqMap.get(key) || 0) + 1); } var targetCombos = []; freqMap.forEach(function(cnt, key) { if (cnt >= minRepeat && cnt <= maxRepeat) { var nums = key.split(',').map(Number); if (nums.length === 6) targetCombos.push(nums); } }); if (!targetCombos.length) { alert('没有符合条件的组合'); return; } if (!confirm('将使用' + targetCombos.length + '个重复组合作为条件，排除中' + selectedHits.join('、中') + '的组合？')) return; document.getElementById('smartRepeatModalOverlay').style.display = 'none'; saveUndoState(); busy = true; setStatus('智能重复排除中...'); showProgress(0); showGlobalCancel(); globalAbortFlag = false; var condMasks = targetCombos.map(function(c) { return maskFrom(c); }); var opts = { two: false, three: false, four: false, five: false, six: false, zero: false }; selectedHits.forEach(function(h) { if (h === 2) opts.two = true; if (h === 3) opts.three = true; if (h === 4) opts.four = true; if (h === 5) opts.five = true; if (h === 6) opts.six = true; }); doFilter(condMasks, opts).then(function(removed) { log('✅ 智能重复排除完成：移除 ' + removed.toLocaleString() + ' 组'); finishOperation(); }); }
+function confirmKeepMulti() { if (busy) return alert('处理中'); if (!filteredCount) return alert('无剩余'); var raw = document.getElementById('keepMultiTextarea').value.trim(); if (!raw) { alert('请输入至少一组数字'); return; } var selectedHits = []; document.querySelectorAll('#keepMultiHits input:checked').forEach(function(cb) { selectedHits.push(parseInt(cb.value)); }); if (!selectedHits.length) { alert('请勾选命中个数'); return; } var lines = raw.split(/[\n\r]+/).filter(function(l) { return l.trim(); }); var lineNumSets = lines.map(function(line) { if (line.indexOf('-') !== -1) line = line.split('-')[0].trim(); return new Set(parseNums(line)); }).filter(function(s) { return s.size > 0; }); if (!lineNumSets.length) { alert('未识别到有效数字'); return; } if (!confirm('只保留与每行数字都恰好匹配' + selectedHits.join('、中') + '个的组合？')) return; document.getElementById('keepMultiModalOverlay').style.display = 'none'; saveUndoState(); busy = true; setStatus('保留多数字组合中...'); showProgress(0); showGlobalCancel(); globalAbortFlag = false; var removed = 0, done = 0, BATCH = 60000; function step(start) { if (globalAbortFlag) { finishOperation(); log('⏹️ 已取消'); return; } try { var end = Math.min(start + BATCH, TOTAL); for (var i = start; i < end; i++) { if (!filteredAlive[i]) continue; var nums = unmask(masksLow[i], masksHigh[i]); var allOk = lineNumSets.every(function(set) { var match = 0; for (var j = 0; j < nums.length; j++) if (set.has(nums[j])) match++; return selectedHits.indexOf(match) !== -1; }); if (!allOk) { filteredAlive[i] = 0; removed++; } } done = end; showProgress(Math.round(done / TOTAL * 100)); if (done < TOTAL) setTimeout(function() { step(done); }, 5); else { filteredCount -= removed; updateDisplay(); log('✅ 保留多数字组合：删除 ' + removed.toLocaleString() + ' 组'); finishOperation(); } } catch (e) { log('❌ 出错：' + e.message); finishOperation(); } } step(0); }
+function confirmCalcPrize() { if (calcPrizeSel.size !== 6) { alert('请选择6个红球'); return; } var reds = Array.from(calcPrizeSel).sort(function(a,b){return a-b;}); var src = isPrizeHistoryFixed ? fixedHistoryRedBlue : historyRedBlue; if (!src.length) { alert('没有基准历史票'); return; } var tMasks = [], tBlues = []; for (var j = 0; j < src.length; j++) { var t = src[j]; var m = maskFrom(t.reds); tMasks.push(m); tBlues.push(t.blue); } var rMask = maskFrom(reds); var results = []; var bluesToCheck = selectedBlues ? Array.from(selectedBlues).sort(function(a,b){return a-b;}) : [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]; for (var bi = 0; bi < bluesToCheck.length; bi++) { var b = bluesToCheck[bi]; var total = 0; for (var t = 0; t < tMasks.length; t++) { var interLow = rMask.l & tMasks[t].l, interHigh = rMask.h & tMasks[t].h, mr = popcount32(interLow) + (interHigh & 1); total += prizeAmount(mr, (tBlues[t] !== null && b === tBlues[t]) ? 1 : 0); } results.push({ blue: b, prize: total }); } results.sort(function(a,b){return b.prize - a.prize;}); var html = '<b>红球：' + reds.map(function(n){return String(n).padStart(2,'0');}).join(',') + '</b><br><table class="prize-table"><tr><th>蓝球</th><th>奖金(元)</th></tr>'; for (var i = 0; i < results.length; i++) html += '<tr><td>' + String(results[i].blue).padStart(2,'0') + '</td><td>' + results[i].prize.toLocaleString() + '</td></tr>'; html += '</table>'; document.getElementById('calcPrizeResult').innerHTML = html; document.getElementById('calcPrizeResult').style.display = 'block'; }
+function confirmVerify() { var input = document.getElementById('verifyTargetInput').value.trim(); if (!input) { alert('请输入目标号码'); return; } var target = parseNums(input); if (target.length !== 6) { alert('请输入恰好6个数字'); return; } var found = []; for (var i = 0; i < HISTORY_LINES.length; i++) { var nums = HISTORY_LINES[i].split(',').map(Number); var match = 0; for (var j = 0; j < nums.length; j++) if (target.indexOf(nums[j]) !== -1) match++; if (match === 5) found.push(HISTORY_LINES[i]); } var html = found.length ? ('<div style="color:red">找到' + found.length + '组匹配5个的历史组合</div><div>' + found.join('<br>') + '</div>') : '<div style="color:green">✅ 未找到匹配5个的历史组合</div>'; document.getElementById('verifyResult').innerHTML = html; document.getElementById('verifyResult').style.display = 'block'; }
+function confirmMultiExclusion() { var raw = document.getElementById('multiModalTextarea').value.trim(); if (!raw) { alert('请输入多数字组合'); return; } var lines = raw.split(/[\n\r]+/).filter(function(l) { return l.trim(); }); var multiSets = lines.map(function(l) { if (l.indexOf('-') !== -1) l = l.split('-')[0].trim(); return parseNums(l); }).filter(function(a) { return a.length >= 2; }); if (!multiSets.length) { alert('未识别到有效组合'); return; } document.getElementById('multiModalOverlay').style.display = 'none'; applyCustomFilter('多数字组合', function(arr) { return multiSets.some(function(set) { return set.every(function(n) { return arr.indexOf(n) !== -1; }); }); }); }
+function confirmMultiHitExclusion() { var raw = document.getElementById('multiHitModalTextarea').value.trim(); if (!raw) { alert('请输入数字组合'); return; } var lines = raw.split(/[\n\r]+/).filter(function(l) { return l.trim(); }); var targetSets = lines.map(function(l) { if (l.indexOf('-') !== -1) l = l.split('-')[0].trim(); return new Set(parseNums(l)); }).filter(function(s) { return s.size > 0; }); if (!targetSets.length) { alert('未识别到有效数字'); return; } var selectedHits = []; document.querySelectorAll('#multiHitCheckboxes input:checked').forEach(function(cb) { selectedHits.push(parseInt(cb.value)); }); if (!selectedHits.length) { alert('请勾选命中个数'); return; } document.getElementById('multiHitModalOverlay').style.display = 'none'; applyCustomFilter('自定义命中排除', function(arr) { return targetSets.some(function(set) { var match = 0; for (var k = 0; k < arr.length; k++) if (set.has(arr[k])) match++; return selectedHits.indexOf(match) !== -1; }); }); }
+function confirmPrizeRange() { if (busy) return alert('处理中'); if (!filteredCount) return alert('无剩余组合'); var minPrize = parseFloat(document.getElementById('prizeRangeMin').value); var maxPrize = parseFloat(document.getElementById('prizeRangeMax').value); if (isNaN(minPrize) || isNaN(maxPrize) || minPrize < 0 || maxPrize < 0 || minPrize > maxPrize) return alert('请输入有效金额范围'); var src = isPrizeHistoryFixed ? fixedHistoryRedBlue : historyRedBlue; if (!src.length) { alert('没有基准历史票'); return; } if (!confirm('删除前区组合，条件：搭配蓝球后总奖金在 ' + minPrize.toLocaleString() + '~' + maxPrize.toLocaleString() + ' 范围内？\n\n可随时点击底部红色按钮取消。')) return; document.getElementById('prizeRangeModalOverlay').style.display = 'none'; saveUndoState(); prizeRangeAbortFlag = false; globalAbortFlag = false; busy = true; setStatus('奖金范围排除中（可取消）...'); showProgress(0); showGlobalCancel(); var tMasks = [], tBlues = []; for (var j = 0; j < src.length; j++) { var t = src[j]; var m = maskFrom(t.reds); tMasks.push(m); tBlues.push(t.blue); } var removed = 0, done = 0, BATCH = 2000; function step(start) { if (prizeRangeAbortFlag || globalAbortFlag) { finishOperation(); log('⏹️ 用户取消了奖金范围排除'); return; } try { var end = Math.min(start + BATCH, TOTAL); for (var i = start; i < end; i++) { if (!filteredAlive[i]) continue; var l = masksLow[i], h = masksHigh[i]; var shouldDelete = false; for (var b = 1; b <= 16 && !shouldDelete; b++) { var totalPrize = 0; for (var t = 0; t < tMasks.length; t++) { var interLow = l & tMasks[t].l, interHigh = h & tMasks[t].h, mr = popcount32(interLow) + (interHigh & 1); totalPrize += prizeAmount(mr, (tBlues[t] !== null && b === tBlues[t]) ? 1 : 0); } if (totalPrize >= minPrize && totalPrize <= maxPrize) shouldDelete = true; } if (shouldDelete) { filteredAlive[i] = 0; removed++; } } done = end; showProgress(Math.round(done / TOTAL * 100)); setStatus('已处理 ' + done.toLocaleString() + ' / ' + TOTAL.toLocaleString() + '，已删 ' + removed.toLocaleString()); if (done < TOTAL && !prizeRangeAbortFlag && !globalAbortFlag) { setTimeout(function() { step(done); }, 1); } else { filteredCount -= removed; updateDisplay(); log('💸 奖金范围排除完成：删除 ' + removed.toLocaleString() + ' 组'); finishOperation(); } } catch (e) { log('❌ 出错：' + e.message); finishOperation(); } } step(0); }
+function showRemainingStats() { if (busy) return alert('处理中'); if (!filteredCount) return alert('无剩余'); if (filteredCount > 200000 && !confirm('组合较多，可能较慢，继续？')) return; var startTime = Date.now(); busy = true; setStatus('统计剩余情况中...'); showProgress(0); showGlobalCancel(); globalAbortFlag = false; var oddEvenCounts = {}, zonePatternCounts = {}, seq2Count = 0, seq3Count = 0, gap2Count = 0, gap3Count = 0, arith3Count = 0, diff3SameCount = 0, tail3Count = 0, tail2GroupCount = 0; var done = 0, BATCH = 50000; function step(start) { if (globalAbortFlag) { finishOperation(startTime); return; } try { var end = Math.min(start + BATCH, TOTAL); for (var i = start; i < end; i++) { if (!filteredAlive[i]) continue; var nums = unmask(masksLow[i], masksHigh[i]); var oe = countOddEven(nums); var oeKey = oe.odd + '奇' + oe.even + '偶'; oddEvenCounts[oeKey] = (oddEvenCounts[oeKey] || 0) + 1; var zp = getZonePattern(nums); zonePatternCounts[zp] = (zonePatternCounts[zp] || 0) + 1; if (hasSeq(nums, 2)) seq2Count++; if (hasSeq(nums, 3)) seq3Count++; if (hasGap(nums, 2)) gap2Count++; if (hasGap(nums, 3)) gap3Count++; if (hasArith3(nums)) arith3Count++; if (hasDiff3Same(nums)) diff3SameCount++; if (hasSameTail3(nums)) tail3Count++; if (hasSameTail2Groups(nums)) tail2GroupCount++; } done = end; showProgress(Math.round(done / TOTAL * 100)); if (done < TOTAL) setTimeout(function() { step(done); }, 10); else { var html = '<div class="match-group"><div class="match-group-title">📊 奇偶比分布</div>'; var oeEntries = []; for (var k in oddEvenCounts) { if (oddEvenCounts.hasOwnProperty(k)) oeEntries.push({ key: k, count: oddEvenCounts[k] }); } oeEntries.sort(function(a, b) { return b.count - a.count; }); for (var i = 0; i < oeEntries.length; i++) html += '<div><b>' + oeEntries[i].key + '</b>：' + oeEntries[i].count.toLocaleString() + ' 组</div>'; html += '</div><div class="match-group"><div class="match-group-title">📊 区间比分布</div>'; var zpEntries = []; for (var k in zonePatternCounts) { if (zonePatternCounts.hasOwnProperty(k)) { var formatted = k.split('').join(':'); zpEntries.push({ key: formatted, count: zonePatternCounts[k] }); } } zpEntries.sort(function(a, b) { return b.count - a.count; }); for (var i = 0; i < zpEntries.length; i++) html += '<div><b>' + zpEntries[i].key + '型</b>：' + zpEntries[i].count.toLocaleString() + ' 组</div>'; html += '</div><div class="match-group"><div class="match-group-title">📊 连号/隔号/等差</div>'; html += '<div><b>2连号</b>：' + seq2Count.toLocaleString() + ' 组</div><div><b>3连号</b>：' + seq3Count.toLocaleString() + ' 组</div><div><b>2隔号</b>：' + gap2Count.toLocaleString() + ' 组</div><div><b>3隔号</b>：' + gap3Count.toLocaleString() + ' 组</div><div><b>等差3+</b>：' + arith3Count.toLocaleString() + ' 组</div>'; html += '</div><div class="match-group"><div class="match-group-title">📊 特殊形态</div>'; html += '<div><b>相邻差3同</b>：' + diff3SameCount.toLocaleString() + ' 组</div><div><b>同尾数≥3个</b>：' + tail3Count.toLocaleString() + ' 组</div><div><b>同尾数组数≥2组</b>：' + tail2GroupCount.toLocaleString() + ' 组</div>'; html += '</div>'; document.getElementById('remainingStatsContent').innerHTML = html; document.getElementById('remainingStatsModalOverlay').style.display = 'flex'; finishOperation(startTime); } } catch (e) { log('❌ 出错：' + e.message); finishOperation(startTime); } } step(0); }
+function hideRemainingStatsModal() { document.getElementById('remainingStatsModalOverlay').style.display = 'none'; }
+
+// 新增功能函数
 function showRedContent() {
     if (busy) return alert('处理中'); if (!filteredCount) return alert('无剩余');
     if (!confirm('将显示当前剩余 ' + filteredCount.toLocaleString() + ' 组红球组合，可能较慢，继续？')) return;
@@ -668,7 +797,6 @@ function showPrizeContent() {
     step(0);
 }
 
-// 复制勾选的内容
 function copySelectedContent(className) {
     var checkboxes = document.querySelectorAll('.' + className + ':checked');
     var selected = [];
@@ -677,11 +805,9 @@ function copySelectedContent(className) {
     copyText(selected.join('\n'), selected.length);
 }
 
-// 排名查询功能
 function queryRank() {
     var input = document.getElementById('rankInput').value.trim();
     if (!input) return alert('请输入组合');
-    // 解析
     input = input.replace(/，/g, ',').replace(/\s+/g, '');
     var parts = input.split('-');
     var redPart = parts[0];
@@ -700,11 +826,7 @@ function queryRank() {
         document.getElementById('rankResult').style.display = 'block';
         return;
     }
-    if (blue === null) {
-        alert('请指定蓝球（如 1,2,3,4,5,6-1）');
-        return;
-    }
-
+    if (blue === null) { alert('请指定蓝球（如 1,2,3,4,5,6-1）'); return; }
     var src = isPrizeHistoryFixed ? fixedHistoryRedBlue : historyRedBlue;
     if (!src.length) { alert('没有基准历史票'); return; }
     var tMasks = [], tBlues = [];
@@ -713,15 +835,11 @@ function queryRank() {
         tMasks.push(maskFrom(t.reds));
         tBlues.push(t.blue);
     }
-
-    // 计算目标组合的奖金
     var targetPrize = 0;
     for (var t = 0; t < tMasks.length; t++) {
         var interLow = targetMask.l & tMasks[t].l, interHigh = targetMask.h & tMasks[t].h, mr = popcount32(interLow) + (interHigh & 1);
         targetPrize += prizeAmount(mr, (tBlues[t] !== null && blue === tBlues[t]) ? 1 : 0);
     }
-
-    // 分批计算所有剩余组合的奖金，只计算指定蓝球
     busy = true; setStatus('排名计算中...'); showProgress(0); showGlobalCancel(); globalAbortFlag = false;
     var prizes = [];
     var done = 0, BATCH = 5000;
@@ -742,17 +860,10 @@ function queryRank() {
         if (done < TOTAL) setTimeout(function(){ step(done); }, 10);
         else {
             finishOperation();
-            // 排序降序
             prizes.sort(function(a,b){ return b.prize - a.prize; });
-            // 查找目标组合的排名
-            var rank = 0;
-            var sameCount = 0;
-            var lastPrize = -1;
+            var rank = 0, sameCount = 0, lastPrize = -1;
             for (var k = 0; k < prizes.length; k++) {
-                if (prizes[k].prize !== lastPrize) {
-                    rank++;
-                    lastPrize = prizes[k].prize;
-                }
+                if (prizes[k].prize !== lastPrize) { rank++; lastPrize = prizes[k].prize; }
                 if (prizes[k].idx === targetIdx) {
                     sameCount = prizes.filter(function(p){ return p.prize === lastPrize; }).length;
                     break;
@@ -770,7 +881,6 @@ function queryRank() {
     step(0);
 }
 
-// ============== 初始化 ==============
 function init() {
     try {
         buildAll();
@@ -780,7 +890,6 @@ function init() {
         drawMatchGrid();
         drawCheckComboGrid();
         drawCalcPrizeGrid();
-
         document.getElementById('btnApply').addEventListener('click', applyFilter);
         document.getElementById('btnClearInput').addEventListener('click', function() { document.getElementById('inputArea').value = ''; });
         document.getElementById('btnStats').addEventListener('click', analyzeDuplicates);
@@ -801,8 +910,6 @@ function init() {
         document.getElementById('btnClearBlue').addEventListener('click', clearBlueSelection);
         document.getElementById('btnBlueSelectCancel').addEventListener('click', hideBlueSelectModal);
         document.getElementById('btnBlueSelectConfirm').addEventListener('click', confirmBlueSelect);
-
-        // 新增按钮事件
         document.getElementById('btnShowRedContent').addEventListener('click', showRedContent);
         document.getElementById('btnShowPrizeContent').addEventListener('click', showPrizeContent);
         document.getElementById('btnRankQuery').addEventListener('click', function() {
@@ -810,19 +917,12 @@ function init() {
             document.getElementById('rankResult').style.display = 'none';
             document.getElementById('rankModalOverlay').style.display = 'flex';
         });
-        document.getElementById('btnRankCancel').addEventListener('click', function() {
-            document.getElementById('rankModalOverlay').style.display = 'none';
-        });
+        document.getElementById('btnRankCancel').addEventListener('click', function() { document.getElementById('rankModalOverlay').style.display = 'none'; });
         document.getElementById('btnRankConfirm').addEventListener('click', queryRank);
-        document.getElementById('btnContentModalClose').addEventListener('click', function() {
-            document.getElementById('contentModalOverlay').style.display = 'none';
-        });
+        document.getElementById('btnContentModalClose').addEventListener('click', function() { document.getElementById('contentModalOverlay').style.display = 'none'; });
         document.getElementById('btnCopySelected').addEventListener('click', function() {
-            if (document.getElementById('contentModalTitle').textContent.indexOf('红球') !== -1) {
-                copySelectedContent('red-cb');
-            } else {
-                copySelectedContent('prize-cb');
-            }
+            if (document.getElementById('contentModalTitle').textContent.indexOf('红球') !== -1) copySelectedContent('red-cb');
+            else copySelectedContent('prize-cb');
         });
 
         function bind(id, fn) { document.getElementById(id).addEventListener('click', fn); }
@@ -898,9 +998,7 @@ function init() {
         document.getElementById('btnRepeatPrizeConfirm').addEventListener('click', confirmRepeatPrizeStats);
 
         document.querySelectorAll('.odd-even-btn').forEach(function(btn) { btn.addEventListener('click', function() { var targetOdd = parseInt(this.dataset.odd); var targetEven = parseInt(this.dataset.even); applyCustomFilter(targetOdd + '奇' + targetEven + '偶', function(arr) { var oe = countOddEven(arr); return oe.odd === targetOdd && oe.even === targetEven; }); }); });
-
         document.querySelectorAll('.zone-btn').forEach(function(btn) { btn.addEventListener('click', function() { var zone = parseInt(this.dataset.zone); var count = parseInt(this.dataset.count); var zoneName = zone === 1 ? '第一区(1-11)' : (zone === 2 ? '第二区(12-22)' : '第三区(23-33)'); applyCustomFilter(zoneName + ' 恰好' + count + '个数字', function(arr) { return countInZone(arr, zone) === count; }); }); });
-
         document.querySelectorAll('#sortBtns .sort-btn').forEach(function(btn) { btn.addEventListener('click', function() { switchSortMode(this.dataset.sort); }); });
 
         updateDisplay();
