@@ -64,7 +64,7 @@
         .copy-unique-btn { background: #2980b9; color: #fff; border: none; padding: 4px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; white-space: nowrap; margin-left: 4px; }
         .note-box { font-size: 10px; color: #aaa; margin-top: 4px; line-height: 1.6; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; justify-content: center; align-items: center; }
-        .modal-box { background: #fff; border-radius: 16px; padding: 20px; width: 90%; max-width: 800px; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
+        .modal-box { background: #fff; border-radius: 16px; padding: 20px; width: 90%; max-width: 900px; max-height: 85vh; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
         .modal-title { font-weight: 700; font-size: 16px; margin-bottom: 12px; }
         .modal-textarea { width: 100%; height: 150px; border: 1.5px solid var(--border); border-radius: 12px; padding: 10px; font-size: 14px; font-family: monospace; resize: vertical; background: #fafbfc; }
         .modal-textarea:focus { outline: none; border-color: var(--primary); background: #fff; }
@@ -87,11 +87,11 @@
         .prize-table th, .prize-table td { border: 1px solid #ddd; padding: 4px 8px; text-align: center; }
         .cancel-float-btn { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 12px 24px; border-radius: 30px; font-size: 14px; font-weight: 700; background: #e74c3c; color: #fff; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         .cancel-float-btn:disabled { background: #999; cursor: not-allowed; }
-        .content-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .content-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 15px; }
         .content-table th, .content-table td { border: 1px solid #ddd; padding: 4px 6px; text-align: center; }
         .content-table .cb-cell { width: 30px; }
         .content-table th { background: #f5f5f5; }
-        .content-modal-body { max-height: 50vh; overflow-y: auto; margin: 10px 0; }
+        .content-modal-body { max-height: 60vh; overflow-y: auto; margin: 10px 0; }
         .copy-selected-btn { margin: 10px 0; }
     </style>
 </head>
@@ -252,7 +252,7 @@
 
 <!-- 内容展示模态框（红球/奖金共用） -->
 <div class="modal-overlay" id="contentModalOverlay">
-    <div class="modal-box" style="max-width:800px;">
+    <div class="modal-box" style="max-width:950px;">
         <div class="modal-title" id="contentModalTitle">内容展示</div>
         <div class="content-modal-body" id="contentModalBody"></div>
         <div class="modal-buttons">
@@ -420,6 +420,8 @@ function finishOperation(startTime) {
     document.getElementById('btnApply').disabled=false; document.getElementById('btnApply').textContent='⚡应用筛选';
     document.getElementById('btnExport').disabled=false; document.getElementById('btnExport').textContent='📥 导出Excel（红球）';
     document.getElementById('btnPrizeExport').disabled=false; document.getElementById('btnPrizeExport').textContent='💰 奖金计算与导出';
+    document.getElementById('btnShowRedContent').disabled=false; document.getElementById('btnShowRedContent').textContent='📋 显示红球内容';
+    document.getElementById('btnShowPrizeContent').disabled=false; document.getElementById('btnShowPrizeContent').textContent='💰 显示奖金内容';
     if(startTime) log('⏱️ 耗时：'+((Date.now()-startTime)/1000).toFixed(1)+' 秒');
     globalAbortFlag = false;
     var cancelBtn = document.getElementById('btnGlobalCancel');
@@ -706,20 +708,41 @@ function confirmPrizeRange() { if (busy) return alert('处理中'); if (!filtere
 function showRemainingStats() { if (busy) return alert('处理中'); if (!filteredCount) return alert('无剩余'); if (filteredCount > 200000 && !confirm('组合较多，可能较慢，继续？')) return; var startTime = Date.now(); busy = true; setStatus('统计剩余情况中...'); showProgress(0); showGlobalCancel(); globalAbortFlag = false; var oddEvenCounts = {}, zonePatternCounts = {}, seq2Count = 0, seq3Count = 0, gap2Count = 0, gap3Count = 0, arith3Count = 0, diff3SameCount = 0, tail3Count = 0, tail2GroupCount = 0; var done = 0, BATCH = 50000; function step(start) { if (globalAbortFlag) { finishOperation(startTime); return; } try { var end = Math.min(start + BATCH, TOTAL); for (var i = start; i < end; i++) { if (!filteredAlive[i]) continue; var nums = unmask(masksLow[i], masksHigh[i]); var oe = countOddEven(nums); var oeKey = oe.odd + '奇' + oe.even + '偶'; oddEvenCounts[oeKey] = (oddEvenCounts[oeKey] || 0) + 1; var zp = getZonePattern(nums); zonePatternCounts[zp] = (zonePatternCounts[zp] || 0) + 1; if (hasSeq(nums, 2)) seq2Count++; if (hasSeq(nums, 3)) seq3Count++; if (hasGap(nums, 2)) gap2Count++; if (hasGap(nums, 3)) gap3Count++; if (hasArith3(nums)) arith3Count++; if (hasDiff3Same(nums)) diff3SameCount++; if (hasSameTail3(nums)) tail3Count++; if (hasSameTail2Groups(nums)) tail2GroupCount++; } done = end; showProgress(Math.round(done / TOTAL * 100)); if (done < TOTAL) setTimeout(function() { step(done); }, 10); else { var html = '<div class="match-group"><div class="match-group-title">📊 奇偶比分布</div>'; var oeEntries = []; for (var k in oddEvenCounts) { if (oddEvenCounts.hasOwnProperty(k)) oeEntries.push({ key: k, count: oddEvenCounts[k] }); } oeEntries.sort(function(a, b) { return b.count - a.count; }); for (var i = 0; i < oeEntries.length; i++) html += '<div><b>' + oeEntries[i].key + '</b>：' + oeEntries[i].count.toLocaleString() + ' 组</div>'; html += '</div><div class="match-group"><div class="match-group-title">📊 区间比分布</div>'; var zpEntries = []; for (var k in zonePatternCounts) { if (zonePatternCounts.hasOwnProperty(k)) { var formatted = k.split('').join(':'); zpEntries.push({ key: formatted, count: zonePatternCounts[k] }); } } zpEntries.sort(function(a, b) { return b.count - a.count; }); for (var i = 0; i < zpEntries.length; i++) html += '<div><b>' + zpEntries[i].key + '型</b>：' + zpEntries[i].count.toLocaleString() + ' 组</div>'; html += '</div><div class="match-group"><div class="match-group-title">📊 连号/隔号/等差</div>'; html += '<div><b>2连号</b>：' + seq2Count.toLocaleString() + ' 组</div><div><b>3连号</b>：' + seq3Count.toLocaleString() + ' 组</div><div><b>2隔号</b>：' + gap2Count.toLocaleString() + ' 组</div><div><b>3隔号</b>：' + gap3Count.toLocaleString() + ' 组</div><div><b>等差3+</b>：' + arith3Count.toLocaleString() + ' 组</div>'; html += '</div><div class="match-group"><div class="match-group-title">📊 特殊形态</div>'; html += '<div><b>相邻差3同</b>：' + diff3SameCount.toLocaleString() + ' 组</div><div><b>同尾数≥3个</b>：' + tail3Count.toLocaleString() + ' 组</div><div><b>同尾数组数≥2组</b>：' + tail2GroupCount.toLocaleString() + ' 组</div>'; html += '</div>'; document.getElementById('remainingStatsContent').innerHTML = html; document.getElementById('remainingStatsModalOverlay').style.display = 'flex'; finishOperation(startTime); } } catch (e) { log('❌ 出错：' + e.message); finishOperation(startTime); } } step(0); }
 function hideRemainingStatsModal() { document.getElementById('remainingStatsModalOverlay').style.display = 'none'; }
 
-// 新增功能函数
+// ========== 显示红球内容（完整子表）==========
 function showRedContent() {
     if (busy) return alert('处理中'); if (!filteredCount) return alert('无剩余');
-    if (!confirm('将显示当前剩余 ' + filteredCount.toLocaleString() + ' 组红球组合，可能较慢，继续？')) return;
-    var startTime = Date.now(); busy = true; setStatus('收集红球数据...'); showProgress(0); showGlobalCancel();
-    globalAbortFlag = false;
+    if (!confirm('将显示与导出Excel完全相同的红球内容，可能较慢，继续？')) return;
+    var startTime = Date.now(); busy = true;
+    document.getElementById('btnShowRedContent').disabled = true;
+    setStatus('收集红球数据...'); showProgress(0); showGlobalCancel(); globalAbortFlag = false;
     var result = []; var done = 0, BATCH = 100000;
+    var src = isPrizeHistoryFixed ? fixedHistoryRedBlue : historyRedBlue;
+    var freq = new Map();
+    for (var i = 0; i < src.length; i++) { var k = src[i].reds.map(function(n){return String(n).padStart(2,'0');}).join(','); freq.set(k, (freq.get(k)||0)+1); }
+    var repeatCombos = []; freq.forEach(function(cnt, key) { if (cnt >= 2) repeatCombos.push({ key: key, count: cnt, nums: key.split(',').map(Number) }); });
+    var allRepeatCounts = []; var rcSet = new Set(); for (var r = 0; r < repeatCombos.length; r++) rcSet.add(repeatCombos[r].count);
+    allRepeatCounts = Array.from(rcSet).sort(function(a,b){return b-a;});
+
     function step(start) {
         if (globalAbortFlag) { finishOperation(startTime); return; }
         var end = Math.min(start + BATCH, TOTAL);
         for (var i = start; i < end; i++) {
             if (filteredAlive[i]) {
                 var nums = unmask(masksLow[i], masksHigh[i]);
-                result.push(nums.map(function(n){ return String(n).padStart(2,'0'); }).join(','));
+                var comboStr = nums.map(function(n){return String(n).padStart(2,'0');}).join(',');
+                var sum = calcSum(nums); var oe = countOddEven(nums); var zp = getZonePattern(nums);
+                var isSeq3 = hasSeq(nums,3)?'是':'否'; var isGap3 = hasGap(nums,3)?'是':'否';
+                var isArith3 = hasArith3(nums)?'是':'否'; var isDiff3Same = hasDiff3Same(nums)?'是':'否';
+                var isTail3 = hasSameTail3(nums)?'是':'否'; var isTail2Group = hasSameTail2Groups(nums)?'是':'否';
+                var maxMatchByRepeat = {};
+                for (var r = 0; r < repeatCombos.length; r++) {
+                    var rc = repeatCombos[r]; var match = 0;
+                    for (var j = 0; j < rc.nums.length; j++) if (nums.indexOf(rc.nums[j]) !== -1) match++;
+                    if (!maxMatchByRepeat[rc.count] || match > maxMatchByRepeat[rc.count]) maxMatchByRepeat[rc.count] = match;
+                }
+                result.push({ combo: comboStr, sum: sum, oe: oe.odd+'奇'+oe.even+'偶', zp: zp.split('').join(':'),
+                    isSeq3: isSeq3, isGap3: isGap3, isArith3: isArith3, isDiff3Same: isDiff3Same,
+                    isTail3: isTail3, isTail2Group: isTail2Group, repeatMatches: maxMatchByRepeat });
             }
         }
         done = end; showProgress(Math.round(done / TOTAL * 100));
@@ -727,13 +750,136 @@ function showRedContent() {
         else {
             finishOperation(startTime);
             var modal = document.getElementById('contentModalOverlay');
-            document.getElementById('contentModalTitle').textContent = '红球组合（共 ' + result.length.toLocaleString() + ' 组）';
+            document.getElementById('contentModalTitle').textContent = '红球内容（与导出Excel一致）';
             var body = document.getElementById('contentModalBody');
-            var html = '<table class="content-table"><thead><tr><th class="cb-cell">选</th><th>号码</th></tr></thead><tbody>';
+            var html = '';
+
+            // 子表1：组合列表
+            html += '<h4>组合列表</h4>';
+            html += '<table class="content-table"><thead><tr><th class="cb-cell">选</th><th>前区号码</th><th>和值</th><th>奇偶比</th><th>区间比</th><th>3连号</th><th>3隔号</th><th>等差3+</th><th>相邻差3同</th><th>同尾数≥3个</th><th>同尾数组数≥2组</th>';
+            for (var ri = 0; ri < allRepeatCounts.length; ri++) html += '<th>重复'+allRepeatCounts[ri]+'次最多中</th>';
+            html += '</tr></thead><tbody>';
             for (var i = 0; i < result.length; i++) {
-                html += '<tr><td class="cb-cell"><input type="checkbox" class="red-cb" data-combo="' + result[i] + '"></td><td>' + result[i] + '</td></tr>';
+                var r = result[i];
+                html += '<tr><td class="cb-cell"><input type="checkbox" class="red-cb" data-combo="' + r.combo + '"></td>';
+                html += '<td>' + r.combo + '</td><td>' + r.sum + '</td><td>' + r.oe + '</td><td>' + r.zp + '</td>';
+                html += '<td>' + r.isSeq3 + '</td><td>' + r.isGap3 + '</td><td>' + r.isArith3 + '</td><td>' + r.isDiff3Same + '</td><td>' + r.isTail3 + '</td><td>' + r.isTail2Group + '</td>';
+                for (var ri = 0; ri < allRepeatCounts.length; ri++) {
+                    var cnt = allRepeatCounts[ri];
+                    html += '<td>' + (r.repeatMatches[cnt] !== undefined ? r.repeatMatches[cnt]+'个' : '-') + '</td>';
+                }
+                html += '</tr>';
             }
             html += '</tbody></table>';
+
+            // 子表2：数字统计
+            var cntArr = new Array(34).fill(0);
+            for (var i = 0; i < result.length; i++) {
+                var nums = result[i].combo.split(',').map(Number);
+                for (var j = 0; j < nums.length; j++) cntArr[nums[j]]++;
+            }
+            var st = [];
+            for (var i = 1; i <= 33; i++) st.push({n:i, c:cntArr[i]});
+            st.sort(function(a,b){return b.c-a.c;});
+            html += '<h4>数字统计</h4><table class="content-table"><thead><tr><th class="cb-cell">选</th><th>数字</th><th>次数</th><th>占比</th></tr></thead><tbody>';
+            for (var i = 0; i < st.length; i++) {
+                html += '<tr><td class="cb-cell"><input type="checkbox" class="red-cb" data-combo="' + String(st[i].n).padStart(2,'0') + '"></td>';
+                html += '<td>' + String(st[i].n).padStart(2,'0') + '</td><td>' + st[i].c + '</td><td>' + (st[i].c/(result.length*6)*100).toFixed(2)+'%</td></tr>';
+            }
+            html += '</tbody></table>';
+
+            // 子表3：组合对统计
+            var pairMap = {}, pairKeys = new Array(528), idx = 0;
+            for (var a = 1; a <= 33; a++) for (var b = a + 1; b <= 33; b++) {
+                var key = String(a).padStart(2,'0')+','+String(b).padStart(2,'0');
+                pairMap[key]=idx; pairKeys[idx]=key; idx++;
+            }
+            var pairCount = new Array(528).fill(0);
+            for (var i = 0; i < result.length; i++) {
+                var nums = result[i].combo.split(',').map(Number);
+                for (var p = 0; p < nums.length; p++) for (var q = p + 1; q < nums.length; q++) {
+                    var a=nums[p],b=nums[q];
+                    var key = (a<b)?(String(a).padStart(2,'0')+','+String(b).padStart(2,'0')):(String(b).padStart(2,'0')+','+String(a).padStart(2,'0'));
+                    pairCount[pairMap[key]]++;
+                }
+            }
+            var sortedPairs = []; for (var i = 0; i < 528; i++) sortedPairs.push({key:pairKeys[i],count:pairCount[i]});
+            sortedPairs.sort(function(a,b){return b.count-a.count;});
+            html += '<h4>组合对统计</h4><table class="content-table"><thead><tr><th class="cb-cell">选</th><th>组合</th><th>出现次数</th></tr></thead><tbody>';
+            for (var i = 0; i < sortedPairs.length; i++) {
+                html += '<tr><td class="cb-cell"><input type="checkbox" class="red-cb" data-combo="' + sortedPairs[i].key + '"></td>';
+                html += '<td>' + sortedPairs[i].key + '</td><td>' + sortedPairs[i].count + '</td></tr>';
+            }
+            html += '</tbody></table>';
+
+            // 子表4：前三统计
+            var top3Map = {};
+            for (var i = 0; i < result.length; i++) {
+                var nums = result[i].combo.split(',').map(Number);
+                var key = nums.slice(0,3).map(function(n){return String(n).padStart(2,'0');}).join(',');
+                top3Map[key] = (top3Map[key]||0)+1;
+            }
+            var top3Arr = []; for (var k in top3Map) if (top3Map.hasOwnProperty(k)) top3Arr.push({key:k,count:top3Map[k]});
+            top3Arr.sort(function(a,b){return b.count-a.count;});
+            html += '<h4>前三统计</h4><table class="content-table"><thead><tr><th class="cb-cell">选</th><th>前三位</th><th>数量</th></tr></thead><tbody>';
+            for (var i = 0; i < top3Arr.length; i++) {
+                html += '<tr><td class="cb-cell"><input type="checkbox" class="red-cb" data-combo="' + top3Arr[i].key + '"></td>';
+                html += '<td>' + top3Arr[i].key + '</td><td>' + top3Arr[i].count + '</td></tr>';
+            }
+            html += '</tbody></table>';
+
+            // 子表5：前四统计
+            var top4Map = {};
+            for (var i = 0; i < result.length; i++) {
+                var nums = result[i].combo.split(',').map(Number);
+                var key = nums.slice(0,4).map(function(n){return String(n).padStart(2,'0');}).join(',');
+                top4Map[key] = (top4Map[key]||0)+1;
+            }
+            var top4Arr = []; for (var k in top4Map) if (top4Map.hasOwnProperty(k)) top4Arr.push({key:k,count:top4Map[k]});
+            top4Arr.sort(function(a,b){return b.count-a.count;});
+            html += '<h4>前四统计</h4><table class="content-table"><thead><tr><th class="cb-cell">选</th><th>前四位</th><th>数量</th></tr></thead><tbody>';
+            for (var i = 0; i < top4Arr.length; i++) {
+                html += '<tr><td class="cb-cell"><input type="checkbox" class="red-cb" data-combo="' + top4Arr[i].key + '"></td>';
+                html += '<td>' + top4Arr[i].key + '</td><td>' + top4Arr[i].count + '</td></tr>';
+            }
+            html += '</tbody></table>';
+
+            // 子表6：前五统计
+            var top5Map = {};
+            for (var i = 0; i < result.length; i++) {
+                var nums = result[i].combo.split(',').map(Number);
+                var key = nums.slice(0,5).map(function(n){return String(n).padStart(2,'0');}).join(',');
+                top5Map[key] = (top5Map[key]||0)+1;
+            }
+            var top5Arr = []; for (var k in top5Map) if (top5Map.hasOwnProperty(k)) top5Arr.push({key:k,count:top5Map[k]});
+            top5Arr.sort(function(a,b){return b.count-a.count;});
+            html += '<h4>前五统计</h4><table class="content-table"><thead><tr><th class="cb-cell">选</th><th>前五位</th><th>数量</th></tr></thead><tbody>';
+            for (var i = 0; i < top5Arr.length; i++) {
+                html += '<tr><td class="cb-cell"><input type="checkbox" class="red-cb" data-combo="' + top5Arr[i].key + '"></td>';
+                html += '<td>' + top5Arr[i].key + '</td><td>' + top5Arr[i].count + '</td></tr>';
+            }
+            html += '</tbody></table>';
+
+            // 子表7：17起排列
+            html += '<h4>17起排列</h4><table class="content-table"><thead><tr><th class="cb-cell">选</th><th>前区号码</th></tr></thead><tbody>';
+            for (var i = 0; i < result.length; i++) {
+                var nums = result[i].combo.split(',').map(Number);
+                var sorted = nums.slice().sort(function(a,b){ return ((a-17+33)%33)-((b-17+33)%33); });
+                var str = sorted.map(function(n){return String(n).padStart(2,'0');}).join(',');
+                html += '<tr><td class="cb-cell"><input type="checkbox" class="red-cb" data-combo="' + str + '"></td><td>' + str + '</td></tr>';
+            }
+            html += '</tbody></table>';
+
+            // 子表8：降序排列
+            html += '<h4>降序排列</h4><table class="content-table"><thead><tr><th class="cb-cell">选</th><th>前区号码</th></tr></thead><tbody>';
+            for (var i = 0; i < result.length; i++) {
+                var nums = result[i].combo.split(',').map(Number);
+                var sorted = nums.slice().sort(function(a,b){ return b-a; });
+                var str = sorted.map(function(n){return String(n).padStart(2,'0');}).join(',');
+                html += '<tr><td class="cb-cell"><input type="checkbox" class="red-cb" data-combo="' + str + '"></td><td>' + str + '</td></tr>';
+            }
+            html += '</tbody></table>';
+
             body.innerHTML = html;
             modal.style.display = 'flex';
             log('📋 红球内容已加载');
@@ -742,23 +888,20 @@ function showRedContent() {
     step(0);
 }
 
+// ========== 显示奖金内容（与导出CSV一致）==========
 function showPrizeContent() {
     if (busy) return alert('处理中'); if (!filteredCount) return alert('无剩余');
     var src = isPrizeHistoryFixed ? fixedHistoryRedBlue : historyRedBlue;
     if (!src.length) { alert('无历史票'); return; }
     var blues = selectedBlues ? Array.from(selectedBlues).sort(function(a,b){return a-b;}) : [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16];
-    if (!confirm('基于 ' + src.length + ' 张历史票计算奖金并显示内容，继续？')) return;
-    busy = true; document.getElementById('btnShowPrizeContent').disabled = true; setStatus('计算奖金...'); showProgress(0); showGlobalCancel();
-    globalAbortFlag = false;
+    if (!confirm('基于 ' + src.length + ' 张历史票计算奖金并显示，继续？')) return;
+    busy = true; document.getElementById('btnShowPrizeContent').disabled = true;
+    setStatus('计算奖金...'); showProgress(0); showGlobalCancel(); globalAbortFlag = false;
     var tMasks = [], tBlues = [];
     for (var j = 0; j < src.length; j++) {
-        var t = src[j];
-        var m = maskFrom(t.reds);
-        tMasks.push(m);
-        tBlues.push(t.blue);
+        var t = src[j]; var m = maskFrom(t.reds); tMasks.push(m); tBlues.push(t.blue);
     }
-    var results = [];
-    var done = 0, BATCH = 5000;
+    var results = []; var done = 0, BATCH = 5000;
     function step(start) {
         if (globalAbortFlag) { finishOperation(); return; }
         var end = Math.min(start + BATCH, TOTAL);
@@ -767,8 +910,7 @@ function showPrizeContent() {
             var l = masksLow[i], h = masksHigh[i];
             var redStr = unmask(l,h).map(function(n){ return String(n).padStart(2,'0'); }).join(',');
             for (var bi = 0; bi < blues.length; bi++) {
-                var b = blues[bi];
-                var totalPrize = 0;
+                var b = blues[bi]; var totalPrize = 0;
                 for (var t = 0; t < tMasks.length; t++) {
                     var interLow = l & tMasks[t].l, interHigh = h & tMasks[t].h, mr = popcount32(interLow) + (interHigh & 1);
                     totalPrize += prizeAmount(mr, (tBlues[t] !== null && b === tBlues[t]) ? 1 : 0);
@@ -782,11 +924,12 @@ function showPrizeContent() {
             finishOperation();
             results.sort(function(a,b){ return b.prize - a.prize; });
             var modal = document.getElementById('contentModalOverlay');
-            document.getElementById('contentModalTitle').textContent = '奖金内容（共 ' + results.length.toLocaleString() + ' 条）';
+            document.getElementById('contentModalTitle').textContent = '奖金内容（与导出CSV一致）';
             var body = document.getElementById('contentModalBody');
-            var html = '<table class="content-table"><thead><tr><th class="cb-cell">选</th><th>组合-蓝球</th><th>奖金</th></tr></thead><tbody>';
+            var html = '<table class="content-table"><thead><tr><th class="cb-cell">选</th><th>中奖号码</th><th>中奖金额（元）</th></tr></thead><tbody>';
             for (var i = 0; i < results.length; i++) {
-                html += '<tr><td class="cb-cell"><input type="checkbox" class="prize-cb" data-combo="' + results[i].combo + '"></td><td>' + results[i].combo + '</td><td>' + results[i].prize.toLocaleString() + '</td></tr>';
+                html += '<tr><td class="cb-cell"><input type="checkbox" class="prize-cb" data-combo="' + results[i].combo + '"></td>';
+                html += '<td>' + results[i].combo + '</td><td>' + results[i].prize.toLocaleString() + '</td></tr>';
             }
             html += '</tbody></table>';
             body.innerHTML = html;
@@ -809,47 +952,34 @@ function queryRank() {
     var input = document.getElementById('rankInput').value.trim();
     if (!input) return alert('请输入组合');
     input = input.replace(/，/g, ',').replace(/\s+/g, '');
-    var parts = input.split('-');
-    var redPart = parts[0];
-    var blue = null;
-    if (parts.length > 1) {
-        var bv = parseInt(parts[1], 10);
-        if (!isNaN(bv) && bv >= 1 && bv <= 16) blue = bv;
-    }
+    var parts = input.split('-'); var redPart = parts[0]; var blue = null;
+    if (parts.length > 1) { var bv = parseInt(parts[1], 10); if (!isNaN(bv) && bv >= 1 && bv <= 16) blue = bv; }
     var reds = redPart.split(',').map(function(s){ return parseInt(s,10); }).filter(function(n){ return n>=1 && n<=33; });
     if (reds.length !== 6) return alert('红球必须为6个数字');
     reds.sort(function(a,b){ return a-b; });
-    var targetMask = maskFrom(reds);
-    var targetIdx = maskIndex.get(targetMask.l + '_' + targetMask.h);
+    var targetMask = maskFrom(reds); var targetIdx = maskIndex.get(targetMask.l + '_' + targetMask.h);
     if (targetIdx === undefined || !filteredAlive[targetIdx]) {
         document.getElementById('rankResult').innerHTML = '<div style="color:red;">该组合不在剩余组合中</div>';
-        document.getElementById('rankResult').style.display = 'block';
-        return;
+        document.getElementById('rankResult').style.display = 'block'; return;
     }
     if (blue === null) { alert('请指定蓝球（如 1,2,3,4,5,6-1）'); return; }
     var src = isPrizeHistoryFixed ? fixedHistoryRedBlue : historyRedBlue;
     if (!src.length) { alert('没有基准历史票'); return; }
     var tMasks = [], tBlues = [];
-    for (var j = 0; j < src.length; j++) {
-        var t = src[j];
-        tMasks.push(maskFrom(t.reds));
-        tBlues.push(t.blue);
-    }
+    for (var j = 0; j < src.length; j++) { var t = src[j]; tMasks.push(maskFrom(t.reds)); tBlues.push(t.blue); }
     var targetPrize = 0;
     for (var t = 0; t < tMasks.length; t++) {
         var interLow = targetMask.l & tMasks[t].l, interHigh = targetMask.h & tMasks[t].h, mr = popcount32(interLow) + (interHigh & 1);
         targetPrize += prizeAmount(mr, (tBlues[t] !== null && blue === tBlues[t]) ? 1 : 0);
     }
     busy = true; setStatus('排名计算中...'); showProgress(0); showGlobalCancel(); globalAbortFlag = false;
-    var prizes = [];
-    var done = 0, BATCH = 5000;
+    var prizes = []; var done = 0, BATCH = 5000;
     function step(start) {
         if (globalAbortFlag) { finishOperation(); return; }
         var end = Math.min(start + BATCH, TOTAL);
         for (var i = start; i < end; i++) {
             if (!filteredAlive[i]) continue;
-            var l = masksLow[i], h = masksHigh[i];
-            var totalPrize = 0;
+            var l = masksLow[i], h = masksHigh[i]; var totalPrize = 0;
             for (var t = 0; t < tMasks.length; t++) {
                 var interLow = l & tMasks[t].l, interHigh = h & tMasks[t].h, mr = popcount32(interLow) + (interHigh & 1);
                 totalPrize += prizeAmount(mr, (tBlues[t] !== null && blue === tBlues[t]) ? 1 : 0);
@@ -859,23 +989,18 @@ function queryRank() {
         done = end; showProgress(Math.round(done / TOTAL * 100));
         if (done < TOTAL) setTimeout(function(){ step(done); }, 10);
         else {
-            finishOperation();
-            prizes.sort(function(a,b){ return b.prize - a.prize; });
+            finishOperation(); prizes.sort(function(a,b){ return b.prize - a.prize; });
             var rank = 0, sameCount = 0, lastPrize = -1;
             for (var k = 0; k < prizes.length; k++) {
                 if (prizes[k].prize !== lastPrize) { rank++; lastPrize = prizes[k].prize; }
-                if (prizes[k].idx === targetIdx) {
-                    sameCount = prizes.filter(function(p){ return p.prize === lastPrize; }).length;
-                    break;
-                }
+                if (prizes[k].idx === targetIdx) { sameCount = prizes.filter(function(p){ return p.prize === lastPrize; }).length; break; }
             }
             var total = prizes.length;
             var html = '<div>红球：' + reds.map(function(n){ return String(n).padStart(2,'0'); }).join(',') + ' 蓝球：' + String(blue).padStart(2,'0') + '</div>';
             html += '<div>总奖金：' + targetPrize.toLocaleString() + ' 元</div>';
             html += '<div>排名：<b>第 ' + rank + ' 名</b>（共 ' + total.toLocaleString() + ' 注）</div>';
             if (sameCount > 1) html += '<div>（此奖金共有 ' + sameCount + ' 注并列）</div>';
-            document.getElementById('rankResult').innerHTML = html;
-            document.getElementById('rankResult').style.display = 'block';
+            document.getElementById('rankResult').innerHTML = html; document.getElementById('rankResult').style.display = 'block';
         }
     }
     step(0);
@@ -883,13 +1008,8 @@ function queryRank() {
 
 function init() {
     try {
-        buildAll();
-        buildHistMasks();
-        drawGrids();
-        drawKeepDigitsGrid();
-        drawMatchGrid();
-        drawCheckComboGrid();
-        drawCalcPrizeGrid();
+        buildAll(); buildHistMasks();
+        drawGrids(); drawKeepDigitsGrid(); drawMatchGrid(); drawCheckComboGrid(); drawCalcPrizeGrid();
         document.getElementById('btnApply').addEventListener('click', applyFilter);
         document.getElementById('btnClearInput').addEventListener('click', function() { document.getElementById('inputArea').value = ''; });
         document.getElementById('btnStats').addEventListener('click', analyzeDuplicates);
@@ -912,11 +1032,7 @@ function init() {
         document.getElementById('btnBlueSelectConfirm').addEventListener('click', confirmBlueSelect);
         document.getElementById('btnShowRedContent').addEventListener('click', showRedContent);
         document.getElementById('btnShowPrizeContent').addEventListener('click', showPrizeContent);
-        document.getElementById('btnRankQuery').addEventListener('click', function() {
-            document.getElementById('rankInput').value = '';
-            document.getElementById('rankResult').style.display = 'none';
-            document.getElementById('rankModalOverlay').style.display = 'flex';
-        });
+        document.getElementById('btnRankQuery').addEventListener('click', function() { document.getElementById('rankInput').value = ''; document.getElementById('rankResult').style.display = 'none'; document.getElementById('rankModalOverlay').style.display = 'flex'; });
         document.getElementById('btnRankCancel').addEventListener('click', function() { document.getElementById('rankModalOverlay').style.display = 'none'; });
         document.getElementById('btnRankConfirm').addEventListener('click', queryRank);
         document.getElementById('btnContentModalClose').addEventListener('click', function() { document.getElementById('contentModalOverlay').style.display = 'none'; });
