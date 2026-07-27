@@ -216,7 +216,7 @@
 <div class="container">
   <h1>
     🎱 双分组
-    <span class="icon">11组分类·总数统计</span>
+    <span class="icon">逐项分组·总数统计</span>
   </h1>
 
   <div class="input-area">
@@ -243,18 +243,25 @@
 
 <script>
 (function() {
+  // 分组定义：单式按数字数量 6-14 单独分组 + 15及以上，胆拖按胆码数量 1-5
   const GROUP_DEFS = [
-    { id: 'g1', label: '单式/复式：6个数字的组合', test: (item) => item.type === 'standard' && item.count === 6 },
-    { id: 'g2', label: '单式/复式：7、8、9个数字的组合', test: (item) => item.type === 'standard' && item.count >= 7 && item.count <= 9 },
-    { id: 'g3', label: '单式/复式：10-14个数字的组合', test: (item) => item.type === 'standard' && item.count >= 10 && item.count <= 14 },
-    { id: 'g4', label: '单式/复式：15个数字及以上的组合', test: (item) => item.type === 'standard' && item.count >= 15 },
-    { id: 'g5', label: '胆拖形式：4个胆、5个胆的组合', test: (item) => item.type === 'dantuo' && (item.danCount === 4 || item.danCount === 5) },
-    { id: 'g6', label: '胆拖形式：其他胆拖（1到3个胆）组合', test: (item) => item.type === 'dantuo' && item.danCount >= 1 && item.danCount <= 3 },
-    { id: 'g10', label: '单式/复式：10个数字的组合', test: (item) => item.type === 'standard' && item.count === 10 },
-    { id: 'g11', label: '单式/复式：11个数字的组合', test: (item) => item.type === 'standard' && item.count === 11 },
-    { id: 'g12', label: '单式/复式：12个数字的组合', test: (item) => item.type === 'standard' && item.count === 12 },
-    { id: 'g13', label: '单式/复式：13个数字的组合', test: (item) => item.type === 'standard' && item.count === 13 },
-    { id: 'g14', label: '单式/复式：14个数字的组合', test: (item) => item.type === 'standard' && item.count === 14 }
+    // 单式/复式：逐一数量分组
+    { id: 'g6',  label: '单式/复式：6个数字的组合',   test: (item) => item.type === 'standard' && item.count === 6 },
+    { id: 'g7',  label: '单式/复式：7个数字的组合',   test: (item) => item.type === 'standard' && item.count === 7 },
+    { id: 'g8',  label: '单式/复式：8个数字的组合',   test: (item) => item.type === 'standard' && item.count === 8 },
+    { id: 'g9',  label: '单式/复式：9个数字的组合',   test: (item) => item.type === 'standard' && item.count === 9 },
+    { id: 'g10', label: '单式/复式：10个数字的组合',  test: (item) => item.type === 'standard' && item.count === 10 },
+    { id: 'g11', label: '单式/复式：11个数字的组合',  test: (item) => item.type === 'standard' && item.count === 11 },
+    { id: 'g12', label: '单式/复式：12个数字的组合',  test: (item) => item.type === 'standard' && item.count === 12 },
+    { id: 'g13', label: '单式/复式：13个数字的组合',  test: (item) => item.type === 'standard' && item.count === 13 },
+    { id: 'g14', label: '单式/复式：14个数字的组合',  test: (item) => item.type === 'standard' && item.count === 14 },
+    { id: 'g15', label: '单式/复式：15个数字及以上的组合', test: (item) => item.type === 'standard' && item.count >= 15 },
+    // 胆拖形式：逐一胆数分组
+    { id: 'd1',  label: '胆拖形式：1个胆的组合',   test: (item) => item.type === 'dantuo' && item.danCount === 1 },
+    { id: 'd2',  label: '胆拖形式：2个胆的组合',   test: (item) => item.type === 'dantuo' && item.danCount === 2 },
+    { id: 'd3',  label: '胆拖形式：3个胆的组合',   test: (item) => item.type === 'dantuo' && item.danCount === 3 },
+    { id: 'd4',  label: '胆拖形式：4个胆的组合',   test: (item) => item.type === 'dantuo' && item.danCount === 4 },
+    { id: 'd5',  label: '胆拖形式：5个胆的组合',   test: (item) => item.type === 'dantuo' && item.danCount === 5 }
   ];
 
   function extractNums(str) {
