@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>双应用前区筛选 · 终极完整版</title>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js">
+    </script>
     <style>
         :root { --bg: #f5f6fa; --card-bg: #ffffff; --primary: #4a6cf7; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; --text: #2c3e50; --border: #e0e5ec; --radius: 14px; }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
@@ -298,7 +299,7 @@
     </div>
 </div>
 
-<!-- 匹配分析模态框（增加勾选框、保留按钮和自动分析前10数字按钮） -->
+<!-- 匹配分析模态框（增加勾选框和保留按钮） -->
 <div class="modal-overlay" id="matchModalOverlay">
     <div class="modal-box" style="max-width: 600px;">
         <div class="modal-title">🔍 匹配分析（点选数字 或 输入数字）</div>
@@ -769,7 +770,84 @@ function init() {
         document.getElementById('btnMatchTop10').addEventListener('click', matchTop10);
 
         // 以下为其他绑定函数，保持原有
-        // ...（因篇幅，此处省略，但需包含原有所有绑定）
+        function bind(id, fn) { document.getElementById(id).addEventListener('click', fn); }
+        bind('btnAllOdd', function() { applyCustomFilter('全奇数', isAllOdd); });
+        bind('btnAllEven', function() { applyCustomFilter('全偶数', isAllEven); });
+        bind('btn2Seq', function() { applyCustomFilter('2连号', function(arr) { return hasSeq(arr, 2); }); });
+        bind('btn3Seq', function() { applyCustomFilter('3连号', function(arr) { return hasSeq(arr, 3); }); });
+        bind('btn2Gap', function() { applyCustomFilter('2隔号', function(arr) { return hasGap(arr, 2); }); });
+        bind('btn3Gap', function() { applyCustomFilter('3隔号', function(arr) { return hasGap(arr, 3); }); });
+        bind('btnArith3', function() { applyCustomFilter('等差3+', hasArith3); });
+        bind('btnDiff3Same', function() { applyCustomFilter('相邻差3同', hasDiff3Same); });
+        bind('btn4Seq', function() { applyCustomFilter('4连号', function(arr) { return hasSeq(arr, 4); }); });
+        bind('btn4Gap', function() { applyCustomFilter('4隔号', function(arr) { return hasGap(arr, 4); }); });
+        bind('btn5Seq', function() { applyCustomFilter('5连号', function(arr) { return hasSeq(arr, 5); }); });
+        bind('btn5Gap', function() { applyCustomFilter('5隔号', function(arr) { return hasGap(arr, 5); }); });
+        bind('btn6Seq', function() { applyCustomFilter('6连号', function(arr) { return hasSeq(arr, 6); }); });
+        bind('btn6Gap', function() { applyCustomFilter('6隔号', function(arr) { return hasGap(arr, 6); }); });
+        bind('btnTail3', function() { applyCustomFilter('同尾≥3', hasSameTail3); });
+        bind('btnTail2Group', function() { applyCustomFilter('同尾组≥2', hasSameTail2Groups); });
+        bind('btnRatio600', function() { applyCustomFilter('6:0:0', function(arr) { return getZonePattern(arr) === '006'; }); });
+        bind('btnRatio510', function() { applyCustomFilter('5:1:0', function(arr) { return getZonePattern(arr) === '015'; }); });
+        bind('btnRatio420', function() { applyCustomFilter('4:2:0', function(arr) { return getZonePattern(arr) === '024'; }); });
+        bind('btnRatio411', function() { applyCustomFilter('4:1:1', function(arr) { return getZonePattern(arr) === '114'; }); });
+        bind('btnRatio330', function() { applyCustomFilter('3:3:0', function(arr) { return getZonePattern(arr) === '033'; }); });
+        bind('btnRatio321', function() { applyCustomFilter('3:2:1', function(arr) { return getZonePattern(arr) === '123'; }); });
+        bind('btnRatio222', function() { applyCustomFilter('2:2:2', function(arr) { return getZonePattern(arr) === '222'; }); });
+        bind('btnExcludeHistory', function() { applyCustomFilter('排除历史组合', function(arr) { return HISTORY_SET.has(arr.map(function(n) { return String(n).padStart(2, '0'); }).sort().join(',')); }); });
+        bind('btnExcludeHist5', function() { applyExcludeHistByCount(5); });
+        bind('btnKeepHist5', function() { applyKeepHistByCount(5); });
+        bind('btnKeepOnly', function() { document.getElementById('keepOnlyModalOverlay').style.display = 'flex'; });
+        bind('btnKeepDigits', function() { document.getElementById('keepDigitsModalOverlay').style.display = 'flex'; keepDigitsSel.clear(); drawKeepDigitsGrid(); document.getElementById('keepDigitsCount').textContent = '0'; });
+        bind('btnExcludeTop3', openTop3Modal);
+        bind('btnExcludeSumRange', function() { document.getElementById('sumRangeModalOverlay').style.display = 'flex'; });
+        bind('btnMatchAnalyze', openMatchModal);
+        bind('btnCheckCombo', function() { document.getElementById('checkComboModalOverlay').style.display = 'flex'; });
+        bind('btnSmartRepeat', function() { document.getElementById('smartRepeatModalOverlay').style.display = 'flex'; });
+        bind('btnPrizeRange', function() { document.getElementById('prizeRangeModalOverlay').style.display = 'flex'; });
+        bind('btnKeepMulti', function() { document.getElementById('keepMultiModalOverlay').style.display = 'flex'; });
+        bind('btnCalcPrizeForCombo', function() { calcPrizeSel.clear(); drawCalcPrizeGrid(); document.getElementById('calcPrizeCount').textContent = '0'; document.getElementById('calcPrizeResult').style.display = 'none'; document.getElementById('calcPrizeModalOverlay').style.display = 'flex'; });
+        bind('btnVerifyHist5', function() { document.getElementById('verifyModalOverlay').style.display = 'flex'; });
+        bind('btnRepeatPrizeStats', showRepeatPrizeModal);
+        bind('btnExcludeMulti', function() { document.getElementById('multiModalTextarea').value = ''; document.getElementById('multiModalOverlay').style.display = 'flex'; });
+        bind('btnExcludeMultiHit', function() { document.getElementById('multiHitModalTextarea').value = ''; document.querySelectorAll('#multiHitCheckboxes input').forEach(function(cb) { cb.checked = false; }); document.getElementById('multiHitModalOverlay').style.display = 'flex'; });
+
+        document.getElementById('btnMatchModalCancelTop').addEventListener('click', function() { document.getElementById('matchModalOverlay').style.display = 'none'; });
+        document.getElementById('btnMatchModalCancel').addEventListener('click', function() { document.getElementById('matchModalOverlay').style.display = 'none'; });
+        document.getElementById('btnMatchModalConfirm').addEventListener('click', confirmMatchAnalysis);
+        document.getElementById('btnKeepOnlyModalCancel').addEventListener('click', function() { document.getElementById('keepOnlyModalOverlay').style.display = 'none'; document.getElementById('keepOnlyModalTextarea').value = ''; });
+        document.getElementById('btnKeepOnlyModalConfirm').addEventListener('click', confirmKeepOnly);
+        document.getElementById('btnKeepDigitsModalCancel').addEventListener('click', function() { document.getElementById('keepDigitsModalOverlay').style.display = 'none'; keepDigitsSel.clear(); drawKeepDigitsGrid(); });
+        document.getElementById('btnKeepDigitsModalConfirm').addEventListener('click', confirmKeepDigits);
+        document.getElementById('btnTop3ModalCancel').addEventListener('click', function() { document.getElementById('top3ModalOverlay').style.display = 'none'; document.getElementById('top3ModalTextarea').value = ''; });
+        document.getElementById('btnTop3ModalConfirm').addEventListener('click', confirmTop3Exclusion);
+        document.getElementById('btnSumRangeModalCancel').addEventListener('click', function() { document.getElementById('sumRangeModalOverlay').style.display = 'none'; });
+        document.getElementById('btnSumRangeModalConfirm').addEventListener('click', confirmSumRangeExclusion);
+        document.getElementById('btnCheckComboCancel').addEventListener('click', function() { document.getElementById('checkComboModalOverlay').style.display = 'none'; });
+        document.getElementById('btnCheckComboConfirm').addEventListener('click', confirmCheckCombo);
+        document.getElementById('btnSmartRepeatCancel').addEventListener('click', function() { document.getElementById('smartRepeatModalOverlay').style.display = 'none'; });
+        document.getElementById('btnSmartRepeatConfirm').addEventListener('click', confirmSmartRepeat);
+        document.getElementById('btnPrizeRangeCancel').addEventListener('click', function() { document.getElementById('prizeRangeModalOverlay').style.display = 'none'; });
+        document.getElementById('btnPrizeRangeConfirm').addEventListener('click', confirmPrizeRange);
+        document.getElementById('btnKeepMultiCancel').addEventListener('click', function() { document.getElementById('keepMultiModalOverlay').style.display = 'none'; document.getElementById('keepMultiTextarea').value = ''; document.querySelectorAll('#keepMultiHits input').forEach(function(cb) { cb.checked = false; }); });
+        document.getElementById('btnKeepMultiConfirm').addEventListener('click', confirmKeepMulti);
+        document.getElementById('btnCalcPrizeCancel').addEventListener('click', function() { document.getElementById('calcPrizeModalOverlay').style.display = 'none'; });
+        document.getElementById('btnCalcPrizeConfirm').addEventListener('click', confirmCalcPrize);
+        document.getElementById('btnVerifyCancel').addEventListener('click', function() { document.getElementById('verifyModalOverlay').style.display = 'none'; });
+        document.getElementById('btnVerifyConfirm').addEventListener('click', confirmVerify);
+        document.getElementById('btnMultiModalCancel').addEventListener('click', function() { document.getElementById('multiModalOverlay').style.display = 'none'; document.getElementById('multiModalTextarea').value = ''; });
+        document.getElementById('btnMultiModalConfirm').addEventListener('click', confirmMultiExclusion);
+        document.getElementById('btnMultiHitModalCancel').addEventListener('click', function() { document.getElementById('multiHitModalOverlay').style.display = 'none'; document.getElementById('multiHitModalTextarea').value = ''; });
+        document.getElementById('btnMultiHitModalConfirm').addEventListener('click', confirmMultiHitExclusion);
+        document.getElementById('btnRepeatPrizeCancel').addEventListener('click', hideRepeatPrizeModal);
+        document.getElementById('btnRepeatPrizeConfirm').addEventListener('click', confirmRepeatPrizeStats);
+
+        document.querySelectorAll('.odd-even-btn').forEach(function(btn) { btn.addEventListener('click', function() { var targetOdd = parseInt(this.dataset.odd); var targetEven = parseInt(this.dataset.even); applyCustomFilter(targetOdd + '奇' + targetEven + '偶', function(arr) { var oe = countOddEven(arr); return oe.odd === targetOdd && oe.even === targetEven; }); }); });
+        document.querySelectorAll('.zone-btn').forEach(function(btn) { btn.addEventListener('click', function() { var zone = parseInt(this.dataset.zone); var count = parseInt(this.dataset.count); var zoneName = zone === 1 ? '第一区(1-11)' : (zone === 2 ? '第二区(12-22)' : '第三区(23-33)'); applyCustomFilter(zoneName + ' 恰好' + count + '个数字', function(arr) { return countInZone(arr, zone) === count; }); }); });
+        document.querySelectorAll('#sortBtns .sort-btn').forEach(function(btn) { btn.addEventListener('click', function() { switchSortMode(this.dataset.sort); }); });
+
+        updateDisplay();
+        log('✅ 终极完整版就绪，历史数据 ' + HISTORY_LINES.length + ' 条');
     } catch (e) { alert('初始化失败：' + e.message); console.error(e); }
 }
 init();
