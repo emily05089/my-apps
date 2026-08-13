@@ -187,37 +187,37 @@
     </div>
 
     <div class="section">
-      <label>3. 上一期的开奖组合（1-33选6个）</label>
+      <label>3. 上一期的开奖组合（数量不限）</label>
       <div class="picker-row">
         <div class="picker-display" id="prevOpenDisplay">未选择</div>
-        <button type="button" class="btn-secondary" onclick="openPicker('prevOpen',33,6)">选择号码</button>
+        <button type="button" class="btn-secondary" onclick="openPicker('prevOpen',33,0)">选择号码</button>
       </div>
       <input type="hidden" id="prevOpen">
     </div>
 
     <div class="section">
-      <label>4. 大乐透组合（1-35选5个）</label>
+      <label>4. 大乐透组合（数量不限）</label>
       <div class="picker-row">
         <div class="picker-display" id="dltDisplay">未选择</div>
-        <button type="button" class="btn-secondary" onclick="openPicker('dlt',35,5)">选择号码</button>
+        <button type="button" class="btn-secondary" onclick="openPicker('dlt',35,0)">选择号码</button>
       </div>
       <input type="hidden" id="dlt">
     </div>
 
     <div class="section">
-      <label>5. 上一期右下角组合（1-33选6个）</label>
+      <label>5. 上一期右下角组合（数量不限）</label>
       <div class="picker-row">
         <div class="picker-display" id="rightBottomDisplay">未选择</div>
-        <button type="button" class="btn-secondary" onclick="openPicker('rightBottom',33,6)">选择号码</button>
+        <button type="button" class="btn-secondary" onclick="openPicker('rightBottom',33,0)">选择号码</button>
       </div>
       <input type="hidden" id="rightBottom">
     </div>
 
     <div class="section">
-      <label>6. 上一期左下角组合（1-33选6个）</label>
+      <label>6. 上一期左下角组合（数量不限）</label>
       <div class="picker-row">
         <div class="picker-display" id="leftBottomDisplay">未选择</div>
-        <button type="button" class="btn-secondary" onclick="openPicker('leftBottom',33,6)">选择号码</button>
+        <button type="button" class="btn-secondary" onclick="openPicker('leftBottom',33,0)">选择号码</button>
       </div>
       <input type="hidden" id="leftBottom">
     </div>
@@ -3814,8 +3814,8 @@
         if (dan.length < 1 || dan.length > 5) {
           throw new Error('胆码数量需为1-5：' + rawLine);
         }
-        if (tuo.length < 2 || tuo.length > 28) {
-          throw new Error('拖码数量需为2-28：' + rawLine);
+        if (tuo.length < 2 || tuo.length > 29) {
+          throw new Error('拖码数量需为2-29：' + rawLine);
         }
         if (dan.length + tuo.length < 6) {
           throw new Error('胆拖总数不足6个：' + rawLine);
@@ -4192,7 +4192,12 @@
       });
       var freqs = Array.from(groups.keys()).sort(function (a, b) { return b - a; });
       return freqs.map(function (f) {
-        return '重复' + f + '次的组合最多中' + Math.max.apply(null, groups.get(f)) + '个';
+        var arr = groups.get(f);
+        var max = -1;
+        for (var i = 0; i < arr.length; i++) {
+          if (arr[i] > max) max = arr[i];
+        }
+        return '重复' + f + '次的组合最多中' + max + '个';
       });
     }
 
@@ -4246,6 +4251,8 @@
       var matchRight = countIntersection(opening.reds, groups.rightBottom);
       var matchLeft = countIntersection(opening.reds, groups.leftBottom);
 
+      var totalCombos = stats.overall.count;
+
       var out = [];
       out.push('奇偶：' + odd + '奇' + even + '偶');
       out.push('区间比：' + intervalStr);
@@ -4269,6 +4276,8 @@
       out.push('和上一期右下角一样的数量：' + matchRight);
       out.push('和上一期左下角一样的数量：' + matchLeft);
       out.push('');
+      out.push('一共' + totalCombos + '组');
+      out.push('');
       out.push(statsLine('所有组合', stats.overall));
 
       var cats = Array.from(stats.catMap.keys()).sort(categorySort);
@@ -4288,11 +4297,10 @@
       return out.join('\n');
     }
 
-    function readPicker(id, count, label) {
+    function readPicker(id) {
       var val = document.getElementById(id).value;
-      if (!val) throw new Error('请先选择' + label);
-      var nums = val.split(',').map(function (s) { return parseInt(s, 10); }).filter(function (n) { return Number.isInteger(n); });
-      if (nums.length !== count) throw new Error(label + '需要' + count + '个数字');
+      if (!val) return [];
+      var nums = val.split(',').map(function (s) { return parseInt(s, 10); }).filter(function (n) { return Number.isInteger(n) && n > 0; });
       return nums;
     }
 
@@ -4302,10 +4310,10 @@
         var records = parseAllRecords(document.getElementById('allCombos').value);
         var opening = parseOpen(document.getElementById('openCombo').value);
         var groups = {
-          prevOpen: readPicker('prevOpen', 6, '上一期的开奖组合'),
-          dlt: readPicker('dlt', 5, '大乐透组合'),
-          rightBottom: readPicker('rightBottom', 6, '上一期右下角组合'),
-          leftBottom: readPicker('leftBottom', 6, '上一期左下角组合')
+          prevOpen: readPicker('prevOpen'),
+          dlt: readPicker('dlt'),
+          rightBottom: readPicker('rightBottom'),
+          leftBottom: readPicker('leftBottom')
         };
         var result = compute(records, opening, groups);
         outputEl.value = result;
@@ -4339,15 +4347,15 @@
 
     let pickerTarget = null;
     let pickerRange = 33;
-    let pickerCount = 6;
+    let pickerCount = 0; // 0表示不限
     let pickerSelected = new Set();
 
     function openPicker(targetId, range, count) {
       pickerTarget = targetId;
       pickerRange = range;
-      pickerCount = count;
+      pickerCount = count || 0;
       pickerSelected = new Set();
-      document.getElementById('pickerTitle').textContent = '请选择' + count + '个数字';
+      document.getElementById('pickerTitle').textContent = pickerCount > 0 ? '请选择' + pickerCount + '个数字' : '请选择数字（数量不限）';
       renderPicker();
       document.getElementById('pickerModal').style.display = 'flex';
     }
@@ -4376,7 +4384,7 @@
       if (pickerSelected.has(num)) {
         pickerSelected.delete(num);
       } else {
-        if (pickerSelected.size >= pickerCount) {
+        if (pickerCount > 0 && pickerSelected.size >= pickerCount) {
           alert('最多选择' + pickerCount + '个数字');
           return;
         }
@@ -4387,18 +4395,18 @@
 
     function updatePickerHint() {
       var hint = document.getElementById('pickerHint');
-      hint.textContent = '已选择 ' + pickerSelected.size + ' / ' + pickerCount + ' 个';
-      document.getElementById('pickerConfirm').disabled = pickerSelected.size !== pickerCount;
+      if (pickerCount > 0) {
+        hint.textContent = '已选择 ' + pickerSelected.size + ' / ' + pickerCount + ' 个';
+      } else {
+        hint.textContent = '已选择 ' + pickerSelected.size + ' 个';
+      }
+      document.getElementById('pickerConfirm').disabled = false;
     }
 
     function confirmPicker() {
-      if (pickerSelected.size !== pickerCount) {
-        alert('请选择' + pickerCount + '个数字');
-        return;
-      }
       var sorted = Array.from(pickerSelected).sort(function (a, b) { return a - b; });
       document.getElementById(pickerTarget).value = sorted.join(',');
-      document.getElementById(pickerTarget + 'Display').textContent = sorted.map(function (n) { return pad2(n); }).join(',');
+      document.getElementById(pickerTarget + 'Display').textContent = sorted.length ? sorted.map(function (n) { return pad2(n); }).join(',') : '未选择';
       closePicker();
     }
   </script>
