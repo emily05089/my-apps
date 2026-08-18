@@ -426,10 +426,19 @@ function rebuildUserHistoryMasks() {
 }
 
 function buildPairRankings() {
-    var src = isPrizeHistoryFixed ? fixedHistoryRedBlue : historyRedBlue;
+    var src;
+    if (isPrizeHistoryFixed && fixedHistoryRedBlue.length > 0) {
+        src = fixedHistoryRedBlue;
+    } else if (historyRedBlue.length > 0) {
+        src = historyRedBlue;
+    } else {
+        src = HISTORY_ARRAYS.map(function(arr) { return { reds: arr, blue: null }; });
+    }
+
     var pairCount = {};
     for (var i = 0; i < src.length; i++) {
         var nums = src[i].reds.slice().sort(function(a,b){return a-b;});
+        if (nums.length < 6) continue;
         for (var p = 0; p < nums.length; p++) {
             for (var q = p + 1; q < nums.length; q++) {
                 var a = nums[p], b = nums[q];
@@ -438,6 +447,27 @@ function buildPairRankings() {
             }
         }
     }
+
+    // 生成全部528组双数字的排名
+    var pairs = [];
+    for (var a = 1; a <= 32; a++) {
+        for (var b = a + 1; b <= 33; b++) {
+            var key = String(a).padStart(2,'0') + ',' + String(b).padStart(2,'0');
+            pairs.push({ key: key, count: pairCount[key] || 0 });
+        }
+    }
+    pairs.sort(function(x, y) {
+        if (y.count !== x.count) return y.count - x.count;
+        return x.key < y.key ? -1 : 1; // 同次数按字典序
+    });
+
+    pairRankMap = {};
+    pairRankKeys = [];
+    for (var i = 0; i < pairs.length; i++) {
+        pairRankMap[pairs[i].key] = i + 1;
+        pairRankKeys.push(pairs[i].key);
+    }
+}
     var pairs = [];
     for (var key in pairCount) {
         if (pairCount.hasOwnProperty(key)) {
@@ -747,8 +777,19 @@ function combos(nums, k) { if (k === 0) return [[]]; var res = [], tmp = new Arr
 function parseLineWithBlue(line) { line = line.trim(); if (!line) return []; var blue = null, redPart = line; if (line.indexOf('-') !== -1) { var parts = line.split('-'); redPart = parts[0].trim(); var bv = parseInt(parts[1], 10); if (!isNaN(bv) && bv >= 1 && bv <= 16) blue = bv; } redPart = redPart.replace(/，/g, ',').replace(/：/g, ':').trim(); if (isDanTuo(redPart)) { var dt = parseDanTuo(redPart); if (!dt || dt.dan.length < 1 || dt.dan.length > 5) return []; var need = 6 - dt.dan.length; if (dt.tuo.length < need) return []; return combos(dt.tuo, need).map(function(tc) { return { reds: dt.dan.concat(tc).sort(function(a, b) { return a - b; }), blue: blue }; }); } else { var nums = parseNums(redPart); if (nums.length < 6) return []; return combos(nums, 6).map(function(c) { return { reds: c, blue: blue }; }); } }
 function expandCurrent() { var text = document.getElementById('inputArea').value; var lines = text.split(/[\n\r]+/).filter(function(l) { return l.trim(); }); var all = []; for (var i = 0; i < lines.length; i++) { var res = parseLineWithBlue(lines[i]); if (res && res.length) all = all.concat(res); } return all; }
 function addToHistory() { var raw = document.getElementById('inputArea').value.trim(); if (!raw || raw === lastInputSnapshot) return; var expanded = expandCurrent(); if (expanded.length) { for (var i = 0; i < expanded.length; i++) { historyCombos.push(expanded[i].reds); historyRedBlue.push({ reds: expanded[i].reds, blue: expanded[i].blue }); } lastInputSnapshot = raw; rebuildUserHistoryMasks(); log('📥 已记录 ' + expanded.length + ' 注，历史总计 ' + historyCombos.length + ' 注'); } }
-function fixHistory() { if (!historyRedBlue.length) { alert('无带蓝球记录'); return; } fixedHistoryRedBlue = historyRedBlue.slice(); isPrizeHistoryFixed = true; updateDisplay(); log('📌 已固定 ' + fixedHistoryRedBlue.length + ' 条基准'); }
-
+function fixHistory() {
+    if (historyRedBlue.length > 0) {
+        fixedHistoryRedBlue = historyRedBlue.slice();
+    } else {
+        // 使用内置历史组合（蓝球置为 null）
+        fixedHistoryRedBlue = HISTORY_ARRAYS.map(function(arr) { 
+            return { reds: arr.slice(), blue: null }; 
+        });
+    }
+    isPrizeHistoryFixed = true;
+    updateDisplay();
+    log('📌 已固定 ' + fixedHistoryRedBlue.length + ' 条基准');
+}
 function sortComboNumbers(comboStr, mode) { var nums = comboStr.split(',').map(Number); if (mode === 'asc') nums.sort(function(a, b) { return a - b; }); else if (mode === 'desc') nums.sort(function(a, b) { return b - a; }); else if (mode === 'from17') nums.sort(function(a, b) { return ((a - 17 + 33) % 33) - ((b - 17 + 33) % 33); }); return nums.map(function(n) { return String(n).padStart(2, '0'); }).join(','); }
 
 function analyzeDuplicates() {
