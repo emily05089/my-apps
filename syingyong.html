@@ -228,9 +228,10 @@
         </div>
         <!-- 新增按钮 -->
         <div class="flex-row" style="margin-top:6px;">
-            <button class="btn btn-keep btn-sm" id="btnKeepStartDigits">⭐ 保留开头种类</button>
-            <button class="btn btn-keep btn-sm" id="btnKeepTailSameCount">⭐ 保留尾数相同个数</button>
+            <button class="btn btn-keep btn-sm" id="btnKeepStartDigits">⭐ 开头筛选</button>
+            <button class="btn btn-keep btn-sm" id="btnKeepTailSameCount">⭐ 尾数相同筛选</button>
             <button class="btn btn-smart btn-sm" id="btnPairRankExclude">📊 双数字排名排除</button>
+            <button class="btn btn-smart btn-sm" id="btnComboRankQuery">🔎 组合排名查询</button>
         </div>
         <hr>
         <div style="font-weight:600; margin-bottom:4px;">📌 按区间排除数字个数（点击确认后生效）</div>
@@ -368,6 +369,58 @@
     </div>
 </div>
 
+<!-- 开头筛选模态框 -->
+<div class="modal-overlay" id="startDigitsModalOverlay">
+    <div class="modal-box">
+        <div class="modal-title">⭐ 开头筛选（0开头、1开头、2开头、3开头）</div>
+        <div class="checkbox-group" id="startDigitsCheckboxes">
+            <label><input type="checkbox" class="start-digit" value="0">0开头（01-09）</label>
+            <label><input type="checkbox" class="start-digit" value="1">1开头（10-19）</label>
+            <label><input type="checkbox" class="start-digit" value="2">2开头（20-29）</label>
+            <label><input type="checkbox" class="start-digit" value="3">3开头（30-33）</label>
+        </div>
+        <div class="note-box">勾选后，可选择“保留所选开头”或“删除所选开头”。组合中的数字开头必须满足所选开头条件（可多选）。例如勾选0、1、2开头保留，则只保留包含0、1、2开头数字的组合（不含3开头）。如果同时勾选删除3开头，则删除所有包含3开头数字的组合。</div>
+        <div class="modal-buttons">
+            <button class="btn btn-outline" id="btnStartDigitsCancel">取消</button>
+            <button class="btn btn-keep" id="btnStartDigitsKeep">⭐ 保留所选</button>
+            <button class="btn btn-danger" id="btnStartDigitsDelete">❌ 删除所选</button>
+        </div>
+    </div>
+</div>
+
+<!-- 尾数相同筛选模态框 -->
+<div class="modal-overlay" id="tailSameModalOverlay">
+    <div class="modal-box">
+        <div class="modal-title">⭐ 尾数相同筛选</div>
+        <div class="checkbox-group" id="tailSameCheckboxes">
+            <label><input type="checkbox" class="tail-same" value="0">无相同尾数（各不同）</label>
+            <label><input type="checkbox" class="tail-same" value="1">1对尾数相同</label>
+            <label><input type="checkbox" class="tail-same" value="2">2对尾数相同</label>
+            <label><input type="checkbox" class="tail-same" value="3">3对尾数相同</label>
+        </div>
+        <div class="note-box">勾选后，可选择“保留所选”或“删除所选”。尾数相同对数是指组合中数字尾数相同的数字对数量。例如 01,11,18,27,29,30 中，01和11尾数相同（1对），27和? 尾数7? 这里需要具体计算。系统会自动判断每注的尾数相同对数。</div>
+        <div class="modal-buttons">
+            <button class="btn btn-outline" id="btnTailSameCancel">取消</button>
+            <button class="btn btn-keep" id="btnTailSameKeep">⭐ 保留所选</button>
+            <button class="btn btn-danger" id="btnTailSameDelete">❌ 删除所选</button>
+        </div>
+    </div>
+</div>
+
+<!-- 组合排名查询模态框 -->
+<div class="modal-overlay" id="comboRankModalOverlay">
+    <div class="modal-box" style="max-width:600px;">
+        <div class="modal-title">🔎 查询组合排名（选择6个数字）</div>
+        <div class="number-grid" id="comboRankGrid"><div class="zone-row" id="comboRankZone1"></div><div class="zone-row" id="comboRankZone2"></div><div class="zone-row" id="comboRankZone3"></div></div>
+        <div class="tag" style="margin-top:8px;">已选 <span id="comboRankCount">0</span> 个数字（需选6个）</div>
+        <div class="modal-buttons">
+            <button class="btn btn-outline" id="btnComboRankCancel">取消</button>
+            <button class="btn btn-rank" id="btnComboRankConfirm">查询排名</button>
+        </div>
+        <div id="comboRankResult" style="margin-top:12px; display:none;"></div>
+    </div>
+</div>
+
 <!-- 其他模态框 -->
 <div class="modal-overlay" id="multiModalOverlay"><div class="modal-box"><div class="modal-title">输入多数字组合（每行一组，至少2个数字）</div><textarea class="modal-textarea" id="multiModalTextarea" placeholder="例如：&#10;1,2,3&#10;04,08,15,22"></textarea><div class="modal-buttons"><button class="btn btn-outline" id="btnMultiModalCancel">取消</button><button class="btn btn-danger" id="btnMultiModalConfirm">确认排除</button></div></div></div>
 <div class="modal-overlay" id="multiHitModalOverlay"><div class="modal-box"><div class="modal-title">输入多数字组合，并勾选排除命中个数</div><textarea class="modal-textarea" id="multiHitModalTextarea" placeholder="每行一组，可带蓝球"></textarea><div class="checkbox-group" id="multiHitCheckboxes"><label><input type="checkbox" class="hit-check" value="0">中0个</label><label><input type="checkbox" class="hit-check" value="1">中1个</label><label><input type="checkbox" class="hit-check" value="2">中2个</label><label><input type="checkbox" class="hit-check" value="3">中3个</label></div><div class="modal-buttons"><button class="btn btn-outline" id="btnMultiHitModalCancel">取消</button><button class="btn btn-danger" id="btnMultiHitModalConfirm">确认排除</button></div></div></div>
@@ -388,7 +441,6 @@
 
 <script>
 // ========== JavaScript 从这里开始 ==========
-// 注意：此部分将分段提供，请继续接收后续代码。
     (function(){
 // ==================== 全局变量 ====================
 var TOTAL = 1107568;
@@ -406,6 +458,7 @@ var checkComboSel = new Set();
 var calcPrizeSel = new Set();
 var repeatPrizeSel = new Set();
 var keepMatchSel = new Set();
+var comboRankSel = new Set();
 var historyCombos = [];
 var historyRedBlue = [];
 var lastInputSnapshot = '';
@@ -426,12 +479,15 @@ var prize3plus0Fixed = false;
 var matchResultCache = null;
 var remainingStatsCache = null;
 var keepMatchConditions = [];
-var pairRankMap = null;        // 双数字排名：key "a,b" -> 排名
-var digitRankMap = null;       // 单数字排名：key "n" -> 排名
-var pairRankList = null;       // 用于调试/备用
+var pairRankMap = null;
+var digitRankMap = null;
+var pairRankList = null;
 
-// ==================== 历史数据（部分） ====================
+// ==================== 历史数据（新增3组 + 原有历史） ====================
 var HISTORY_LINES = [
+    "05,16,24,26,29,30",
+    "01,04,16,22,26,31",
+    "04,06,14,21,22,33",
     "06,13,15,17,24,25","05,08,15,20,21,24",
     "09,11,12,25,30,33","02,13,14,16,20,24","02,04,15,23,25,27","05,18,23,24,27,33","06,07,11,18,22,33",
     "04,06,10,18,23,31","02,05,14,25,30,32","06,09,13,17,24,28","01,05,06,10,12,16",
@@ -483,7 +539,6 @@ function prizeAmount(mr, mb) {
     return 0;
 }
 
-// 显示进度、状态、日志
 function showGlobalCancel() { document.getElementById('btnGlobalCancel').style.display = 'block'; }
 function hideGlobalCancel() { document.getElementById('btnGlobalCancel').style.display = 'none'; }
 document.getElementById('btnGlobalCancel').addEventListener('click', function() {
@@ -645,13 +700,12 @@ function sortComboNumbers(comboStr, mode) {
 
 // ==================== 排名相关 ====================
 function buildPairRankings() {
-    var src;
-    if (isPrizeHistoryFixed && fixedHistoryRedBlue.length > 0) {
-        src = fixedHistoryRedBlue;
-    } else if (historyRedBlue.length > 0) {
-        src = historyRedBlue;
-    } else {
-        src = HISTORY_ARRAYS.map(function(arr) { return { reds: arr.slice(), blue: null }; });
+    var src = fixedHistoryRedBlue;
+    if (!src || src.length === 0) {
+        pairRankMap = null;
+        digitRankMap = null;
+        pairRankList = null;
+        return;
     }
 
     var pairCount = {};
@@ -1202,7 +1256,12 @@ function drawBlueSelectGrid() {
     }
 }
 
+// ==================== 其他功能函数将在后续补充 ====================
+// 此处暂不结束 IIFE，后续代码继续添加
 // ==================== 统计相关 ====================
+function calcSum(arr) { var s=0; for(var i=0;i<arr.length;i++) s+=arr[i]; return s; }
+function openTop3Modal() { document.getElementById('top3ModalTextarea').value = ''; document.getElementById('top3ModalOverlay').style.display = 'flex'; }
+
 function analyzeDuplicates() {
     try { addToHistory(); } catch (e) { log('⚠️ 记录出错'); }
     if (!historyCombos.length) { alert('历史为空'); return; }
@@ -1222,7 +1281,8 @@ function analyzeDuplicates() {
     try { renderStatsBatched(); } catch (e) { log('❌ 渲染失败'); }
     log('📊 统计完成');
 }
-    var renderBatchIndex = 0;
+
+var renderBatchIndex = 0;
 function renderStatsBatched() {
     if (!statsGroups || !statsSortedCounts) return;
     var area = document.getElementById('resultArea'),
@@ -1279,6 +1339,7 @@ function renderStatsBatched() {
     }
     setTimeout(renderNext, 50);
 }
+
 function switchSortMode(mode) {
     if (currentSortMode !== mode) {
         currentSortMode = mode;
@@ -1354,22 +1415,16 @@ function showRemainingStats() {
 
             html += '<div class="modal-buttons" style="margin-top:10px;"><button class="btn btn-outline" onclick="hideRemainingStatsModal()">关闭</button><button class="btn btn-keep" onclick="retainSelectedStats()">⭐ 保留勾选</button><button class="btn btn-exclude-stats" onclick="excludeSelectedStats()">❌ 排除勾选</button></div>';
 
-            remainingStatsCache = {
-                stats: stats,
-                comboFilter: null
-            };
-            var modal = document.getElementById('remainingStatsModalOverlay');
+            remainingStatsCache = { stats: stats };
             document.getElementById('remainingStatsContent').innerHTML = html;
-            modal.style.display = 'flex';
+            document.getElementById('remainingStatsModalOverlay').style.display = 'flex';
             finishOperation(startTime);
         }
     }
     step(0);
 }
 
-function hideRemainingStatsModal() {
-    document.getElementById('remainingStatsModalOverlay').style.display = 'none';
-}
+function hideRemainingStatsModal() { document.getElementById('remainingStatsModalOverlay').style.display = 'none'; }
 
 function excludeSelectedStats() {
     var cbs = document.querySelectorAll('#remainingStatsContent .stats-cb:checked');
@@ -1483,47 +1538,42 @@ function retainSelectedStats() {
     step(0);
 }
 
-// ==================== 双数字排名相关 ====================
-function showPairRank() {
+// ==================== 数字统计与前三/前四/前五统计 ====================
+function showDigitStats() {
     if (busy) return alert('处理中');
-    if (!filteredCount) return alert('无剩余');
-    if (!pairRankMap || !digitRankMap) buildPairRankings();
-    if (!pairRankMap || Object.keys(pairRankMap).length === 0) return alert('基准历史为空，无法计算排名');
+    if (!filteredCount) return alert('无剩余组合');
     var startTime = Date.now();
     busy = true;
-    setStatus('统计双数字情况中...');
+    setStatus('数字统计中...');
     showProgress(0);
     showGlobalCancel();
     globalAbortFlag = false;
-    var results = [];
+    var freq = new Array(34).fill(0);
     var done = 0, BATCH = 100000;
     function step(start) {
-        if (globalAbortFlag) { finishOperation(startTime); log('⏹️ 已取消双数字统计'); return; }
+        if (globalAbortFlag) { finishOperation(startTime); log('⏹️ 已取消'); return; }
         var end = Math.min(start + BATCH, TOTAL);
         for (var i = start; i < end; i++) {
             if (!filteredAlive[i]) continue;
             var nums = unmask(masksLow[i], masksHigh[i]);
-            var comboStr = nums.map(function(n){return String(n).padStart(2,'0');}).join(',');
-            var pairRanks = getPairRanks(nums);
-            var minRank = Math.min.apply(null, pairRanks);
-            var digitRanks = getDigitRanks(nums);
-            results.push({ combo: comboStr, minRank: minRank, pairRanks: pairRanks.join(','), digitRanks: digitRanks.join(',') });
+            for (var j = 0; j < nums.length; j++) freq[nums[j]]++;
         }
         done = end;
         showProgress(Math.round(done / TOTAL * 100));
         if (done < TOTAL) setTimeout(function(){ step(done); }, 10);
         else {
-            results.sort(function(a,b){ return a.minRank - b.minRank || a.combo.localeCompare(b.combo); });
-            var html = '<div style="margin-bottom:8px;"><button class="btn btn-danger btn-sm" onclick="deleteSelectedPairRank()">❌ 删除勾选组合</button> <button class="btn btn-outline btn-sm" onclick="document.getElementById(\'contentModalOverlay\').style.display=\'none\'">退出</button></div>';
-            html += '<table class="content-table"><thead><tr><th>选择</th><th>当前剩余组合</th><th>15个双数字排名</th><th>6个数字排名</th></tr></thead><tbody>';
-            for (var r = 0; r < results.length; r++) {
-                html += '<tr><td><input type="checkbox" class="pair-rank-cb" data-combo="' + results[r].combo + '"></td>';
-                html += '<td>' + results[r].combo + '</td><td>' + results[r].pairRanks + '</td><td>' + results[r].digitRanks + '</td></tr>';
-            }
+            var sorted = [];
+            for (var n = 1; n <= 33; n++) sorted.push({ num: n, count: freq[n] });
+            sorted.sort(function(a,b){ return b.count - a.count || a.num - b.num; });
+            var html = '<b>当前剩余组合数字出现次数排名（共 ' + filteredCount.toLocaleString() + ' 组）</b><br>';
+            html += '<table class="content-table"><thead><tr><th>数字</th><th>出现次数</th><th>占比</th></tr></thead><tbody>';
+            sorted.forEach(function(item){
+                html += '<tr><td>' + String(item.num).padStart(2,'0') + '</td><td>' + item.count.toLocaleString() + '</td><td>' + (item.count/(filteredCount*6)*100).toFixed(2) + '%</td></tr>';
+            });
             html += '</tbody></table>';
             var modal = document.getElementById('contentModalOverlay');
-            document.getElementById('contentModalTitle').textContent = '双数字情况（共' + results.length + '组，按排名升序）';
-            modal.dataset.contentType = 'pairrank';
+            document.getElementById('contentModalTitle').textContent = '数字统计';
+            modal.dataset.contentType = 'digitStats';
             document.getElementById('contentModalBody').innerHTML = html;
             modal.style.display = 'flex';
             finishOperation(startTime);
@@ -1532,81 +1582,6 @@ function showPairRank() {
     step(0);
 }
 
-function deleteSelectedPairRank() {
-    var cbs = document.querySelectorAll('#contentModalBody .pair-rank-cb:checked');
-    if (cbs.length === 0) return alert('请勾选要删除的组合');
-    var combos = [];
-    cbs.forEach(function(cb){ combos.push(cb.dataset.combo); });
-    if (!confirm('将删除勾选的 ' + combos.length + ' 个组合？')) return;
-    saveUndoState();
-    busy = true;
-    setStatus('删除勾选组合中...');
-    showProgress(0);
-    showGlobalCancel();
-    globalAbortFlag = false;
-    var removed = 0, done = 0, BATCH = 60000;
-    var comboSet = new Set(combos);
-    function step(start) {
-        if (globalAbortFlag) { finishOperation(); log('⏹️ 已取消'); return; }
-        var end = Math.min(start + BATCH, TOTAL);
-        for (var i = start; i < end; i++) {
-            if (!filteredAlive[i]) continue;
-            var nums = unmask(masksLow[i], masksHigh[i]);
-            var str = nums.map(function(n){ return String(n).padStart(2,'0'); }).join(',');
-            if (comboSet.has(str)) { filteredAlive[i] = 0; removed++; }
-        }
-        done = end;
-        showProgress(Math.round(done / TOTAL * 100));
-        if (done < TOTAL) setTimeout(function(){ step(done); }, 5);
-        else {
-            filteredCount -= removed;
-            updateDisplay();
-            log('✅ 删除勾选组合完成：删除 ' + removed.toLocaleString() + ' 组');
-            document.getElementById('contentModalOverlay').style.display = 'none';
-            finishOperation();
-        }
-    }
-    step(0);
-}
-
-function excludeByPairRank(rankLimit) {
-    if (busy) return alert('处理中');
-    if (!filteredCount) return alert('无剩余组合');
-    if (!pairRankMap) buildPairRankings();
-    if (!rankLimit || rankLimit < 1 || rankLimit > 528) return alert('请输入1-528之间的排名');
-    if (!confirm('将删除15个双数字排名中任意一个排名 ≤ ' + rankLimit + ' 的组合，继续？')) return;
-    saveUndoState();
-    busy = true;
-    setStatus('双数字排名排除中...');
-    showProgress(0);
-    showGlobalCancel();
-    globalAbortFlag = false;
-    var removed = 0, done = 0, BATCH = 60000;
-    function step(start) {
-        if (globalAbortFlag) { finishOperation(); log('⏹️ 已取消'); return; }
-        var end = Math.min(start + BATCH, TOTAL);
-        for (var i = start; i < end; i++) {
-            if (!filteredAlive[i]) continue;
-            var nums = unmask(masksLow[i], masksHigh[i]);
-            var ranks = getPairRanks(nums);
-            var minRank = Math.min.apply(null, ranks);
-            if (minRank <= rankLimit) { filteredAlive[i] = 0; removed++; }
-        }
-        done = end;
-        showProgress(Math.round(done / TOTAL * 100));
-        if (done < TOTAL) setTimeout(function(){ step(done); }, 5);
-        else {
-            filteredCount -= removed;
-            updateDisplay();
-            log('✅ 双数字排名排除完成：删除 ' + removed.toLocaleString() + ' 组');
-            finishOperation();
-        }
-    }
-    step(0);
-}
-
-// ==================== 前3/前4/前5统计 ====================
-function showDigitStats() { showStatsByPrefix(6, '数字统计', function(nums){ return nums; }); }
 function showTop3Stats() { showStatsByPrefix(3, '前3统计', function(nums){ return nums.slice(0,3); }); }
 function showTop4Stats() { showStatsByPrefix(4, '前4统计', function(nums){ return nums.slice(0,4); }); }
 function showTop5Stats() { showStatsByPrefix(5, '前5统计', function(nums){ return nums.slice(0,5); }); }
@@ -1690,43 +1665,6 @@ function deleteSelectedPrefix() {
     step(0);
 }
 
-// ==================== 开头种类保留 ====================
-function keepStartDigits() {
-    if (busy) return alert('处理中');
-    if (!filteredCount) return alert('无剩余组合');
-    var count = prompt('请输入要保留的开头种类数（1-4）：\n（开头指十位数，如01-09为0，10-19为1，20-29为2，30-33为3）', '3');
-    if (count === null) return;
-    count = parseInt(count, 10);
-    if (isNaN(count) || count < 1 || count > 4) return alert('请输入1-4之间的整数');
-    applyKeepFilter('保留' + count + '种开头', function(arr) {
-        var heads = new Set();
-        for (var i = 0; i < arr.length; i++) {
-            var head = Math.floor(arr[i] / 10);
-            heads.add(head);
-        }
-        return heads.size === count;
-    });
-}
-
-// ==================== 尾数相同个数保留 ====================
-function keepTailSameCount() {
-    if (busy) return alert('处理中');
-    if (!filteredCount) return alert('无剩余组合');
-    var count = prompt('请输入尾数相同的组数（0-5）：\n（0表示没有相同尾数，1表示所有尾数都不同，2表示有2个数字尾数相同，3表示有3个数字尾数相同，依此类推）', '1');
-    if (count === null) return;
-    count = parseInt(count, 10);
-    if (isNaN(count) || count < 0 || count > 5) return alert('请输入0-5之间的整数');
-    applyKeepFilter('保留尾数相同个数=' + count, function(arr) {
-        var tails = {};
-        for (var i = 0; i < arr.length; i++) {
-            var t = arr[i] % 10;
-            tails[t] = (tails[t] || 0) + 1;
-        }
-        var maxCount = Math.max.apply(null, Object.values(tails));
-        return maxCount === count;
-    });
-}
-
 // ==================== 奖金相关 ====================
 function createPrizeWorker() {
     if (prizeWorker) prizeWorker.terminate();
@@ -1758,6 +1696,7 @@ function createPrizeWorker() {
         }
     };
 }
+
 function prizeExport() {
     if (busy) return alert('处理中');
     if (!filteredCount) return alert('无剩余');
@@ -1813,6 +1752,8 @@ function exportXLSX() {
     for (var r = 0; r < repeatCombos.length; r++) rcSet.add(repeatCombos[r].count);
     allRepeatCounts = Array.from(rcSet).sort(function(a,b){return b-a;});
     if (!pairRankMap || !digitRankMap) buildPairRankings();
+    var hasPairRanks = pairRankMap && Object.keys(pairRankMap).length > 0;
+    var hasDigitRanks = digitRankMap && Object.keys(digitRankMap).length > 0;
     function step(start) {
         if (globalAbortFlag) { finishOperation(startTime); log('⏹️ 已取消导出'); return; }
         var end = Math.min(start + BATCH, TOTAL);
@@ -1844,8 +1785,8 @@ function exportXLSX() {
                     var key = Array.from(kmc.digits).map(function(n){return String(n).padStart(2,'0');}).sort().join(',');
                     kmMatches[key] = match;
                 }
-                var pairRanks = getPairRanks(nums).join(',');
-                var digitRanks = getDigitRanks(nums).join(',');
+                var pairRanks = hasPairRanks ? getPairRanks(nums).join(',') : '';
+                var digitRanks = hasDigitRanks ? getDigitRanks(nums).join(',') : '';
                 var row = {
                     combo: comboStr, sum: sum, oe: oe.odd+'奇'+oe.even+'偶', zp: zp,
                     isSeq3: isSeq3, isGap3: isGap3, isArith3: isArith3, isDiff3Same: isDiff3Same,
@@ -1860,12 +1801,17 @@ function exportXLSX() {
         showProgress(Math.round(done / TOTAL * 100));
         if (done < TOTAL) setTimeout(function(){ step(done); }, 10);
         else {
-            // 按双数字排名最小值排序
-            result.sort(function(a,b){
-                var aMin = Math.min.apply(null, a.pairRanks.split(',').map(Number));
-                var bMin = Math.min.apply(null, b.pairRanks.split(',').map(Number));
-                return aMin - bMin || a.combo.localeCompare(b.combo);
-            });
+            // 按双数字排名最小值排序（如果存在排名）
+            if (hasPairRanks) {
+                result.sort(function(a,b){
+                    if (a.pairRanks === '' || b.pairRanks === '') return a.combo.localeCompare(b.combo);
+                    var aMin = Math.min.apply(null, a.pairRanks.split(',').map(Number));
+                    var bMin = Math.min.apply(null, b.pairRanks.split(',').map(Number));
+                    return aMin - bMin || a.combo.localeCompare(b.combo);
+                });
+            } else {
+                result.sort(function(a,b){ return a.combo.localeCompare(b.combo); });
+            }
             setTimeout(function() {
                 try {
                     var wb = XLSX.utils.book_new();
@@ -1922,622 +1868,263 @@ function exportXLSX() {
     step(0);
 }
 
-// ==================== 其他功能函数 ====================
-// 匹配分析、保留匹配、奖金范围排除、保留多数字、计算奖金、验证历史、智能重复排除等
-function applyExcludeHistByCount(targetCount) {
+// ==================== 双数字排名相关 ====================
+function showPairRank() {
     if (busy) return alert('处理中');
     if (!filteredCount) return alert('无剩余');
-    if (!HIST_MASKS.length) { alert('历史数据为空'); return; }
-    if (!confirm('删除与历史组合恰好有' + targetCount + '个相同数字的组合？')) return;
-    saveUndoState();
-    busy = true;
-    setStatus('排除历史中' + targetCount + '个...');
-    showProgress(0);
-    showGlobalCancel();
-    globalAbortFlag = false;
-    var removeSet = new Set();
-    var total = HIST_MASKS.length;
-    var done = 0;
-    function process(start) {
-        if (globalAbortFlag) { finishOperation(); log('⏹️ 已取消'); return; }
-        var end = Math.min(start + 5, total);
-        for (var h = start; h < end; h++) {
-            var hits = genHit(HIST_MASKS[h], targetCount);
-            for (var k = 0; k < hits.length; k++) {
-                var idx = maskIndex.get(hits[k].l + '_' + hits[k].h);
-                if (idx !== undefined) removeSet.add(idx);
-            }
-        }
-        done = end;
-        showProgress(Math.round(done / total * 100));
-        if (done < total) setTimeout(function() { process(done); }, 10);
-        else {
-            var removed = 0;
-            removeSet.forEach(function(idx) { if (filteredAlive[idx]) { filteredAlive[idx] = 0; removed++; } });
-            filteredCount -= removed;
-            updateDisplay();
-            log('✅ 排除历史中' + targetCount + '个：删除 ' + removed.toLocaleString() + ' 组');
-            finishOperation();
-        }
+    if (!fixedHistoryRedBlue || fixedHistoryRedBlue.length === 0) {
+        alert('请先点击“📌 固定当前历史”按钮，固定历史数据后再查看排名');
+        return;
     }
-    process(0);
-}
-
-function applyKeepHistByCount(targetCount) {
-    if (busy) return alert('处理中');
-    if (!filteredCount) return alert('无剩余');
-    if (!HIST_MASKS.length) { alert('历史数据为空'); return; }
-    if (!confirm('只保留与历史组合恰好有' + targetCount + '个相同数字的组合？')) return;
-    saveUndoState();
-    busy = true;
-    setStatus('保留历史中' + targetCount + '个...');
-    showProgress(0);
-    showGlobalCancel();
-    globalAbortFlag = false;
-    var keepSet = new Set();
-    var total = HIST_MASKS.length;
-    var done = 0;
-    function process(start) {
-        if (globalAbortFlag) { finishOperation(); log('⏹️ 已取消'); return; }
-        var end = Math.min(start + 5, total);
-        for (var h = start; h < end; h++) {
-            var hits = genHit(HIST_MASKS[h], targetCount);
-            for (var k = 0; k < hits.length; k++) {
-                var idx = maskIndex.get(hits[k].l + '_' + hits[k].h);
-                if (idx !== undefined) keepSet.add(idx);
-            }
-        }
-        done = end;
-        showProgress(Math.round(done / total * 100));
-        if (done < total) setTimeout(function() { process(done); }, 10);
-        else {
-            var kept = 0;
-            for (var i = 0; i < TOTAL; i++) {
-                if (filteredAlive[i] && !keepSet.has(i)) filteredAlive[i] = 0;
-                if (filteredAlive[i]) kept++;
-            }
-            filteredCount = kept;
-            updateDisplay();
-            log('✅ 保留历史中' + targetCount + '个：剩余 ' + filteredCount.toLocaleString() + ' 组');
-            finishOperation();
-        }
-    }
-    process(0);
-}
-
-// 匹配分析
-function openMatchModal() {
-    matchSel.clear();
-    drawMatchGrid();
-    document.getElementById('matchInputArea').value = '';
-    document.getElementById('matchCount').textContent = '0';
-    document.getElementById('matchResultArea').style.display = 'none';
-    document.getElementById('matchResultContent').innerHTML = '';
-    document.getElementById('matchModalOverlay').style.display = 'flex';
-}
-function confirmMatchAnalysis() {
-    var sel = Array.from(matchSel);
-    var input = document.getElementById('matchInputArea').value.trim();
-    var inputNums = [];
-    if (input) {
-        input.split(/[\n\r]+/).forEach(function(l) {
-            l = l.replace(/，/g, ',').trim();
-            l.split(',').forEach(function(p) {
-                var n = parseInt(p, 10);
-                if (n >= 1 && n <= 33) inputNums.push(n);
-            });
-        });
-    }
-    var allNums = sel.concat(inputNums);
-    if (!allNums.length) return alert('请选择或输入数字');
-    if (!filteredCount) return alert('无剩余组合');
-    if (busy) return alert('处理中');
+    buildPairRankings();
+    if (!pairRankMap || Object.keys(pairRankMap).length === 0) return alert('固定历史数据为空或无法计算排名');
     var startTime = Date.now();
     busy = true;
-    setStatus('匹配分析中...');
+    setStatus('统计双数字情况中...');
     showProgress(0);
     showGlobalCancel();
     globalAbortFlag = false;
-    var matchSet = new Set(allNums);
-    var matchNums = Array.from(matchSet).sort(function(a, b) { return a - b; });
-    var m6 = [], m5 = [], m4 = [], m3 = [], m2 = [], m1 = [];
+    var results = [];
     var done = 0, BATCH = 100000;
     function step(start) {
-        if (globalAbortFlag) { finishOperation(startTime); log('⏹️ 已取消匹配分析'); return; }
+        if (globalAbortFlag) { finishOperation(startTime); log('⏹️ 已取消双数字统计'); return; }
         var end = Math.min(start + BATCH, TOTAL);
         for (var i = start; i < end; i++) {
             if (!filteredAlive[i]) continue;
             var nums = unmask(masksLow[i], masksHigh[i]);
-            var c = 0;
-            for (var j = 0; j < nums.length; j++) if (matchSet.has(nums[j])) c++;
-            var str = nums.map(function(n) { return String(n).padStart(2, '0'); }).join(',');
-            if (c === 6) m6.push(str);
-            else if (c === 5) m5.push(str);
-            else if (c === 4) m4.push(str);
-            else if (c === 3) m3.push(str);
-            else if (c === 2) m2.push(str);
-            else if (c === 1) m1.push(str);
+            var comboStr = nums.map(function(n){return String(n).padStart(2,'0');}).join(',');
+            var pairRanks = getPairRanks(nums);
+            var minRank = Math.min.apply(null, pairRanks);
+            var digitRanks = getDigitRanks(nums);
+            results.push({ combo: comboStr, minRank: minRank, pairRanks: pairRanks.join(','), digitRanks: digitRanks.join(',') });
         }
         done = end;
         showProgress(Math.round(done / TOTAL * 100));
-        if (done < TOTAL) setTimeout(function() { step(done); }, 10);
+        if (done < TOTAL) setTimeout(function(){ step(done); }, 10);
         else {
-            var html = '<div><b>匹配数字：' + matchNums.map(function(n){return String(n).padStart(2,'0');}).join(',') + '</b></div>';
-            function addBlock(label, arr) {
-                if (arr.length) {
-                    html += '<div class="match-group">';
-                    html += '<div class="match-group-title"><label><input type="checkbox" class="match-group-cb" data-group="' + label + '"> ' + label + '（' + arr.length + '组）</label></div>';
-                    html += '<div class="match-group-list">' + arr.slice(0, 200).join('<br>') + '</div>';
-                    html += '</div>';
-                }
+            results.sort(function(a,b){ return a.minRank - b.minRank || a.combo.localeCompare(b.combo); });
+            var html = '<div style="margin-bottom:8px;"><button class="btn btn-danger btn-sm" onclick="deleteSelectedPairRank()">❌ 删除勾选组合</button> <button class="btn btn-outline btn-sm" onclick="document.getElementById(\'contentModalOverlay\').style.display=\'none\'">退出</button></div>';
+            html += '<table class="content-table"><thead><tr><th>选择</th><th>当前剩余组合</th><th>15个双数字排名</th><th>6个数字排名</th></tr></thead><tbody>';
+            for (var r = 0; r < results.length; r++) {
+                html += '<tr><td><input type="checkbox" class="pair-rank-cb" data-combo="' + results[r].combo + '"></td>';
+                html += '<td>' + results[r].combo + '</td><td>' + results[r].pairRanks + '</td><td>' + results[r].digitRanks + '</td></tr>';
             }
-            addBlock('🎯 匹配6个', m6);
-            addBlock('🎯 匹配5个', m5);
-            addBlock('🎯 匹配4个', m4);
-            addBlock('🎯 匹配3个', m3);
-            addBlock('🎯 匹配2个', m2);
-            addBlock('🎯 匹配1个', m1);
-            document.getElementById('matchResultContent').innerHTML = html;
-            document.getElementById('matchResultArea').style.display = 'block';
-            matchResultCache = { m6: m6, m5: m5, m4: m4, m3: m3, m2: m2, m1: m1, matchNums: matchNums };
-            document.getElementById('btnMatchKeepSelected').onclick = function() {
-                if (!matchResultCache) return alert('无数据');
-                var cbs = document.querySelectorAll('.match-group-cb:checked');
-                if (cbs.length === 0) return alert('请勾选要保留的匹配组');
-                var keepSet = new Set();
-                cbs.forEach(function(cb) {
-                    var group = cb.dataset.group;
-                    var arr = matchResultCache[group.replace('🎯 匹配','m').replace('个','')];
-                    if (arr) arr.forEach(function(s) { keepSet.add(s); });
-                });
-                if (keepSet.size === 0) return alert('无有效组合');
-                if (!confirm('将只保留勾选的 ' + keepSet.size.toLocaleString() + ' 组，继续？')) return;
-                saveUndoState();
-                var removed = 0;
-                for (var i = 0; i < TOTAL; i++) {
-                    if (!filteredAlive[i]) continue;
-                    var nums = unmask(masksLow[i], masksHigh[i]);
-                    var str = nums.map(function(n){return String(n).padStart(2,'0');}).join(',');
-                    if (!keepSet.has(str)) { filteredAlive[i] = 0; removed++; }
-                }
-                filteredCount -= removed;
-                updateDisplay();
-                log('⭐ 匹配保留：剩余 ' + filteredCount.toLocaleString() + ' 组，删除 ' + removed.toLocaleString() + ' 组');
-                document.getElementById('matchModalOverlay').style.display = 'none';
-            };
+            html += '</tbody></table>';
+            var modal = document.getElementById('contentModalOverlay');
+            document.getElementById('contentModalTitle').textContent = '双数字情况（共' + results.length + '组，按排名升序）';
+            modal.dataset.contentType = 'pairrank';
+            document.getElementById('contentModalBody').innerHTML = html;
+            modal.style.display = 'flex';
             finishOperation(startTime);
         }
     }
     step(0);
 }
 
-// 保留匹配个数
-function openKeepMatchModal() {
-    keepMatchSel.clear();
-    drawKeepMatchGrid();
-    document.getElementById('keepMatchCount').textContent = '0';
-    document.querySelectorAll('#keepMatchHits input').forEach(function(cb) { cb.checked = false; });
-    document.getElementById('keepMatchModalOverlay').style.display = 'flex';
-}
-function confirmKeepMatch() {
-    if (busy) return alert('处理中');
-    if (!filteredCount) return alert('无剩余');
-    if (!keepMatchSel.size) return alert('请至少选择一个数字');
-    var selectedHits = [];
-    document.querySelectorAll('#keepMatchHits input:checked').forEach(function(cb) { selectedHits.push(parseInt(cb.value)); });
-    if (!selectedHits.length) return alert('请至少勾选一个命中个数');
-    var digits = new Set(keepMatchSel);
-    var hits = new Set(selectedHits);
-    var digitStr = Array.from(digits).map(function(n){return String(n).padStart(2,'0');}).sort().join(',');
-    var hitsStr = Array.from(hits).sort().join(',');
-    if (!confirm('将保留与 [' + digitStr + '] 匹配个数在 [' + hitsStr + '] 范围内的组合。\n\n此操作在前一次基础上累积。')) return;
-    document.getElementById('keepMatchModalOverlay').style.display = 'none';
+function deleteSelectedPairRank() {
+    var cbs = document.querySelectorAll('#contentModalBody .pair-rank-cb:checked');
+    if (cbs.length === 0) return alert('请勾选要删除的组合');
+    var combos = [];
+    cbs.forEach(function(cb){ combos.push(cb.dataset.combo); });
+    if (!confirm('将删除勾选的 ' + combos.length + ' 个组合？')) return;
     saveUndoState();
-    var exists = false;
-    for (var ci = 0; ci < keepMatchConditions.length; ci++) {
-        var existing = keepMatchConditions[ci];
-        var existingDigits = Array.from(existing.digits).sort().join(',');
-        if (existingDigits === digitStr) {
-            hits.forEach(function(h) { existing.hits.add(h); });
-            exists = true;
-            break;
-        }
-    }
-    if (!exists) {
-        keepMatchConditions.push({ digits: new Set(digits), hits: new Set(hits) });
-    }
-    var startTime = Date.now();
     busy = true;
-    setStatus('保留匹配个数中...');
+    setStatus('删除勾选组合中...');
     showProgress(0);
     showGlobalCancel();
     globalAbortFlag = false;
     var removed = 0, done = 0, BATCH = 60000;
+    var comboSet = new Set(combos);
     function step(start) {
-        if (globalAbortFlag) { finishOperation(startTime); log('⏹️ 已取消'); return; }
-        try {
-            var end = Math.min(start + BATCH, TOTAL);
-            for (var i = start; i < end; i++) {
-                if (!filteredAlive[i]) continue;
-                var nums = unmask(masksLow[i], masksHigh[i]);
-                var match = 0;
-                for (var j = 0; j < nums.length; j++) if (digits.has(nums[j])) match++;
-                if (!hits.has(match)) { filteredAlive[i] = 0; removed++; }
-            }
-            done = end;
-            showProgress(Math.round(done / TOTAL * 100));
-            if (done < TOTAL) setTimeout(function() { step(done); }, 5);
-            else {
-                filteredCount -= removed;
-                updateDisplay();
-                log('✅ 保留匹配个数：剩余 ' + filteredCount.toLocaleString() + ' 组，移除 ' + removed.toLocaleString() + ' 组');
-                finishOperation(startTime);
-            }
-        } catch (e) {
-            log('❌ 出错：' + e.message);
-            finishOperation(startTime);
+        if (globalAbortFlag) { finishOperation(); log('⏹️ 已取消'); return; }
+        var end = Math.min(start + BATCH, TOTAL);
+        for (var i = start; i < end; i++) {
+            if (!filteredAlive[i]) continue;
+            var nums = unmask(masksLow[i], masksHigh[i]);
+            var str = nums.map(function(n){ return String(n).padStart(2,'0'); }).join(',');
+            if (comboSet.has(str)) { filteredAlive[i] = 0; removed++; }
+        }
+        done = end;
+        showProgress(Math.round(done / TOTAL * 100));
+        if (done < TOTAL) setTimeout(function(){ step(done); }, 5);
+        else {
+            filteredCount -= removed;
+            updateDisplay();
+            log('✅ 删除勾选组合完成：删除 ' + removed.toLocaleString() + ' 组');
+            document.getElementById('contentModalOverlay').style.display = 'none';
+            finishOperation();
         }
     }
     step(0);
 }
-        
-// ==================== 保留与排除功能补充 ====================
-// 求和函数
-function calcSum(arr) { 
-    var s = 0; 
-    for (var i = 0; i < arr.length; i++) s += arr[i]; 
-    return s; 
-}
 
-// 打开“排除开头组合”模态框
-function openTop3Modal() { 
-    document.getElementById('top3ModalTextarea').value = ''; 
-    document.getElementById('top3ModalOverlay').style.display = 'flex'; 
-}
-        
-function confirmKeepOnly() {
-    var raw = document.getElementById('keepOnlyModalTextarea').value.trim();
-    if (!raw) { alert('请输入至少一组组合'); return; }
-    var lines = raw.split(/[\n\r]+/).filter(function(l) { return l.trim(); });
-    var keepSet = new Set();
-    for (var i = 0; i < lines.length; i++) {
-        var line = lines[i].replace(/，/g, ',').trim();
-        var nums = line.split(',').map(function(s) { return parseInt(s, 10); }).filter(function(n) { return n >= 1 && n <= 33; });
-        if (nums.length === 6) {
-            var key = nums.map(function(n) { return String(n).padStart(2, '0'); }).sort().join(',');
-            keepSet.add(key);
-        }
-    }
-    if (!keepSet.size) { alert('未识别到有效组合'); return; }
-    document.getElementById('keepOnlyModalOverlay').style.display = 'none';
-    applyCustomFilter('只保留组合', function(arr) {
-        var key = arr.map(function(n) { return String(n).padStart(2, '0'); }).sort().join(',');
-        return !keepSet.has(key);
-    });
-}
-
-function confirmKeepDigits() {
-    if (!keepDigitsSel.size) { alert('请至少选择一个数字'); return; }
-    document.getElementById('keepDigitsModalOverlay').style.display = 'none';
-    var digits = new Set(keepDigitsSel);
-    applyKeepFilter('保留数字', function(arr) {
-        for (var i = 0; i < arr.length; i++) {
-            if (digits.has(arr[i])) return true;
-        }
-        return false;
-    });
-}
-
-function confirmTop3Exclusion() {
-    var raw = document.getElementById('top3ModalTextarea').value.trim();
-    if (!raw) { alert('请输入至少一组开头数字'); return; }
-    var lines = raw.split(/[\n\r]+/).filter(function(l) { return l.trim(); });
-    var prefixSets = [];
-    for (var i = 0; i < lines.length; i++) {
-        var line = lines[i].replace(/，/g, ',').replace(/\s+/g, '');
-        var parts = line.split(',');
-        var nums = [];
-        for (var j = 0; j < parts.length; j++) {
-            var n = parseInt(parts[j], 10);
-            if (n >= 1 && n <= 33) nums.push(n);
-        }
-        if (nums.length >= 1 && nums.length <= 6) {
-            nums.sort(function(a, b) { return a - b; });
-            prefixSets.push(nums);
-        }
-    }
-    if (!prefixSets.length) { alert('未识别到有效组合'); return; }
-    document.getElementById('top3ModalOverlay').style.display = 'none';
-    document.getElementById('top3ModalTextarea').value = '';
-    applyCustomFilter('排除开头组合', function(arr) {
-        for (var s = 0; s < prefixSets.length; s++) {
-            var prefix = prefixSets[s];
-            var match = true;
-            for (var k = 0; k < prefix.length; k++) {
-                if (arr[k] !== prefix[k]) { match = false; break; }
-            }
-            if (match) return true;
-        }
-        return false;
-    });
-}
-
-function confirmSumRangeExclusion() {
-    var minSum = parseInt(document.getElementById('sumMinInput').value, 10);
-    var maxSum = parseInt(document.getElementById('sumMaxInput').value, 10);
-    if (isNaN(minSum) || isNaN(maxSum) || minSum < 21 || maxSum > 183 || minSum > maxSum) {
-        alert('请输入有效和值范围');
+function excludeByPairRank(minRank, maxRank) {
+    if (busy) return alert('处理中');
+    if (!filteredCount) return alert('无剩余组合');
+    if (!fixedHistoryRedBlue || fixedHistoryRedBlue.length === 0) {
+        alert('请先点击“📌 固定当前历史”按钮，固定历史数据后再使用排名排除');
         return;
     }
-    document.getElementById('sumRangeModalOverlay').style.display = 'none';
-    applyCustomFilter('删除和值范围', function(arr) {
-        var sum = arr.reduce(function(a, b) { return a + b; }, 0);
-        return sum >= minSum && sum <= maxSum;
-    });
-}
-
-function confirmCheckCombo() {
-    if (checkComboSel.size !== 6) { alert('请选择恰好6个数字'); return; }
-    var nums = Array.from(checkComboSel).sort(function(a, b) { return a - b; });
-    var m = maskFrom(nums);
-    var idx = maskIndex.get(m.l + '_' + m.h);
-    alert(idx !== undefined && filteredAlive[idx] ? '✅ 组合在剩余中' : '❌ 组合不在剩余中');
-    document.getElementById('checkComboModalOverlay').style.display = 'none';
-}
-
-function confirmSmartRepeat() {
-    if (busy) return alert('处理中');
-    var minRepeat = parseInt(document.getElementById('smartRepeatMin').value);
-    var maxRepeat = parseInt(document.getElementById('smartRepeatMax').value);
-    if (isNaN(minRepeat) || isNaN(maxRepeat) || minRepeat < 1 || maxRepeat < 1 || minRepeat > maxRepeat) return alert('请输入有效范围');
-    var selectedHits = [];
-    document.querySelectorAll('#smartRepeatHits input:checked').forEach(function(cb) { selectedHits.push(parseInt(cb.value)); });
-    if (!selectedHits.length) return alert('请勾选命中个数');
-    var freqMap = new Map();
-    for (var i = 0; i < historyCombos.length; i++) {
-        var key = historyCombos[i].map(function(n) { return String(n).padStart(2, '0'); }).join(',');
-        freqMap.set(key, (freqMap.get(key) || 0) + 1);
-    }
-    var targetCombos = [];
-    freqMap.forEach(function(cnt, key) {
-        if (cnt >= minRepeat && cnt <= maxRepeat) {
-            var nums = key.split(',').map(Number);
-            if (nums.length === 6) targetCombos.push(nums);
-        }
-    });
-    if (!targetCombos.length) { alert('没有符合条件的组合'); return; }
-    if (!confirm('将使用' + targetCombos.length + '个重复组合作为条件，排除中' + selectedHits.join('、中') + '的组合？')) return;
-    document.getElementById('smartRepeatModalOverlay').style.display = 'none';
+    if (!pairRankMap) buildPairRankings();
+    if (!pairRankMap) return alert('排名数据为空');
+    if (isNaN(minRank) || isNaN(maxRank) || minRank < 1 || maxRank > 528 || minRank > maxRank) return alert('请输入1-528之间的有效区间');
+    if (!confirm('将删除15个双数字排名中最小排名在 ' + minRank + '~' + maxRank + ' 之间的组合，继续？')) return;
     saveUndoState();
     busy = true;
-    setStatus('智能重复排除中...');
-    showProgress(0);
-    showGlobalCancel();
-    globalAbortFlag = false;
-    var condMasks = targetCombos.map(function(c) { return maskFrom(c); });
-    var opts = { two: false, three: false, four: false, five: false, six: false, zero: false };
-    selectedHits.forEach(function(h) {
-        if (h === 2) opts.two = true;
-        if (h === 3) opts.three = true;
-        if (h === 4) opts.four = true;
-        if (h === 5) opts.five = true;
-        if (h === 6) opts.six = true;
-    });
-    doFilter(condMasks, opts).then(function(removed) {
-        log('✅ 智能重复排除完成：移除 ' + removed.toLocaleString() + ' 组');
-        finishOperation();
-    });
-}
-
-function confirmKeepMulti() {
-    if (busy) return alert('处理中');
-    if (!filteredCount) return alert('无剩余');
-    var raw = document.getElementById('keepMultiTextarea').value.trim();
-    if (!raw) { alert('请输入至少一组数字'); return; }
-    var selectedHits = [];
-    document.querySelectorAll('#keepMultiHits input:checked').forEach(function(cb) { selectedHits.push(parseInt(cb.value)); });
-    if (!selectedHits.length) { alert('请勾选命中个数'); return; }
-    var lines = raw.split(/[\n\r]+/).filter(function(l) { return l.trim(); });
-    var lineNumSets = lines.map(function(line) {
-        if (line.indexOf('-') !== -1) line = line.split('-')[0].trim();
-        return new Set(parseNums(line));
-    }).filter(function(s) { return s.size > 0; });
-    if (!lineNumSets.length) { alert('未识别到有效数字'); return; }
-    if (!confirm('只保留与每行数字都恰好匹配' + selectedHits.join('、中') + '个的组合？')) return;
-    document.getElementById('keepMultiModalOverlay').style.display = 'none';
-    saveUndoState();
-    busy = true;
-    setStatus('保留多数字组合中...');
+    setStatus('双数字排名区间排除中...');
     showProgress(0);
     showGlobalCancel();
     globalAbortFlag = false;
     var removed = 0, done = 0, BATCH = 60000;
     function step(start) {
         if (globalAbortFlag) { finishOperation(); log('⏹️ 已取消'); return; }
-        try {
-            var end = Math.min(start + BATCH, TOTAL);
-            for (var i = start; i < end; i++) {
-                if (!filteredAlive[i]) continue;
-                var nums = unmask(masksLow[i], masksHigh[i]);
-                var allOk = lineNumSets.every(function(set) {
-                    var match = 0;
-                    for (var j = 0; j < nums.length; j++) if (set.has(nums[j])) match++;
-                    return selectedHits.indexOf(match) !== -1;
-                });
-                if (!allOk) { filteredAlive[i] = 0; removed++; }
-            }
-            done = end;
-            showProgress(Math.round(done / TOTAL * 100));
-            if (done < TOTAL) setTimeout(function() { step(done); }, 5);
-            else {
-                filteredCount -= removed;
-                updateDisplay();
-                log('✅ 保留多数字组合：删除 ' + removed.toLocaleString() + ' 组');
-                finishOperation();
-            }
-        } catch (e) {
-            log('❌ 出错：' + e.message);
+        var end = Math.min(start + BATCH, TOTAL);
+        for (var i = start; i < end; i++) {
+            if (!filteredAlive[i]) continue;
+            var nums = unmask(masksLow[i], masksHigh[i]);
+            var ranks = getPairRanks(nums);
+            var minRankOfCombo = Math.min.apply(null, ranks);
+            if (minRankOfCombo >= minRank && minRankOfCombo <= maxRank) { filteredAlive[i] = 0; removed++; }
+        }
+        done = end;
+        showProgress(Math.round(done / TOTAL * 100));
+        if (done < TOTAL) setTimeout(function(){ step(done); }, 5);
+        else {
+            filteredCount -= removed;
+            updateDisplay();
+            log('✅ 双数字排名区间排除完成：删除 ' + removed.toLocaleString() + ' 组');
             finishOperation();
         }
     }
     step(0);
 }
 
-function confirmCalcPrize() {
-    if (calcPrizeSel.size !== 6) { alert('请选择6个红球'); return; }
-    var reds = Array.from(calcPrizeSel).sort(function(a, b) { return a - b; });
-    var src = isPrizeHistoryFixed ? fixedHistoryRedBlue : historyRedBlue;
-    if (!src.length) { alert('没有基准历史票'); return; }
-    var tMasks = [], tBlues = [];
-    for (var j = 0; j < src.length; j++) {
-        var t = src[j];
-        var m = maskFrom(t.reds);
-        tMasks.push(m);
-        tBlues.push(t.blue);
-    }
-    var rMask = maskFrom(reds);
-    var results = [];
-    var bluesToCheck = selectedBlues ? Array.from(selectedBlues).sort(function(a, b) { return a - b; }) : [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16];
-    for (var bi = 0; bi < bluesToCheck.length; bi++) {
-        var b = bluesToCheck[bi];
-        var total = 0;
-        for (var t = 0; t < tMasks.length; t++) {
-            var interLow = rMask.l & tMasks[t].l, interHigh = rMask.h & tMasks[t].h;
-            var mr = popcount32(interLow) + (interHigh & 1);
-            total += prizeAmount(mr, (tBlues[t] !== null && b === tBlues[t]) ? 1 : 0);
-        }
-        results.push({ blue: b, prize: total });
-    }
-    results.sort(function(a, b) { return b.prize - a.prize; });
-    var html = '<b>红球：' + reds.map(function(n) { return String(n).padStart(2, '0'); }).join(',') + '</b><br><table class="prize-table"><tr><th>蓝球</th><th>奖金(元)</th></tr>';
-    for (var i = 0; i < results.length; i++) html += '<tr><td>' + String(results[i].blue).padStart(2, '0') + '</td><td>' + results[i].prize.toLocaleString() + '</td></tr>';
-    html += '</table>';
-    document.getElementById('calcPrizeResult').innerHTML = html;
-    document.getElementById('calcPrizeResult').style.display = 'block';
-}
-
-function confirmVerify() {
-    var input = document.getElementById('verifyTargetInput').value.trim();
-    if (!input) { alert('请输入目标号码'); return; }
-    var target = parseNums(input);
-    if (target.length !== 6) { alert('请输入恰好6个数字'); return; }
-    var found = [];
-    for (var i = 0; i < HISTORY_LINES.length; i++) {
-        var nums = HISTORY_LINES[i].split(',').map(Number);
-        var match = 0;
-        for (var j = 0; j < nums.length; j++) if (target.indexOf(nums[j]) !== -1) match++;
-        if (match === 5) found.push(HISTORY_LINES[i]);
-    }
-    var html = found.length ? ('<div style="color:red">找到' + found.length + '组匹配5个的历史组合</div><div>' + found.join('<br>') + '</div>') : '<div style="color:green">✅ 未找到匹配5个的历史组合</div>';
-    document.getElementById('verifyResult').innerHTML = html;
-    document.getElementById('verifyResult').style.display = 'block';
-}
-
-function confirmMultiExclusion() {
-    var raw = document.getElementById('multiModalTextarea').value.trim();
-    if (!raw) { alert('请输入多数字组合'); return; }
-    var lines = raw.split(/[\n\r]+/).filter(function(l) { return l.trim(); });
-    var multiSets = lines.map(function(l) {
-        if (l.indexOf('-') !== -1) l = l.split('-')[0].trim();
-        return parseNums(l);
-    }).filter(function(a) { return a.length >= 2; });
-    if (!multiSets.length) { alert('未识别到有效组合'); return; }
-    document.getElementById('multiModalOverlay').style.display = 'none';
-    applyCustomFilter('多数字组合', function(arr) {
-        return multiSets.some(function(set) {
-            return set.every(function(n) { return arr.indexOf(n) !== -1; });
+// ==================== 开头筛选 ====================
+function openStartDigitsModal() { document.getElementById('startDigitsModalOverlay').style.display = 'flex'; }
+function closeStartDigitsModal() { document.getElementById('startDigitsModalOverlay').style.display = 'none'; }
+function applyStartDigits(action) {
+    var cbs = document.querySelectorAll('#startDigitsCheckboxes .start-digit:checked');
+    if (cbs.length === 0) return alert('请至少勾选一个开头');
+    var heads = new Set();
+    cbs.forEach(function(cb){ heads.add(parseInt(cb.value)); });
+    var headStr = Array.from(heads).sort().join(',');
+    if (action === 'keep') {
+        if (!confirm('将只保留包含开头 [' + headStr + '] 的数字的组合？')) return;
+        applyKeepFilter('保留开头[' + headStr + ']', function(arr) {
+            var arrHeads = new Set();
+            for (var i = 0; i < arr.length; i++) arrHeads.add(Math.floor(arr[i] / 10));
+            var allMatch = true;
+            heads.forEach(function(h){ if (!arrHeads.has(h)) allMatch = false; });
+            return allMatch;
         });
-    });
-}
-
-function confirmMultiHitExclusion() {
-    var raw = document.getElementById('multiHitModalTextarea').value.trim();
-    if (!raw) { alert('请输入数字组合'); return; }
-    var lines = raw.split(/[\n\r]+/).filter(function(l) { return l.trim(); });
-    var targetSets = lines.map(function(l) {
-        if (l.indexOf('-') !== -1) l = l.split('-')[0].trim();
-        return new Set(parseNums(l));
-    }).filter(function(s) { return s.size > 0; });
-    if (!targetSets.length) { alert('未识别到有效数字'); return; }
-    var selectedHits = [];
-    document.querySelectorAll('#multiHitCheckboxes input:checked').forEach(function(cb) { selectedHits.push(parseInt(cb.value)); });
-    if (!selectedHits.length) { alert('请勾选命中个数'); return; }
-    document.getElementById('multiHitModalOverlay').style.display = 'none';
-    applyCustomFilter('自定义命中排除', function(arr) {
-        return targetSets.some(function(set) {
-            var match = 0;
-            for (var k = 0; k < arr.length; k++) if (set.has(arr[k])) match++;
-            return selectedHits.indexOf(match) !== -1;
+    } else if (action === 'delete') {
+        if (!confirm('将删除包含开头 [' + headStr + '] 的数字的组合？')) return;
+        applyCustomFilter('删除开头[' + headStr + ']', function(arr) {
+            for (var i = 0; i < arr.length; i++) {
+                if (heads.has(Math.floor(arr[i] / 10))) return true;
+            }
+            return false;
         });
-    });
+    }
+    closeStartDigitsModal();
 }
 
-function confirmPrizeRange() {
-    if (busy) return alert('处理中');
-    if (!filteredCount) return alert('无剩余组合');
-    var minPrize = parseFloat(document.getElementById('prizeRangeMin').value);
-    var maxPrize = parseFloat(document.getElementById('prizeRangeMax').value);
-    if (isNaN(minPrize) || isNaN(maxPrize) || minPrize < 0 || maxPrize < 0 || minPrize > maxPrize) return alert('请输入有效金额范围');
-    var src = isPrizeHistoryFixed ? fixedHistoryRedBlue : historyRedBlue;
-    if (!src.length) { alert('没有基准历史票'); return; }
-    var bluesToUse = selectedBlues ? Array.from(selectedBlues).sort(function(a, b) { return a - b; }) : [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16];
-    var blueStr = selectedBlues ? bluesToUse.map(function(n) { return String(n).padStart(2, '0'); }).join(',') : '全部16个蓝球';
-    if (!confirm('删除前区组合，条件：搭配蓝球[' + blueStr + ']后总奖金在 ' + minPrize.toLocaleString() + '~' + maxPrize.toLocaleString() + ' 范围内？\n\n中3+0奖金=' + (prize3plus0Fixed ? '0元' : '5元') + '\n\n可随时点击底部红色按钮取消。')) return;
-    document.getElementById('prizeRangeModalOverlay').style.display = 'none';
-    saveUndoState();
-    prizeRangeAbortFlag = false;
-    globalAbortFlag = false;
-    busy = true;
-    setStatus('奖金范围排除中（可取消）...');
-    showProgress(0);
-    showGlobalCancel();
-    var tMasks = [], tBlues = [];
-    for (var j = 0; j < src.length; j++) {
-        var t = src[j];
-        var m = maskFrom(t.reds);
-        tMasks.push(m);
-        tBlues.push(t.blue);
+// ==================== 尾数相同筛选 ====================
+function openTailSameModal() { document.getElementById('tailSameModalOverlay').style.display = 'flex'; }
+function closeTailSameModal() { document.getElementById('tailSameModalOverlay').style.display = 'none'; }
+function applyTailSame(action) {
+    var cbs = document.querySelectorAll('#tailSameCheckboxes .tail-same:checked');
+    if (cbs.length === 0) return alert('请至少勾选一种尾数情况');
+    var tailCounts = new Set();
+    cbs.forEach(function(cb){ tailCounts.add(parseInt(cb.value)); });
+    var tailStr = Array.from(tailCounts).sort().join(',');
+    if (action === 'keep') {
+        if (!confirm('将只保留尾数相同对数为 [' + tailStr + '] 的组合？')) return;
+        applyKeepFilter('保留尾数相同[' + tailStr + ']', function(arr) {
+            var tailCountMap = {};
+            for (var i = 0; i < arr.length; i++) {
+                var t = arr[i] % 10;
+                tailCountMap[t] = (tailCountMap[t] || 0) + 1;
+            }
+            var pairs = 0;
+            for (var key in tailCountMap) {
+                var cnt = tailCountMap[key];
+                if (cnt >= 2) pairs += Math.floor(cnt / 2);
+            }
+            return tailCounts.has(pairs);
+        });
+    } else if (action === 'delete') {
+        if (!confirm('将删除尾数相同对数为 [' + tailStr + '] 的组合？')) return;
+        applyCustomFilter('删除尾数相同[' + tailStr + ']', function(arr) {
+            var tailCountMap = {};
+            for (var i = 0; i < arr.length; i++) {
+                var t = arr[i] % 10;
+                tailCountMap[t] = (tailCountMap[t] || 0) + 1;
+            }
+            var pairs = 0;
+            for (var key in tailCountMap) {
+                var cnt = tailCountMap[key];
+                if (cnt >= 2) pairs += Math.floor(cnt / 2);
+            }
+            return tailCounts.has(pairs);
+        });
     }
-    var removed = 0, done = 0, BATCH = 2000;
-    function step(start) {
-        if (prizeRangeAbortFlag || globalAbortFlag) { finishOperation(); log('⏹️ 用户取消了奖金范围排除'); return; }
-        try {
-            var end = Math.min(start + BATCH, TOTAL);
-            for (var i = start; i < end; i++) {
-                if (!filteredAlive[i]) continue;
-                var l = masksLow[i], h = masksHigh[i];
-                var shouldDelete = false;
-                for (var bi = 0; bi < bluesToUse.length && !shouldDelete; bi++) {
-                    var b = bluesToUse[bi];
-                    var totalPrize = 0;
-                    for (var t = 0; t < tMasks.length; t++) {
-                        var interLow = l & tMasks[t].l, interHigh = h & tMasks[t].h;
-                        var mr = popcount32(interLow) + (interHigh & 1);
-                        totalPrize += prizeAmount(mr, (tBlues[t] !== null && b === tBlues[t]) ? 1 : 0);
+    closeTailSameModal();
+}
+
+// ==================== 组合排名查询 ====================
+function drawComboRankGrid() {
+    var zones = [{id:'comboRankZone1',min:1,max:11},{id:'comboRankZone2',min:12,max:22},{id:'comboRankZone3',min:23,max:33}];
+    zones.forEach(function(z) {
+        var c = document.getElementById(z.id);
+        c.innerHTML = '';
+        for (var i = z.min; i <= z.max; i++) {
+            (function(idx) {
+                var cell = document.createElement('div');
+                cell.className = 'n-cell';
+                cell.textContent = String(idx).padStart(2,'0');
+                cell.onclick = function() {
+                    if (comboRankSel.has(idx)) comboRankSel.delete(idx);
+                    else {
+                        if (comboRankSel.size >= 6) { alert('最多6个'); return; }
+                        comboRankSel.add(idx);
                     }
-                    if (totalPrize >= minPrize && totalPrize <= maxPrize) shouldDelete = true;
-                }
-                if (shouldDelete) { filteredAlive[i] = 0; removed++; }
-            }
-            done = end;
-            showProgress(Math.round(done / TOTAL * 100));
-            setStatus('已处理 ' + done.toLocaleString() + ' / ' + TOTAL.toLocaleString() + '，已删 ' + removed.toLocaleString());
-            if (done < TOTAL && !prizeRangeAbortFlag && !globalAbortFlag) {
-                setTimeout(function() { step(done); }, 1);
-            } else {
-                filteredCount -= removed;
-                updateDisplay();
-                log('💸 奖金范围排除完成：删除 ' + removed.toLocaleString() + ' 组');
-                finishOperation();
-            }
-        } catch (e) {
-            log('❌ 出错：' + e.message);
-            finishOperation();
+                    drawComboRankGrid();
+                    document.getElementById('comboRankCount').textContent = comboRankSel.size;
+                };
+                if (comboRankSel.has(idx)) cell.classList.add('on-check');
+                c.appendChild(cell);
+            })(i);
         }
+    });
+}
+function openComboRankModal() {
+    comboRankSel.clear();
+    drawComboRankGrid();
+    document.getElementById('comboRankCount').textContent = '0';
+    document.getElementById('comboRankResult').style.display = 'none';
+    document.getElementById('comboRankModalOverlay').style.display = 'flex';
+}
+function confirmComboRankQuery() {
+    if (comboRankSel.size !== 6) return alert('请选择恰好6个数字');
+    if (!fixedHistoryRedBlue || fixedHistoryRedBlue.length === 0) {
+        alert('请先点击“📌 固定当前历史”按钮，固定历史数据后再查询排名');
+        return;
     }
-    step(0);
+    buildPairRankings();
+    if (!pairRankMap || !digitRankMap) return alert('排名数据为空');
+    var nums = Array.from(comboRankSel).sort(function(a,b){ return a-b; });
+    var pairRanks = getPairRanks(nums);
+    var digitRanks = getDigitRanks(nums);
+    var comboStr = nums.map(function(n){ return String(n).padStart(2,'0'); }).join(',');
+    var html = '<b>组合：' + comboStr + '</b><br>';
+    html += '<div>15个双数字排名：' + pairRanks.join(',') + '</div>';
+    html += '<div>6个数字排名：' + digitRanks.join(',') + '</div>';
+    document.getElementById('comboRankResult').innerHTML = html;
+    document.getElementById('comboRankResult').style.display = 'block';
 }
 
+// ==================== 其他功能 ====================
 function showPrizeContent() {
     if (busy) return alert('处理中');
     if (!filteredCount) return alert('无剩余组合');
@@ -2616,13 +2203,17 @@ function queryRank() {
     var idx = maskIndex.get(mask.l + '_' + mask.h);
     var alive = idx !== undefined && filteredAlive[idx];
     var rank = null;
-    if (pairRankMap) {
-        var ranks = getPairRanks(nums);
-        rank = ranks.join(',');
+    if (fixedHistoryRedBlue && fixedHistoryRedBlue.length > 0) {
+        buildPairRankings();
+        if (pairRankMap) {
+            var ranks = getPairRanks(nums);
+            rank = ranks.join(',');
+        }
     }
     var html = '<div><b>组合：' + nums.map(function(n){return String(n).padStart(2,'0');}).join(',') + '</b></div>';
     html += '<div>状态：' + (alive ? '✅ 在剩余组合中' : '❌ 不在剩余组合中') + '</div>';
     if (rank) html += '<div>双数字排名：' + rank + '</div>';
+    else html += '<div>双数字排名：未固定历史，无法计算</div>';
     document.getElementById('rankResult').innerHTML = html;
     document.getElementById('rankResult').style.display = 'block';
 }
@@ -2633,14 +2224,13 @@ function copySelectedContent() {
     var cbs;
     var textLines = [];
     if (type === 'pairrank') {
-        cbs = document.querySelectorAll('#contentModalBody .pair-cb:checked');
+        cbs = document.querySelectorAll('#contentModalBody .pair-rank-cb:checked');
         cbs.forEach(function(cb){ textLines.push(cb.dataset.combo); });
     } else if (type === 'statsPrefix') {
         cbs = document.querySelectorAll('#contentModalBody .stats-prefix-cb:checked');
         cbs.forEach(function(cb){ textLines.push(cb.dataset.prefix); });
     } else if (type === 'prizeContent') {
-        cbs = document.querySelectorAll('#contentModalBody .prize-cb:checked');
-        cbs.forEach(function(cb){ textLines.push(cb.dataset.combo); });
+        // 没有复选框
     }
     if (!textLines.length) return alert('请勾选要复制的内容');
     copyText(textLines.join('\n'), textLines.length);
@@ -2653,8 +2243,8 @@ function copyAllDigitsFromStats() {
     if (type === 'statsPrefix') {
         var all = document.querySelectorAll('#contentModalBody .stats-prefix-cb');
         all.forEach(function(cb){ textLines.push(cb.dataset.prefix); });
-    } else {
-        return alert('当前内容不支持复制所有数字');
+    } else if (type === 'digitStats') {
+        // 不适用
     }
     if (!textLines.length) return alert('无数据');
     copyText(textLines.join('\n'), textLines.length);
@@ -2793,14 +2383,16 @@ function init() {
     try {
         buildAll();
         buildHistMasks();
-        buildPairRankings();
+        buildPairRankings(); // 此时未固定历史，排名为空
         drawGrids();
         drawKeepDigitsGrid();
         drawMatchGrid();
         drawCheckComboGrid();
         drawCalcPrizeGrid();
         drawKeepMatchGrid();
+        drawComboRankGrid();
 
+        // 基础按钮
         document.getElementById('btnApply').addEventListener('click', applyFilter);
         document.getElementById('btnClearInput').addEventListener('click', function() { document.getElementById('inputArea').value = ''; });
         document.getElementById('btnStats').addEventListener('click', analyzeDuplicates);
@@ -2817,88 +2409,104 @@ function init() {
             lastInputSnapshot = '';
             statsGroups = null;
             keepMatchConditions = [];
-            orSel.clear();
-            andSel.clear();
-            keepDigitsSel.clear();
-            matchSel.clear();
-            checkComboSel.clear();
-            calcPrizeSel.clear();
-            keepMatchSel.clear();
+            orSel.clear(); andSel.clear(); keepDigitsSel.clear(); matchSel.clear(); checkComboSel.clear(); calcPrizeSel.clear(); keepMatchSel.clear(); comboRankSel.clear();
             prize3plus0Fixed = false;
             selectedBlues = null;
-            pairRankMap = null;
-            digitRankMap = null;
+            pairRankMap = null; digitRankMap = null;
             var btnFix = document.getElementById('btnFix3plus0');
-            btnFix.classList.remove('active');
-            btnFix.textContent = '💰 中3+0奖金=0元';
+            btnFix.classList.remove('active'); btnFix.textContent = '💰 中3+0奖金=0元';
             document.getElementById('prize3plus0Status').textContent = '（中3+0奖金=5元）';
-            updateDisplay();
-            updateBlueStatus();
+            updateDisplay(); updateBlueStatus();
             document.getElementById('inputArea').value = '';
             document.getElementById('resultArea').style.display = 'none';
-            drawGrids();
-            drawKeepDigitsGrid();
-            drawMatchGrid();
-            drawCheckComboGrid();
-            drawCalcPrizeGrid();
-            drawKeepMatchGrid();
-            hideProgress();
-            setStatus('就绪');
-            log('🔄 已重置');
+            drawGrids(); drawKeepDigitsGrid(); drawMatchGrid(); drawCheckComboGrid(); drawCalcPrizeGrid(); drawKeepMatchGrid(); drawComboRankGrid();
+            hideProgress(); setStatus('就绪'); log('🔄 已重置');
         });
 
+        // 数字过滤
         document.getElementById('btnApplyOR').addEventListener('click', function() { applyFilteredMask(orSel, 'OR'); });
         document.getElementById('btnClearOR').addEventListener('click', function() { orSel.clear(); drawGrids(); });
         document.getElementById('btnApplyAND').addEventListener('click', function() { applyFilteredMask(andSel, 'AND'); });
         document.getElementById('btnClearAND').addEventListener('click', function() { andSel.clear(); drawGrids(); });
 
+        // 导出与奖金
         document.getElementById('btnExport').addEventListener('click', exportXLSX);
         document.getElementById('btnPrizeExport').addEventListener('click', prizeExport);
         document.getElementById('btnFixHistory').addEventListener('click', fixHistory);
         document.getElementById('btnFix3plus0').addEventListener('click', togglePrize3plus0);
         document.getElementById('btnUndo').addEventListener('click', undo);
         document.getElementById('btnRedo').addEventListener('click', redo);
+
+        // 剩余统计
         document.getElementById('btnRemainingStats').addEventListener('click', showRemainingStats);
         document.getElementById('btnRemainingStatsClose').addEventListener('click', hideRemainingStatsModal);
         document.getElementById('btnExcludeStats').addEventListener('click', excludeSelectedStats);
+
+        // 蓝球
         document.getElementById('btnSelectBlue').addEventListener('click', showBlueSelectModal);
         document.getElementById('btnClearBlue').addEventListener('click', clearBlueSelection);
         document.getElementById('btnBlueSelectCancel').addEventListener('click', hideBlueSelectModal);
         document.getElementById('btnBlueSelectConfirm').addEventListener('click', confirmBlueSelect);
+
+        // 统计按钮
         document.getElementById('btnShowDigitStats').addEventListener('click', showDigitStats);
         document.getElementById('btnShowTop3Stats').addEventListener('click', showTop3Stats);
         document.getElementById('btnShowTop4Stats').addEventListener('click', showTop4Stats);
         document.getElementById('btnShowTop5Stats').addEventListener('click', showTop5Stats);
         document.getElementById('btnShowPrizeContent').addEventListener('click', showPrizeContent);
         document.getElementById('btnShowPairRank').addEventListener('click', showPairRank);
+
+        // 排名查询
         document.getElementById('btnRankQuery').addEventListener('click', function() { document.getElementById('rankInput').value = ''; document.getElementById('rankResult').style.display = 'none'; document.getElementById('rankModalOverlay').style.display = 'flex'; });
         document.getElementById('btnRankCancel').addEventListener('click', function() { document.getElementById('rankModalOverlay').style.display = 'none'; });
         document.getElementById('btnRankConfirm').addEventListener('click', queryRank);
+
+        // 内容模态框
         document.getElementById('btnContentModalClose').addEventListener('click', function() { document.getElementById('contentModalOverlay').style.display = 'none'; });
         document.getElementById('btnCopySelected').addEventListener('click', copySelectedContent);
         document.getElementById('btnCopyAllDigits').addEventListener('click', copyAllDigitsFromStats);
+
+        // 保留功能
         document.getElementById('btnKeep2Seq').addEventListener('click', keep2Seq);
         document.getElementById('btnKeep2Gap').addEventListener('click', keep2Gap);
         document.getElementById('btnKeepXor2SeqGap').addEventListener('click', keepXor2SeqGap);
         document.getElementById('btnKeepOr2SeqGap').addEventListener('click', keepOr2SeqGap);
         document.getElementById('btnKeepTop5Digits').addEventListener('click', keepTop5Digits);
         document.getElementById('btnCopyAllDigitsModal').addEventListener('click', copyAllDigits);
+
+        // 保留匹配个数
         document.getElementById('btnKeepMatch').addEventListener('click', openKeepMatchModal);
         document.getElementById('btnKeepMatchModalCancel').addEventListener('click', function() { document.getElementById('keepMatchModalOverlay').style.display = 'none'; });
         document.getElementById('btnKeepMatchModalConfirm').addEventListener('click', confirmKeepMatch);
+
+        // 新增按钮
         document.getElementById('btnPairRankExclude').addEventListener('click', function() {
-            var rank = prompt('请输入排名阈值（1-528），将删除15个双数字排名中任意一个排名 ≤ 该值的组合：', '50');
-            if (rank === null) return;
-            rank = parseInt(rank, 10);
-            if (!isNaN(rank) && rank >= 1 && rank <= 528) {
-                excludeByPairRank(rank);
+            var input = prompt('请输入排名区间（如 20-50），将删除15个双数字排名中最小排名在该区间的组合：', '20-50');
+            if (input === null) return;
+            var parts = input.split('-').map(function(s){ return parseInt(s.trim(), 10); });
+            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1]) && parts[0] >= 1 && parts[1] <= 528 && parts[0] <= parts[1]) {
+                excludeByPairRank(parts[0], parts[1]);
             } else {
-                alert('请输入有效排名（1-528）');
+                alert('请输入有效区间（1-528，如 20-50）');
             }
         });
-        document.getElementById('btnKeepStartDigits').addEventListener('click', keepStartDigits);
-        document.getElementById('btnKeepTailSameCount').addEventListener('click', keepTailSameCount);
+        document.getElementById('btnComboRankQuery').addEventListener('click', openComboRankModal);
+        document.getElementById('btnComboRankCancel').addEventListener('click', function() { document.getElementById('comboRankModalOverlay').style.display = 'none'; });
+        document.getElementById('btnComboRankConfirm').addEventListener('click', confirmComboRankQuery);
 
+        // 开头筛选
+        document.getElementById('btnKeepStartDigits').addEventListener('click', openStartDigitsModal);
+        document.getElementById('btnStartDigitsCancel').addEventListener('click', closeStartDigitsModal);
+        document.getElementById('btnStartDigitsKeep').addEventListener('click', function(){ applyStartDigits('keep'); });
+        document.getElementById('btnStartDigitsDelete').addEventListener('click', function(){ applyStartDigits('delete'); });
+
+        // 尾数相同筛选
+        document.getElementById('btnKeepTailSameCount').addEventListener('click', openTailSameModal);
+        document.getElementById('btnTailSameCancel').addEventListener('click', closeTailSameModal);
+        document.getElementById('btnTailSameKeep').addEventListener('click', function(){ applyTailSame('keep'); });
+        document.getElementById('btnTailSameDelete').addEventListener('click', function(){ applyTailSame('delete'); });
+
+        // 绑定其他通用按钮（特殊条件等）
         function bind(id, fn) { document.getElementById(id).addEventListener('click', fn); }
         bind('btnAllOdd', function() { applyCustomFilter('全奇数', isAllOdd); });
         bind('btnAllEven', function() { applyCustomFilter('全偶数', isAllEven); });
@@ -2942,6 +2550,7 @@ function init() {
         bind('btnExcludeMultiHit', function() { document.getElementById('multiHitModalTextarea').value = ''; document.querySelectorAll('#multiHitCheckboxes input').forEach(function(cb) { cb.checked = false; }); document.getElementById('multiHitModalOverlay').style.display = 'flex'; });
         bind('btnMatchTop10', autoFillTop10Digits);
 
+        // 模态框事件
         document.getElementById('btnMatchModalCancelTop').addEventListener('click', function() { document.getElementById('matchModalOverlay').style.display = 'none'; });
         document.getElementById('btnMatchModalCancel').addEventListener('click', function() { document.getElementById('matchModalOverlay').style.display = 'none'; });
         document.getElementById('btnMatchModalConfirm').addEventListener('click', confirmMatchAnalysis);
@@ -3006,11 +2615,6 @@ function init() {
 }
 init();
 })();
-
-// 保留数字、保留组合、排除开头等已在前文定义，此处省略重复
-// 如需完整，继续接收后续代码
-
-
-</script>
+    </script>
 </body>
 </html>
