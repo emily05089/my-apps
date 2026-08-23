@@ -387,6 +387,8 @@
 <button class="cancel-float-btn" id="btnGlobalCancel" style="display:none;">❌ 取消当前计算</button>
 
 <script>
+// ========== JavaScript 从这里开始 ==========
+// 注意：此部分将分段提供，请继续接收后续代码。
     (function(){
 // ==================== 全局变量 ====================
 var TOTAL = 1107568;
@@ -2178,13 +2180,21 @@ function confirmKeepMatch() {
     }
     step(0);
 }
-
-// 保留数字、保留组合、排除开头等已在前文定义，此处省略重复
-// 如需完整，继续接收后续代码
-
-})();
-    
+        
 // ==================== 保留与排除功能补充 ====================
+// 求和函数
+function calcSum(arr) { 
+    var s = 0; 
+    for (var i = 0; i < arr.length; i++) s += arr[i]; 
+    return s; 
+}
+
+// 打开“排除开头组合”模态框
+function openTop3Modal() { 
+    document.getElementById('top3ModalTextarea').value = ''; 
+    document.getElementById('top3ModalOverlay').style.display = 'flex'; 
+}
+        
 function confirmKeepOnly() {
     var raw = document.getElementById('keepOnlyModalTextarea').value.trim();
     if (!raw) { alert('请输入至少一组组合'); return; }
@@ -2996,7 +3006,11 @@ function init() {
 }
 init();
 })();
-    
+
+// 保留数字、保留组合、排除开头等已在前文定义，此处省略重复
+// 如需完整，继续接收后续代码
+
+
 </script>
 </body>
 </html>
