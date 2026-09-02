@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>双数字组合频率统计器 - 1至33红球 · 1至16蓝球</title>
+    <title>双数字组合频率统计器 - 前区1至35 · 后区1至12</title>
     <style>
         :root {
             --bg: #f0f4f8;
@@ -23,22 +23,30 @@
             background: var(--bg); color: var(--text); min-height: 100vh;
             display: flex; justify-content: center; padding: 20px; line-height: 1.6;
         }
-        .app-container { width: 100%; max-width: 960px; display: flex; flex-direction: column; gap: 20px; padding-bottom: 40px; }
+        .app-container { width: 100%; max-width: 1100px; display: flex; flex-direction: column; gap: 20px; padding-bottom: 40px; }
         .card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); overflow: hidden; }
         .card-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
         .icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
-        .icon-input { background: #ebf4ff; color: #4a6cf7; } .icon-result { background: #f0fff4; color: #48bb78; }
-        .icon-stats { background: #fffaf0; color: #ed8936; } .icon-single { background: #f3e8ff; color: #7c3aed; }
+        .icon-input { background: #ebf4ff; color: #4a6cf7; }
+        .icon-result { background: #f0fff4; color: #48bb78; }
+        .icon-stats { background: #fffaf0; color: #ed8936; }
+        .icon-single { background: #f3e8ff; color: #7c3aed; }
         .icon-blue { background: #e0f2fe; color: #0284c7; }
-        .card-body { padding: 20px 24px; } .card-body.no-padding { padding: 0; }
+        .icon-blue-pair { background: #fef3c7; color: #b45309; }
+        .card-body { padding: 20px 24px; }
+        .card-body.no-padding { padding: 0; }
         textarea { width: 100%; min-height: 180px; border: 2px solid var(--border); border-radius: 8px; padding: 14px; font-family: 'SF Mono', 'Consolas', monospace; font-size: 15px; resize: vertical; background: #fafbfc; }
         textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(74,108,247,0.1); }
         .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
         .btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; display: flex; align-items: center; gap: 6px; font-size: 14px; transition: 0.2s; font-family: inherit; }
-        .btn-primary { background: var(--primary); color: #fff; } .btn-primary:hover { background: var(--primary-hover); }
-        .btn-outline { background: #fff; color: var(--primary); border: 2px solid #dce4f7; } .btn-outline:hover { background: #f8faff; }
-        .btn-ghost { background: transparent; color: var(--text-secondary); } .btn-ghost:hover { background: #f7f8fa; }
-        .btn-success { background: var(--success); color: #fff; } .btn-success:hover { background: #38a169; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-outline { background: #fff; color: var(--primary); border: 2px solid #dce4f7; }
+        .btn-outline:hover { background: #f8faff; }
+        .btn-ghost { background: transparent; color: var(--text-secondary); }
+        .btn-ghost:hover { background: #f7f8fa; }
+        .btn-success { background: var(--success); color: #fff; }
+        .btn-success:hover { background: #38a169; }
         .btn-sm { padding: 6px 14px; font-size: 12px; }
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
         .stat-item { background: #f8fafc; border-radius: 8px; padding: 12px; text-align: center; border: 1px solid var(--border); }
@@ -50,12 +58,16 @@
         table thead th { background: #f1f5f9; padding: 10px 8px; font-weight: 700; font-size: 12px; color: var(--text-secondary); border-bottom: 2px solid #dde4ed; text-align: center; }
         table tbody td { padding: 8px 6px; text-align: center; border-bottom: 1px solid #f2f5f8; font-family: 'SF Mono', 'Consolas', monospace; }
         table tbody tr:hover { background: #f8faff; }
-        .col-check { width: 40px; } .col-rank { width: 48px; } .col-combo { font-weight: 700; font-size: 15px; }
+        .col-check { width: 40px; }
+        .col-rank { width: 48px; }
+        .col-combo { font-weight: 700; font-size: 15px; }
         .count-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-weight: 700; font-size: 13px; }
-        .badge-high { background: #fef3c7; color: #b45309; } .badge-low { background: #f1f5f9; color: #64748b; } .badge-zero { background: #fafafa; color: #cbd5e0; }
+        .badge-high { background: #fef3c7; color: #b45309; }
+        .badge-low { background: #f1f5f9; color: #64748b; }
+        .badge-zero { background: #fafafa; color: #cbd5e0; }
         .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #2d3748; color: #fff; padding: 10px 22px; border-radius: 30px; font-weight: 600; z-index: 9999; opacity: 0; transition: 0.3s; }
-        .toast.show { opacity: 1; } .toast.success { background: #48bb78; }
-
+        .toast.show { opacity: 1; }
+        .toast.success { background: #48bb78; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
         .modal-overlay.active { display: flex; }
         .modal-dialog { background: #fff; border-radius: 16px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
@@ -73,7 +85,7 @@
 <div class="app-container">
     <div style="text-align:center; padding: 8px 0;">
         <h1 style="font-size: 24px; font-weight: 800;">🎯 双数字组合频率统计器</h1>
-        <p style="color: #8899aa; font-size: 13px;">红球1‑33 · 蓝球1‑16 · 共528组双数字</p>
+        <p style="color: #8899aa; font-size: 13px;">前区1-35 · 后区1-12 · 共595组双数字</p>
     </div>
 
     <div class="card">
@@ -82,13 +94,16 @@
             <div>
                 <div style="font-weight:700;">输入号码组合</div>
                 <div style="font-size:13px; color:var(--text-secondary);">
-                    支持格式：<br>• 单注：1,2,3,4,5,6 或 1,2,3,4,5,6-1<br>
-                    • 复式：1,2,3,4,5,6,7-2<br>• 胆拖：01,02,03-04,05,06-16
+                    支持格式：<br>
+                    • 单式：1,2,3,4,5-1,2 或 01,02,03,04,05-01,02<br>
+                    • 复式：1,2,3,4,5,6-1,2,3<br>
+                    • 胆拖：前区胆：1，前区拖：10,12,13,15,21，后区胆：6，后区拖：7,8,9<br>
+                    • 前区胆或后区胆可以为"无"
                 </div>
             </div>
         </div>
         <div class="card-body">
-            <textarea id="inputArea" placeholder="示例：&#10;1,2,3,4,5,6-1&#10;1,2,3,4,5,6,7-2&#10;01,02,03-04,05,06-16&#10;10,15,20,25,30,33-08"></textarea>
+            <textarea id="inputArea" placeholder="示例：&#10;1,2,3,4,5-1,2&#10;01,02,03,04,05,06-01,02,03&#10;前区胆：1，前区拖：10,12,13,15,21，后区胆：6，后区拖：7,8,9&#10;前区胆：无，前区拖：1,2,3,4,5,6，后区胆：无，后区拖：1,2,3"></textarea>
             <div class="btn-row">
                 <button class="btn btn-primary" onclick="calculate()">🔍 开始统计</button>
                 <button class="btn btn-outline" onclick="loadExample()">📋 加载示例</button>
@@ -105,7 +120,7 @@
     <div class="card" id="resultCard" style="display:none;">
         <div class="card-header">
             <div class="icon icon-result">🏆</div>
-            <div><div style="font-weight:700;">双数字组合频率排行 — 528组</div><div id="resultSubtitle" style="font-size:13px; color:var(--text-secondary);"></div></div>
+            <div><div style="font-weight:700;">前区双数字组合频率排行 — 595组</div><div id="resultSubtitle" style="font-size:13px; color:var(--text-secondary);"></div></div>
             <div style="margin-left:auto; display:flex; gap:8px;">
                 <button class="btn btn-success btn-sm" onclick="copyAllWithCount()">📋 复制全部(带次数)</button>
                 <button class="btn btn-outline btn-sm" onclick="copySelectedCombos()">✂️ 复制勾选组合</button>
@@ -118,7 +133,7 @@
     <div class="card" id="singleFreqCard" style="display:none;">
         <div class="card-header">
             <div class="icon icon-single">🔢</div>
-            <div><div style="font-weight:700;">红球单数字频率 (1-33)</div><div id="singleFreqSubtitle" style="font-size:13px; color:var(--text-secondary);"></div></div>
+            <div><div style="font-weight:700;">前区单数字频率 (1-35)</div><div id="singleFreqSubtitle" style="font-size:13px; color:var(--text-secondary);"></div></div>
             <div style="margin-left:auto;"><button class="btn btn-success btn-sm" onclick="copySingleFreq()">📋 复制频率</button></div>
         </div>
         <div class="card-body no-padding"><div class="result-scroll" id="singleFreqScroll" style="max-height:400px;"></div></div>
@@ -127,10 +142,19 @@
     <div class="card" id="blueFreqCard" style="display:none;">
         <div class="card-header">
             <div class="icon icon-blue">🔵</div>
-            <div><div style="font-weight:700;">蓝球出现频率 (1-16)</div><div id="blueFreqSubtitle" style="font-size:13px; color:var(--text-secondary);"></div></div>
-            <div style="margin-left:auto;"><button class="btn btn-success btn-sm" onclick="copyBlueFreq()">📋 复制蓝球频率</button></div>
+            <div><div style="font-weight:700;">后区单数字频率 (1-12)</div><div id="blueFreqSubtitle" style="font-size:13px; color:var(--text-secondary);"></div></div>
+            <div style="margin-left:auto;"><button class="btn btn-success btn-sm" onclick="copyBlueFreq()">📋 复制后区频率</button></div>
         </div>
         <div class="card-body no-padding"><div class="result-scroll" id="blueFreqScroll" style="max-height:400px;"></div></div>
+    </div>
+
+    <div class="card" id="bluePairFreqCard" style="display:none;">
+        <div class="card-header">
+            <div class="icon icon-blue-pair">🔵</div>
+            <div><div style="font-weight:700;">后区双数字频率 (1-12)</div><div id="bluePairFreqSubtitle" style="font-size:13px; color:var(--text-secondary);"></div></div>
+            <div style="margin-left:auto;"><button class="btn btn-success btn-sm" onclick="copyBluePairFreq()">📋 复制后区双数字频率</button></div>
+        </div>
+        <div class="card-body no-padding"><div class="result-scroll" id="bluePairFreqScroll" style="max-height:400px;"></div></div>
     </div>
 
     <div class="toast" id="toast"></div>
@@ -138,23 +162,33 @@
 
 <div class="modal-overlay" id="analysisModal">
     <div class="modal-dialog">
-        <h3>🔍 分析特定6数字组合</h3>
-        <p style="color:var(--text-secondary); font-size:14px; margin-bottom:12px;">输入一组红球号码，分析其双数字及单数字频率与排名。</p>
+        <h3>🔍 分析特定组合</h3>
+        <p style="color:var(--text-secondary); font-size:14px; margin-bottom:12px;">输入一注完整组合（前区5个+后区2个），分析其双数字及单数字频率与排名。</p>
         <div class="modal-input-row">
-            <input type="text" id="analysisInput" placeholder="例如：01,02,03,04,05,06">
+            <input type="text" id="analysisInput" placeholder="例如：01,02,03,04,05-01,02">
             <button class="btn btn-primary btn-sm" onclick="runAnalysis()">分析</button>
         </div>
         <div id="analysisError" style="color:red; font-size:13px; margin-bottom:8px;"></div>
         <div id="analysisResult" style="display:none;">
             <div class="analysis-section">
-                <h4>📊 双数字组合分析 (15组)</h4>
+                <h4>📊 前区双数字组合分析 (10组)</h4>
                 <div class="analysis-table" id="pairAnalysisTable"></div>
-                <div class="modal-actions"><button class="btn btn-outline btn-sm" onclick="copyAnalysis('pairs')">📋 复制双数字结果</button></div>
+                <div class="modal-actions"><button class="btn btn-outline btn-sm" onclick="copyAnalysis('pairs')">📋 复制前区双数字结果</button></div>
             </div>
             <div class="analysis-section">
-                <h4>🔢 单数字分析 (6个数字)</h4>
+                <h4>🔢 前区单数字分析 (5个数字)</h4>
                 <div class="analysis-table" id="singleAnalysisTable"></div>
-                <div class="modal-actions"><button class="btn btn-outline btn-sm" onclick="copyAnalysis('singles')">📋 复制单数字结果</button></div>
+                <div class="modal-actions"><button class="btn btn-outline btn-sm" onclick="copyAnalysis('singles')">📋 复制前区单数字结果</button></div>
+            </div>
+            <div class="analysis-section">
+                <h4>🔵 后区双数字分析 (1组)</h4>
+                <div class="analysis-table" id="bluePairAnalysisTable"></div>
+                <div class="modal-actions"><button class="btn btn-outline btn-sm" onclick="copyAnalysis('bluePairs')">📋 复制后区双数字结果</button></div>
+            </div>
+            <div class="analysis-section">
+                <h4>🔢 后区单数字分析 (2个数字)</h4>
+                <div class="analysis-table" id="blueSingleAnalysisTable"></div>
+                <div class="modal-actions"><button class="btn btn-outline btn-sm" onclick="copyAnalysis('blueSingles')">📋 复制后区单数字结果</button></div>
             </div>
         </div>
         <div style="margin-top:16px; text-align:right;"><button class="btn btn-ghost btn-sm" onclick="closeAnalysisModal()">关闭</button></div>
@@ -163,11 +197,25 @@
 
 <script>
     (function() {
-        const TOTAL_PAIRS = 528, RED_RANGE = 33, BLUE_RANGE = 16, COMBO_SIZE = 6;
-        const ALL_PAIRS = [];
-        for (let a = 1; a <= RED_RANGE; a++) for (let b = a + 1; b <= RED_RANGE; b++) ALL_PAIRS.push([a, b]);
-        const pairToIndex = new Map();
-        ALL_PAIRS.forEach((pair, idx) => pairToIndex.set(pair[0]+','+pair[1], idx));
+        const FRONT_RANGE = 35, BACK_RANGE = 12, FRONT_SIZE = 5, BACK_SIZE = 2;
+        const TOTAL_FRONT_PAIRS = (FRONT_RANGE * (FRONT_RANGE - 1)) / 2; // 595
+        const TOTAL_BACK_PAIRS = (BACK_RANGE * (BACK_RANGE - 1)) / 2; // 66
+        
+        const ALL_FRONT_PAIRS = [];
+        for (let a = 1; a <= FRONT_RANGE; a++) 
+            for (let b = a + 1; b <= FRONT_RANGE; b++) 
+                ALL_FRONT_PAIRS.push([a, b]);
+        
+        const ALL_BACK_PAIRS = [];
+        for (let a = 1; a <= BACK_RANGE; a++) 
+            for (let b = a + 1; b <= BACK_RANGE; b++) 
+                ALL_BACK_PAIRS.push([a, b]);
+        
+        const frontPairToIndex = new Map();
+        ALL_FRONT_PAIRS.forEach((pair, idx) => frontPairToIndex.set(pair[0]+','+pair[1], idx));
+        
+        const backPairToIndex = new Map();
+        ALL_BACK_PAIRS.forEach((pair, idx) => backPairToIndex.set(pair[0]+','+pair[1], idx));
 
         const inputArea = document.getElementById('inputArea');
         const statsCard = document.getElementById('statsCard');
@@ -181,14 +229,18 @@
         const blueFreqCard = document.getElementById('blueFreqCard');
         const blueFreqScroll = document.getElementById('blueFreqScroll');
         const blueFreqSubtitle = document.getElementById('blueFreqSubtitle');
+        const bluePairFreqCard = document.getElementById('bluePairFreqCard');
+        const bluePairFreqScroll = document.getElementById('bluePairFreqScroll');
+        const bluePairFreqSubtitle = document.getElementById('bluePairFreqSubtitle');
         const toast = document.getElementById('toast');
 
-        let lastResults = null, lastSingleFreq = null, lastBlueFreq = null;
+        let lastResults = null, lastSingleFreq = null, lastBlueFreq = null, lastBluePairFreq = null;
         let toastTimer = null, lastAnalysisInput = '';
 
         function showToast(msg, type='') {
             if(toastTimer) clearTimeout(toastTimer);
-            toast.textContent = msg; toast.className = 'toast '+type+' show';
+            toast.textContent = msg; 
+            toast.className = 'toast '+type+' show';
             toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
         }
 
@@ -199,83 +251,222 @@
             const res = [];
             const f = (start, chosen) => {
                 if (chosen.length === k) { res.push([...chosen]); return; }
-                for (let i = start; i < arr.length; i++) { chosen.push(arr[i]); f(i+1, chosen); chosen.pop(); }
+                for (let i = start; i < arr.length; i++) { 
+                    chosen.push(arr[i]); 
+                    f(i+1, chosen); 
+                    chosen.pop(); 
+                }
             };
             f(0, []);
             return res;
         }
 
-        function parseNumbers(str, lineIdx, partName) {
+        function parseNumbers(str, lineIdx, partName, minNum, maxNum) {
             const nums = [];
             const parts = str.replace(/，/g, ',').split(',').map(s => s.trim()).filter(s => s !== '');
+            
+            // 检查是否为"无"
+            if (parts.length === 1 && (parts[0] === '无' || parts[0] === '無')) {
+                return { numbers: [], isEmpty: true };
+            }
+            
             for (const p of parts) {
                 const n = parseInt(p, 10);
-                if (isNaN(n) || n < 1 || n > RED_RANGE) return { error: `第${lineIdx+1}行：${partName}数字"${p}"无效` };
+                if (isNaN(n) || n < minNum || n > maxNum) {
+                    return { error: `第${lineIdx+1}行：${partName}数字"${p}"无效（需在${minNum}-${maxNum}之间）` };
+                }
                 nums.push(n);
             }
-            return [...new Set(nums)].sort((a,b)=>a-b);
+            return { numbers: [...new Set(nums)].sort((a,b)=>a-b) };
         }
 
         function parseLine(line, lineIdx) {
             line = line.trim();
             if (!line) return null;
-            let blueNum = null;
-            let redPart = line;
-            const blueMatch = line.match(/-(0?[1-9]|1[0-6])$/);
-            if (blueMatch) {
-                blueNum = parseInt(blueMatch[1], 10);
-                if (blueNum < 1 || blueNum > BLUE_RANGE) return { error: `第${lineIdx+1}行：蓝球需在1-16之间` };
-                redPart = line.substring(0, blueMatch.index).trim();
-                if (!redPart) return { error: `第${lineIdx+1}行：红球部分为空` };
+            
+            // 检查是否为胆拖格式
+            if (line.includes('前区胆') || line.includes('前區膽') || line.includes('后区胆') || line.includes('後區膽')) {
+                return parseDantuo(line, lineIdx);
             }
-            if (redPart.includes('-')) {
-                const parts = redPart.split('-');
-                if (parts.length !== 2) return { error: `第${lineIdx+1}行：胆拖格式错误` };
-                const danRes = parseNumbers(parts[0].trim(), lineIdx, '胆码');
-                if (danRes.error) return danRes;
-                const tuoRes = parseNumbers(parts[1].trim(), lineIdx, '拖码');
-                if (tuoRes.error) return tuoRes;
-                const dan = danRes, tuo = tuoRes;
-                if (dan.length === 0 || dan.length >= COMBO_SIZE) return { error: `第${lineIdx+1}行：胆码个数需1-5` };
-                if (dan.length + tuo.length < COMBO_SIZE) return { error: `第${lineIdx+1}行：胆拖数字总数不足6个` };
-                if (dan.some(n => tuo.includes(n))) return { error: `第${lineIdx+1}行：胆码与拖码重复` };
-                const need = COMBO_SIZE - dan.length;
-                const tuoCombos = combinations(tuo, need);
-                const redCombos = tuoCombos.map(tc => [...dan, ...tc].sort((a,b)=>a-b));
-                return { combos: redCombos, blue: blueNum };
-            } else {
-                const numRes = parseNumbers(redPart, lineIdx, '红球');
-                if (numRes.error) return numRes;
-                const nums = numRes;
-                if (nums.length < COMBO_SIZE) return { error: `第${lineIdx+1}行：至少需要6个红球` };
-                const redCombos = combinations(nums, COMBO_SIZE);
-                return { combos: redCombos, blue: blueNum };
+            
+            // 普通格式：前区-后区
+            const parts = line.split('-');
+            if (parts.length !== 2) {
+                return { error: `第${lineIdx+1}行：格式错误，需要前区-后区格式` };
             }
+            
+            const frontResult = parseNumbers(parts[0], lineIdx, '前区', 1, FRONT_RANGE);
+            if (frontResult.error) return frontResult;
+            
+            const backResult = parseNumbers(parts[1], lineIdx, '后区', 1, BACK_RANGE);
+            if (backResult.error) return backResult;
+            
+            const frontNums = frontResult.numbers;
+            const backNums = backResult.numbers;
+            
+            if (frontNums.length < FRONT_SIZE) {
+                return { error: `第${lineIdx+1}行：前区至少需要${FRONT_SIZE}个号码` };
+            }
+            if (backNums.length < BACK_SIZE) {
+                return { error: `第${lineIdx+1}行：后区至少需要${BACK_SIZE}个号码` };
+            }
+            
+            const frontCombos = combinations(frontNums, FRONT_SIZE);
+            const backCombos = combinations(backNums, BACK_SIZE);
+            
+            return { frontCombos, backCombos };
+        }
+
+        function parseDantuo(line, lineIdx) {
+            // 使用更健壮的分割方法，按关键字拆分
+            const frontDanKey = '前区胆';
+            const frontTuoKey = '前区拖';
+            const backDanKey = '后区胆';
+            const backTuoKey = '后区拖';
+            
+            // 找出各关键字的位置
+            const findKeyIndex = (key) => {
+                const idx = line.indexOf(key);
+                return idx !== -1 ? idx : null;
+            };
+            
+            const frontDanIdx = findKeyIndex(frontDanKey);
+            const frontTuoIdx = findKeyIndex(frontTuoKey);
+            const backDanIdx = findKeyIndex(backDanKey);
+            const backTuoIdx = findKeyIndex(backTuoKey);
+            
+            if (frontTuoIdx === null || backTuoIdx === null) {
+                return { error: `第${lineIdx+1}行：胆拖格式错误，需要前区胆、前区拖、后区胆、后区拖` };
+            }
+            
+            // 提取各部分内容（冒号后到下一个关键字或行尾）
+            const extractContent = (keyIdx, nextIdx) => {
+                const colonIdx = line.indexOf('：', keyIdx);
+                const colonIdx2 = line.indexOf(':', keyIdx);
+                let start = -1;
+                if (colonIdx !== -1 && (colonIdx2 === -1 || colonIdx < colonIdx2)) start = colonIdx;
+                else if (colonIdx2 !== -1) start = colonIdx2;
+                if (start === -1) return '';
+                let end = nextIdx !== null ? nextIdx : line.length;
+                return line.substring(start + 1, end);
+            };
+            
+            // 按顺序确定各部分的结束位置
+            const indices = [frontDanIdx, frontTuoIdx, backDanIdx, backTuoIdx].filter(idx => idx !== null).sort((a,b) => a-b);
+            const getNextIdx = (currentIdx) => {
+                const pos = indices.indexOf(currentIdx);
+                return pos < indices.length - 1 ? indices[pos + 1] : null;
+            };
+            
+            let frontDanStr = frontDanIdx !== null ? extractContent(frontDanIdx, getNextIdx(frontDanIdx)) : '';
+            let frontTuoStr = extractContent(frontTuoIdx, getNextIdx(frontTuoIdx));
+            let backDanStr = backDanIdx !== null ? extractContent(backDanIdx, getNextIdx(backDanIdx)) : '';
+            let backTuoStr = extractContent(backTuoIdx, getNextIdx(backTuoIdx));
+            
+            // 去除可能的尾随逗号或空格
+            frontDanStr = frontDanStr.trim().replace(/，$/,'').replace(/,$/,'').trim();
+            frontTuoStr = frontTuoStr.trim().replace(/，$/,'').replace(/,$/,'').trim();
+            backDanStr = backDanStr.trim().replace(/，$/,'').replace(/,$/,'').trim();
+            backTuoStr = backTuoStr.trim().replace(/，$/,'').replace(/,$/,'').trim();
+            
+            // 解析各部分号码
+            let frontDan = [], backDan = [];
+            
+            if (frontDanStr && frontDanStr !== '无' && frontDanStr !== '無') {
+                const frontDanResult = parseNumbers(frontDanStr, lineIdx, '前区胆码', 1, FRONT_RANGE);
+                if (frontDanResult.error) return frontDanResult;
+                frontDan = frontDanResult.numbers;
+            }
+            
+            const frontTuoResult = parseNumbers(frontTuoStr, lineIdx, '前区拖码', 1, FRONT_RANGE);
+            if (frontTuoResult.error) return frontTuoResult;
+            const frontTuo = frontTuoResult.numbers;
+            
+            if (backDanStr && backDanStr !== '无' && backDanStr !== '無') {
+                const backDanResult = parseNumbers(backDanStr, lineIdx, '后区胆码', 1, BACK_RANGE);
+                if (backDanResult.error) return backDanResult;
+                backDan = backDanResult.numbers;
+            }
+            
+            const backTuoResult = parseNumbers(backTuoStr, lineIdx, '后区拖码', 1, BACK_RANGE);
+            if (backTuoResult.error) return backTuoResult;
+            const backTuo = backTuoResult.numbers;
+            
+            // 验证胆拖号码
+            if (frontDan.length >= FRONT_SIZE) {
+                return { error: `第${lineIdx+1}行：前区胆码个数需少于${FRONT_SIZE}个` };
+            }
+            if (backDan.length >= BACK_SIZE) {
+                return { error: `第${lineIdx+1}行：后区胆码个数需少于${BACK_SIZE}个` };
+            }
+            if (frontDan.some(n => frontTuo.includes(n))) {
+                return { error: `第${lineIdx+1}行：前区胆码与拖码重复` };
+            }
+            if (backDan.some(n => backTuo.includes(n))) {
+                return { error: `第${lineIdx+1}行：后区胆码与拖码重复` };
+            }
+            
+            const frontNeed = FRONT_SIZE - frontDan.length;
+            const backNeed = BACK_SIZE - backDan.length;
+            
+            if (frontDan.length + frontTuo.length < FRONT_SIZE) {
+                return { error: `第${lineIdx+1}行：前区胆拖号码总数不足${FRONT_SIZE}个` };
+            }
+            if (backDan.length + backTuo.length < BACK_SIZE) {
+                return { error: `第${lineIdx+1}行：后区胆拖号码总数不足${BACK_SIZE}个` };
+            }
+            
+            const frontTuoCombos = combinations(frontTuo, frontNeed);
+            const backTuoCombos = combinations(backTuo, backNeed);
+            
+            const frontCombos = frontTuoCombos.map(tc => [...frontDan, ...tc].sort((a,b)=>a-b));
+            const backCombos = backTuoCombos.map(tc => [...backDan, ...tc].sort((a,b)=>a-b));
+            
+            return { frontCombos, backCombos };
         }
 
         function parseAllInput(text) {
             const lines = text.split(/\r?\n/);
-            const allRedCombos = [];
-            const blueFreq = new Array(BLUE_RANGE + 1).fill(0);
+            const allTickets = [];
             const errors = [];
+            
             for (let i = 0; i < lines.length; i++) {
                 const res = parseLine(lines[i], i);
                 if (!res) continue;
-                if (res.error) { errors.push(res.error); continue; }
-                if (res.combos) {
-                    for (const combo of res.combos) {
-                        allRedCombos.push(combo);
-                        if (res.blue !== null) blueFreq[res.blue]++;
+                if (res.error) { 
+                    errors.push(res.error); 
+                    continue; 
+                }
+                if (res.frontCombos && res.backCombos) {
+                    // 生成所有单式组合
+                    for (const fc of res.frontCombos) {
+                        for (const bc of res.backCombos) {
+                            allTickets.push({ front: fc, back: bc });
+                        }
                     }
                 }
             }
-            return { validRedCombos: allRedCombos, blueFreq, errors };
+            
+            return { tickets: allTickets, errors };
         }
 
-        function countPairs(combos) {
-            const counts = new Array(TOTAL_PAIRS).fill(0);
-            for (const c of combos) for (let i=0; i<COMBO_SIZE; i++) for (let j=i+1; j<COMBO_SIZE; j++) {
-                const idx = pairToIndex.get(c[i]+','+c[j]);
+        function countFrontPairs(tickets) {
+            const counts = new Array(TOTAL_FRONT_PAIRS).fill(0);
+            for (const t of tickets) {
+                for (let i = 0; i < FRONT_SIZE; i++) {
+                    for (let j = i + 1; j < FRONT_SIZE; j++) {
+                        const idx = frontPairToIndex.get(t.front[i]+','+t.front[j]);
+                        if (idx !== undefined) counts[idx]++;
+                    }
+                }
+            }
+            return counts;
+        }
+        
+        function countBackPairs(tickets) {
+            const counts = new Array(TOTAL_BACK_PAIRS).fill(0);
+            for (const t of tickets) {
+                const idx = backPairToIndex.get(t.back[0]+','+t.back[1]);
                 if (idx !== undefined) counts[idx]++;
             }
             return counts;
@@ -283,55 +474,85 @@
 
         function calculate() {
             const text = inputArea.value.trim();
-            if (!text) { showToast('请输入数据','error'); return; }
-            const { validRedCombos, blueFreq, errors } = parseAllInput(text);
-            if (!validRedCombos.length) { showToast('无有效组合','error'); if(errors.length) alert(errors.join('\n')); return; }
-            const totalCombos = validRedCombos.length;
+            if (!text) { 
+                showToast('请输入数据','error'); 
+                return; 
+            }
+            
+            const { tickets, errors } = parseAllInput(text);
+            if (!tickets.length) { 
+                showToast('无有效组合','error'); 
+                if(errors.length) alert(errors.join('\n')); 
+                return; 
+            }
+            
+            const totalTickets = tickets.length;
 
-            const pairCounts = countPairs(validRedCombos);
-            const results = ALL_PAIRS.map((pair, idx) => ({
-                a: pair[0], b: pair[1], count: pairCounts[idx], display: fmtPair(pair[0], pair[1])
+            // 前区双数字统计
+            const frontPairCounts = countFrontPairs(tickets);
+            const results = ALL_FRONT_PAIRS.map((pair, idx) => ({
+                a: pair[0], b: pair[1], count: frontPairCounts[idx], display: fmtPair(pair[0], pair[1])
             }));
             results.sort((a,b) => b.count - a.count || a.a - b.a || a.b - b.b);
             lastResults = results;
 
+            // 统计摘要（已删除“前区子组合次数”）
             statsCard.style.display='block';
             statsGrid.innerHTML = `
-                <div class="stat-item"><div class="stat-value">${totalCombos}</div><div class="stat-label">拆解后总注数</div></div>
-                <div class="stat-item"><div class="stat-value">${totalCombos*15}</div><div class="stat-label">子组合次数</div></div>
-                <div class="stat-item"><div class="stat-value">${results.filter(r=>r.count>0).length}</div><div class="stat-label">出现≥1次组合</div></div>
-                <div class="stat-item"><div class="stat-value">${TOTAL_PAIRS - results.filter(r=>r.count>0).length}</div><div class="stat-label">未出现组合</div></div>
+                <div class="stat-item"><div class="stat-value">${totalTickets}</div><div class="stat-label">拆解后总注数</div></div>
+                <div class="stat-item"><div class="stat-value">${results.filter(r=>r.count>0).length}</div><div class="stat-label">前区出现≥1次组合</div></div>
+                <div class="stat-item"><div class="stat-value">${TOTAL_FRONT_PAIRS - results.filter(r=>r.count>0).length}</div><div class="stat-label">前区未出现组合</div></div>
             `;
 
+            // 前区双数字结果
             resultCard.style.display='block';
-            resultSubtitle.textContent = `共528组 · 最多${results[0].count}次`;
+            resultSubtitle.textContent = `共595组 · 最多${results[0].count}次`;
             let html = `<table><thead><tr><th class="col-check"><input type="checkbox" id="selectAllCheckbox"></th><th>排名</th><th>组合</th><th>次数</th></tr></thead><tbody>`;
-            results.forEach((r,i) => html += `<tr><td><input type="checkbox" class="combo-checkbox" data-combo="${r.display}"></td><td>${i+1}</td><td class="col-combo">${r.display}</td><td><span class="count-badge ${r.count===results[0].count?'badge-high':(r.count>0?'badge-low':'badge-zero')}">${r.count}</span></td></tr>`);
+            results.forEach((r,i) => {
+                html += `<tr><td><input type="checkbox" class="combo-checkbox" data-combo="${r.display}"></td><td>${i+1}</td><td class="col-combo">${r.display}</td><td><span class="count-badge ${r.count===results[0].count?'badge-high':(r.count>0?'badge-low':'badge-zero')}">${r.count}</span></td></tr>`;
+            });
             html += '</tbody></table>';
             resultScroll.innerHTML = html;
-            document.getElementById('selectAllCheckbox').onchange = e => document.querySelectorAll('.combo-checkbox').forEach(cb => cb.checked = e.target.checked);
+            document.getElementById('selectAllCheckbox').onchange = e => {
+                document.querySelectorAll('.combo-checkbox').forEach(cb => cb.checked = e.target.checked);
+            };
 
+            // 前区单数字频率
             const singleFreq = (() => {
-                const f = new Array(RED_RANGE+1).fill(0);
-                validRedCombos.forEach(c => c.forEach(n => { if(n>=1&&n<=RED_RANGE) f[n]++; }));
+                const f = new Array(FRONT_RANGE+1).fill(0);
+                tickets.forEach(t => t.front.forEach(n => { if(n>=1 && n<=FRONT_RANGE) f[n]++; }));
                 const list = [];
-                for (let i=1; i<=RED_RANGE; i++) list.push({ number:i, display:fmtNum(i), count:f[i] });
-                return list.sort((a,b)=> b.count - a.count || a.number - b.number);
+                for (let i=1; i<=FRONT_RANGE; i++) list.push({ number:i, display:fmtNum(i), count:f[i] });
+                return list.sort((a,b) => b.count - a.count || a.number - b.number);
             })();
             lastSingleFreq = singleFreq;
             singleFreqCard.style.display='block';
-            singleFreqSubtitle.textContent = `基于${totalCombos}注红球统计`;
+            singleFreqSubtitle.textContent = `基于${totalTickets}注前区统计`;
             singleFreqScroll.innerHTML = `<table><thead><tr><th>排名</th><th>数字</th><th>次数</th></tr></thead><tbody>${singleFreq.map((it,i)=>`<tr><td>${i+1}</td><td class="col-combo">${it.display}</td><td><span class="count-badge ${it.count===singleFreq[0].count?'badge-high':(it.count>0?'badge-low':'badge-zero')}">${it.count}</span></td></tr>`).join('')}</tbody></table>`;
 
-            const blueList = (() => {
+            // 后区单数字频率
+            const blueFreq = (() => {
+                const f = new Array(BACK_RANGE+1).fill(0);
+                tickets.forEach(t => t.back.forEach(n => { if(n>=1 && n<=BACK_RANGE) f[n]++; }));
                 const list = [];
-                for (let i=1; i<=BLUE_RANGE; i++) list.push({ number:i, display:fmtNum(i), count:blueFreq[i] });
-                return list.sort((a,b)=> b.count - a.count || a.number - b.number);
+                for (let i=1; i<=BACK_RANGE; i++) list.push({ number:i, display:fmtNum(i), count:f[i] });
+                return list.sort((a,b) => b.count - a.count || a.number - b.number);
             })();
-            lastBlueFreq = blueList;
+            lastBlueFreq = blueFreq;
             blueFreqCard.style.display = 'block';
-            blueFreqSubtitle.textContent = `蓝球总出现 ${blueList.reduce((s,i)=>s+i.count,0)} 次`;
-            blueFreqScroll.innerHTML = `<table><thead><tr><th>排名</th><th>蓝球</th><th>次数</th></tr></thead><tbody>${blueList.map((it,i)=>`<tr><td>${i+1}</td><td class="col-combo">${it.display}</td><td><span class="count-badge ${it.count===blueList[0].count?'badge-high':(it.count>0?'badge-low':'badge-zero')}">${it.count}</span></td></tr>`).join('')}</tbody></table>`;
+            blueFreqSubtitle.textContent = `基于${totalTickets}注后区统计`;
+            blueFreqScroll.innerHTML = `<table><thead><tr><th>排名</th><th>数字</th><th>次数</th></tr></thead><tbody>${blueFreq.map((it,i)=>`<tr><td>${i+1}</td><td class="col-combo">${it.display}</td><td><span class="count-badge ${it.count===blueFreq[0].count?'badge-high':(it.count>0?'badge-low':'badge-zero')}">${it.count}</span></td></tr>`).join('')}</tbody></table>`;
+
+            // 后区双数字频率
+            const bluePairCounts = countBackPairs(tickets);
+            const bluePairResults = ALL_BACK_PAIRS.map((pair, idx) => ({
+                a: pair[0], b: pair[1], count: bluePairCounts[idx], display: fmtPair(pair[0], pair[1])
+            }));
+            bluePairResults.sort((a,b) => b.count - a.count || a.a - b.a || a.b - b.b);
+            lastBluePairFreq = bluePairResults;
+            bluePairFreqCard.style.display = 'block';
+            bluePairFreqSubtitle.textContent = `共${TOTAL_BACK_PAIRS}组 · 最多${bluePairResults[0].count}次`;
+            bluePairFreqScroll.innerHTML = `<table><thead><tr><th>排名</th><th>组合</th><th>次数</th></tr></thead><tbody>${bluePairResults.map((it,i)=>`<tr><td>${i+1}</td><td class="col-combo">${it.display}</td><td><span class="count-badge ${it.count===bluePairResults[0].count?'badge-high':(it.count>0?'badge-low':'badge-zero')}">${it.count}</span></td></tr>`).join('')}</tbody></table>`;
 
             if(errors.length) console.warn('解析警告', errors);
             showToast('✅ 统计完成','success');
@@ -339,78 +560,154 @@
 
         window.copyAllWithCount = () => {
             if(!lastResults) return showToast('无结果','error');
-            navigator.clipboard.writeText(lastResults.map(r=>r.display+'\t'+r.count).join('\n')).then(()=>showToast('已复制全部528组'));
+            navigator.clipboard.writeText(lastResults.map(r=>r.display+'\t'+r.count).join('\n')).then(()=>showToast('已复制全部595组'));
         };
+        
         window.copySelectedCombos = () => {
             const checked = document.querySelectorAll('.combo-checkbox:checked');
             if(!checked.length) return showToast('请勾选组合','error');
             navigator.clipboard.writeText(Array.from(checked).map(cb=>cb.dataset.combo).join('\n')).then(()=>showToast(`已复制${checked.length}个组合`));
         };
+        
         window.copySingleFreq = () => {
             if(!lastSingleFreq) return showToast('无数据','error');
-            navigator.clipboard.writeText(lastSingleFreq.map(i=>i.display+','+i.count).join('\n')).then(()=>showToast('已复制单数字频率'));
+            navigator.clipboard.writeText(lastSingleFreq.map(i=>i.display+','+i.count).join('\n')).then(()=>showToast('已复制前区单数字频率'));
         };
+        
         window.copyBlueFreq = () => {
-            if(!lastBlueFreq) return showToast('无蓝球数据','error');
-            navigator.clipboard.writeText(lastBlueFreq.map(i=>i.display+','+i.count).join('\n')).then(()=>showToast('已复制蓝球频率'));
+            if(!lastBlueFreq) return showToast('无后区数据','error');
+            navigator.clipboard.writeText(lastBlueFreq.map(i=>i.display+','+i.count).join('\n')).then(()=>showToast('已复制后区单数字频率'));
+        };
+        
+        window.copyBluePairFreq = () => {
+            if(!lastBluePairFreq) return showToast('无后区双数字数据','error');
+            navigator.clipboard.writeText(lastBluePairFreq.map(i=>i.display+','+i.count).join('\n')).then(()=>showToast('已复制后区双数字频率'));
         };
 
         const analysisModal = document.getElementById('analysisModal');
         const analysisInput = document.getElementById('analysisInput');
+        
         window.openAnalysisModal = () => {
-            if(!lastResults || !lastSingleFreq) return showToast('请先完成统计','error');
+            if(!lastResults || !lastSingleFreq || !lastBlueFreq || !lastBluePairFreq) return showToast('请先完成统计','error');
             analysisInput.value = lastAnalysisInput || '';
             analysisModal.classList.add('active');
             if(!window._analysisData) document.getElementById('analysisResult').style.display='none';
             analysisInput.focus();
         };
+        
         window.closeAnalysisModal = () => analysisModal.classList.remove('active');
         analysisModal.addEventListener('click', e => { if(e.target === analysisModal) closeAnalysisModal(); });
+        
         window.runAnalysis = () => {
             const val = analysisInput.value.trim();
-            if(!val) return document.getElementById('analysisError').textContent='请输入6个数字';
-            const parts = val.replace(/，/g,',').split(',').map(s=>parseInt(s.trim(),10));
-            if(parts.length!==6 || parts.some(n=>isNaN(n)||n<1||n>RED_RANGE) || new Set(parts).size!==6)
-                return document.getElementById('analysisError').textContent='格式错误';
-            const combo = parts.sort((a,b)=>a-b);
+            if(!val) return document.getElementById('analysisError').textContent='请输入组合';
+            
+            const parts = val.replace(/，/g,',').split('-');
+            if(parts.length !== 2) return document.getElementById('analysisError').textContent='格式错误，需要前区-后区格式';
+            
+            const frontNums = parts[0].split(',').map(s=>parseInt(s.trim(),10));
+            const backNums = parts[1].split(',').map(s=>parseInt(s.trim(),10));
+            
+            if(frontNums.length !== FRONT_SIZE || frontNums.some(n=>isNaN(n)||n<1||n>FRONT_RANGE) || new Set(frontNums).size !== FRONT_SIZE)
+                return document.getElementById('analysisError').textContent=`前区格式错误（需要${FRONT_SIZE}个1-${FRONT_RANGE}的数字）`;
+            
+            if(backNums.length !== BACK_SIZE || backNums.some(n=>isNaN(n)||n<1||n>BACK_RANGE) || new Set(backNums).size !== BACK_SIZE)
+                return document.getElementById('analysisError').textContent=`后区格式错误（需要${BACK_SIZE}个1-${BACK_RANGE}的数字）`;
+            
+            const frontCombo = frontNums.sort((a,b)=>a-b);
+            const backCombo = backNums.sort((a,b)=>a-b);
             lastAnalysisInput = val;
-            const pairList = [], singleList = [];
-            for(let i=0;i<6;i++) for(let j=i+1;j<6;j++) {
-                const d = fmtPair(combo[i],combo[j]);
-                const f = lastResults.find(r=>r.display===d);
-                pairList.push({display:d, count:f?f.count:0, rank:f?lastResults.indexOf(f)+1:'-'});
+            
+            // 前区双数字分析
+            const pairList = [];
+            for(let i=0;i<FRONT_SIZE;i++) {
+                for(let j=i+1;j<FRONT_SIZE;j++) {
+                    const d = fmtPair(frontCombo[i],frontCombo[j]);
+                    const f = lastResults.find(r=>r.display===d);
+                    pairList.push({display:d, count:f?f.count:0, rank:f?lastResults.indexOf(f)+1:'-'});
+                }
             }
-            for(const n of combo) {
+            
+            // 前区单数字分析
+            const singleList = [];
+            for(const n of frontCombo) {
                 const d = fmtNum(n);
                 const f = lastSingleFreq.find(i=>i.number===n);
                 singleList.push({display:d, count:f?f.count:0, rank:f?lastSingleFreq.indexOf(f)+1:'-'});
             }
+            
+            // 后区双数字分析
+            const backPairDisplay = fmtPair(backCombo[0], backCombo[1]);
+            const backPairFreq = lastBluePairFreq.find(p=>p.display===backPairDisplay);
+            const bluePairList = [{
+                display: backPairDisplay, 
+                count: backPairFreq ? backPairFreq.count : 0, 
+                rank: backPairFreq ? lastBluePairFreq.indexOf(backPairFreq)+1 : '-'
+            }];
+            
+            // 后区单数字分析
+            const blueSingleList = [];
+            for(const n of backCombo) {
+                const d = fmtNum(n);
+                const f = lastBlueFreq.find(i=>i.number===n);
+                blueSingleList.push({display:d, count:f?f.count:0, rank:f?lastBlueFreq.indexOf(f)+1:'-'});
+            }
+            
             pairList.sort((a,b)=>(a.rank=== '-'?Infinity:a.rank)-(b.rank=== '-'?Infinity:b.rank));
             singleList.sort((a,b)=>(a.rank=== '-'?Infinity:a.rank)-(b.rank=== '-'?Infinity:b.rank));
+            blueSingleList.sort((a,b)=>(a.rank=== '-'?Infinity:a.rank)-(b.rank=== '-'?Infinity:b.rank));
+            
             document.getElementById('pairAnalysisTable').innerHTML = `<table><thead><tr><th>排名</th><th>组合</th><th>次数</th></tr></thead><tbody>${pairList.map(p=>`<tr><td>${p.rank}</td><td class="col-combo">${p.display}</td><td>${p.count}</td></tr>`).join('')}</tbody></table>`;
             document.getElementById('singleAnalysisTable').innerHTML = `<table><thead><tr><th>排名</th><th>数字</th><th>次数</th></tr></thead><tbody>${singleList.map(s=>`<tr><td>${s.rank}</td><td class="col-combo">${s.display}</td><td>${s.count}</td></tr>`).join('')}</tbody></table>`;
+            document.getElementById('bluePairAnalysisTable').innerHTML = `<table><thead><tr><th>排名</th><th>组合</th><th>次数</th></tr></thead><tbody>${bluePairList.map(p=>`<tr><td>${p.rank}</td><td class="col-combo">${p.display}</td><td>${p.count}</td></tr>`).join('')}</tbody></table>`;
+            document.getElementById('blueSingleAnalysisTable').innerHTML = `<table><thead><tr><th>排名</th><th>数字</th><th>次数</th></tr></thead><tbody>${blueSingleList.map(s=>`<tr><td>${s.rank}</td><td class="col-combo">${s.display}</td><td>${s.count}</td></tr>`).join('')}</tbody></table>`;
+            
             document.getElementById('analysisResult').style.display='block';
-            window._analysisData = { pairList, singleList };
+            window._analysisData = { pairList, singleList, bluePairList, blueSingleList };
         };
+        
         window.copyAnalysis = (type) => {
             if(!window._analysisData) return showToast('无数据','error');
-            const lines = type==='pairs' ? window._analysisData.pairList.map(p=>`${p.display}\t${p.count}\t排名${p.rank}`) : window._analysisData.singleList.map(s=>`${s.display}\t${s.count}\t排名${s.rank}`);
+            let lines;
+            switch(type) {
+                case 'pairs':
+                    lines = window._analysisData.pairList.map(p=>`${p.display}\t${p.count}\t排名${p.rank}`);
+                    break;
+                case 'singles':
+                    lines = window._analysisData.singleList.map(s=>`${s.display}\t${s.count}\t排名${s.rank}`);
+                    break;
+                case 'bluePairs':
+                    lines = window._analysisData.bluePairList.map(p=>`${p.display}\t${p.count}\t排名${p.rank}`);
+                    break;
+                case 'blueSingles':
+                    lines = window._analysisData.blueSingleList.map(s=>`${s.display}\t${s.count}\t排名${s.rank}`);
+                    break;
+            }
             navigator.clipboard.writeText(lines.join('\n')).then(()=>showToast('已复制'));
         };
 
         window.loadExample = () => {
-            inputArea.value = '1,2,3,4,5,6-1\n1,2,3,4,5,6,7-2\n01,02,03-04,05,06-16\n10,15,20,25,30,33-08';
+            inputArea.value = '1,2,3,4,5-1,2\n01,02,03,04,05,06-01,02,03\n前区胆：1，前区拖：10,12,13,15,21，后区胆：6，后区拖：7,8,9\n前区胆：无，前区拖：1,2,3,4,5,6，后区胆：无，后区拖：1,2,3';
             showToast('示例已加载');
             setTimeout(calculate, 200);
         };
+        
         window.clearAll = () => {
             inputArea.value = '';
-            statsCard.style.display = resultCard.style.display = singleFreqCard.style.display = blueFreqCard.style.display = 'none';
-            lastResults = lastSingleFreq = lastBlueFreq = null;
-            lastAnalysisInput = ''; window._analysisData = null;
+            statsCard.style.display = resultCard.style.display = singleFreqCard.style.display = blueFreqCard.style.display = bluePairFreqCard.style.display = 'none';
+            lastResults = lastSingleFreq = lastBlueFreq = lastBluePairFreq = null;
+            lastAnalysisInput = ''; 
+            window._analysisData = null;
             showToast('已清空');
         };
-        inputArea.addEventListener('keydown', e => { if((e.ctrlKey||e.metaKey) && e.key==='Enter') { e.preventDefault(); calculate(); } });
+        
+        inputArea.addEventListener('keydown', e => { 
+            if((e.ctrlKey||e.metaKey) && e.key==='Enter') { 
+                e.preventDefault(); 
+                calculate(); 
+            } 
+        });
+        
         window.addEventListener('DOMContentLoaded', ()=> inputArea.focus());
         window.calculate = calculate;
     })();
