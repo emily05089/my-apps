@@ -212,7 +212,6 @@
         return { danStr, tuoStr };
     }
 
-    // 从前区字符串中移除后区信息
     function removeBackArea(str) {
         return str.replace(/后区.*$/g, '').trim();
     }
@@ -363,11 +362,6 @@
 
     // 奖金规则（双色球标准）
     let prize3plus0Money = 5;
-    const prizeMap = {
-        '6+1': 5000000, '6+0': 500000, '5+1': 3000, '5+0': 200, '4+1': 200,
-        '4+0': 10, '3+1': 10, '3+0': 5, '2+1': 5, '1+1': 5, '0+1': 5,
-        '2+0': 0, '1+0': 0, '0+0': 0
-    };
     const order = ['6+1','6+0','5+1','5+0','4+1','4+0','3+1','3+0','2+1','1+1','0+1','2+0','1+0','0+0'];
 
     function sortGroupKeys(keys) {
@@ -522,16 +516,18 @@
     let lastSSQResultText = '';
 
     function generateSSQResultText(draw, lines) {
-        const order = ['6+1','6+0','5+1','5+0','4+1','4+0','3+1','3+0','2+1','1+1','0+1','2+0','1+0','0+0'];
         const currentPrizeMap = {
             '6+1': 5000000, '6+0': 500000, '5+1': 3000, '5+0': 200, '4+1': 200,
             '4+0': 10, '3+1': 10, '3+0': prize3plus0Money, '2+1': 5, '1+1': 5, '0+1': 5,
             '2+0': 0, '1+0': 0, '0+0': 0
         };
 
+        // 收集分组统计和所有命中等级
         let groupStats = {};
+        let allKeys = [];
         let totalTickets = 0;
         let invalidList = [];
+
         for(let idx=0; idx<lines.length; idx++){
             let line = lines[idx];
             let t = line.trim(); if(!t) continue;
@@ -555,39 +551,61 @@
                 for(let n of ticket.back) if(draw.back.has(n)) backHit++;
                 let key = frontHit + '+' + backHit;
                 if(groupStats[gkey][key] !== undefined) groupStats[gkey][key]++;
+                allKeys.push(key);
             }
         }
 
-        let resultText = '';
-        let allCount = {};
-        for(let k of order) allCount[k] = 0;
-        for(let gkey in groupStats){
-            let g = groupStats[gkey];
-            for(let k of order) allCount[k] += (g[k]||0);
+        // 计算全部最高命中等级
+        function getMaxKey(keys) {
+            if(keys.length === 0) return '无';
+            let maxIdx = -1, maxKey = '';
+            for(let k of keys) {
+                let idx = order.indexOf(k);
+                if(idx > maxIdx) { maxIdx = idx; maxKey = k; }
+            }
+            return maxKey;
         }
-        let grandTotal = 0;
+        let allMax = getMaxKey(allKeys);
+
+        // 生成结果文本
+        let resultText = '';
+        resultText += `🎯 全部最多中 ${allMax}\n\n`;
         resultText += `===== 📈 全部总计 (共${totalTickets}注) =====\n`;
-        for(let k of order){
-            let cnt = allCount[k];
-            let money = currentPrizeMap[k];
-            grandTotal += cnt * money;
-            resultText += `${cnt}注 ${k}，共${(cnt*money).toLocaleString()}元\n`;
+        let grandTotal = 0;
+        for(let k of order) {
+            grandTotal += (allKeys.filter(x => x === k).length) * currentPrizeMap[k];
         }
         resultText += `💰 总奖金：${grandTotal.toLocaleString()}元\n`;
 
         let sortedKeys = sortGroupKeys(Object.keys(groupStats));
         for(let gkey of sortedKeys){
             let g = groupStats[gkey];
-            resultText += `\n===== ${gkey} (共${g._total}注) =====\n`;
-            let groupTotal = 0;
-            for(let k of order){
-                let cnt = g[k] || 0;
-                let money = currentPrizeMap[k];
-                groupTotal += cnt * money;
-                resultText += `${cnt}注 ${k}，共${(cnt*money).toLocaleString()}元\n`;
+            // 找出该组出现的等级
+            let groupKeys = [];
+            for(let k of order) {
+                if(g[k] > 0) groupKeys.push(k);
             }
-            resultText += `小计：${groupTotal.toLocaleString()}元\n`;
+            let maxKey = getMaxKey(groupKeys);
+            let minKey = groupKeys.length ? groupKeys.reduce((a,b) => order.indexOf(a) < order.indexOf(b) ? a : b) : '无';
+
+            let groupTotal = 0;
+            for(let k of order) groupTotal += g[k] * currentPrizeMap[k];
+
+            resultText += `\n===== ${gkey} (共${g._total}注) =====\n`;
+            resultText += `最多命中：${maxKey}\n`;
+            resultText += `最少命中：${minKey}\n`;
+            resultText += `奖金小计：${groupTotal.toLocaleString()}元\n`;
+            resultText += `--- 命中分布（按每行最高等级统计） ---\n`;
+
+            // 只列出出现过的等级
+            for(let k of order) {
+                if(g[k] > 0) {
+                    let money = currentPrizeMap[k];
+                    resultText += `${k} ： ${g[k]} 注（行），小计：${(g[k] * money).toLocaleString()}元\n`;
+                }
+            }
         }
+
         return { text: resultText, invalidList };
     }
 
