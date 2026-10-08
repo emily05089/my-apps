@@ -1,838 +1,806 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=2.0">
-    <title>分组工具</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #f0f4f8;
-            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', system-ui, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .container {
-            width: 100%;
-            max-width: 980px;
-            background: white;
-            border-radius: 28px;
-            box-shadow: 0 20px 40px rgba(0, 20, 40, 0.1);
-            padding: 28px 30px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        h1 {
-            font-size: 1.9rem;
-            font-weight: 700;
-            color: #0a2a40;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            border-bottom: 2px solid #e8eef4;
-            padding-bottom: 16px;
-        }
-        h1 .icon {
-            background: linear-gradient(135deg, #c62828, #b71c1c);
-            color: white;
-            font-size: 1.3rem;
-            padding: 4px 16px;
-            border-radius: 30px;
-        }
-        .input-area { display: flex; flex-direction: column; gap: 10px; }
-        label { font-weight: 600; color: #1a3a52; font-size: 0.95rem; }
-        textarea {
-            width: 100%;
-            height: 240px;
-            border: 2px solid #dce3ec;
-            border-radius: 16px;
-            padding: 14px 16px;
-            font-size: 0.95rem;
-            line-height: 1.6;
-            font-family: 'Fira Code', 'Courier New', monospace;
-            background: #fafbfd;
-            resize: vertical;
-            transition: 0.2s;
-            color: #152b3c;
-        }
-        textarea:focus {
-            outline: none;
-            border-color: #1565c0;
-            box-shadow: 0 0 0 4px rgba(21, 101, 192, 0.12);
-            background: white;
-        }
-        .hint {
-            font-size: 0.82rem;
-            color: #5d6f82;
-            background: #f0f4fa;
-            padding: 8px 14px;
-            border-radius: 10px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px 16px;
-        }
-        .hint code {
-            background: #dfe6f0;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.8rem;
-        }
-        .btn-group { display: flex; gap: 12px; flex-wrap: wrap; }
-        .btn {
-            padding: 11px 26px;
-            border-radius: 30px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            border: none;
-            background: #eef2f7;
-            color: #1e3b5a;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn-primary {
-            background: #0b2b44;
-            color: white;
-            box-shadow: 0 4px 12px rgba(11, 43, 68, 0.25);
-        }
-        .btn-primary:hover { background: #123c5a; }
-        .btn:hover { background: #dfe6f0; }
-        .results { display: flex; flex-direction: column; gap: 16px; margin-top: 4px; }
-        .total-box {
-            background: #e8f5e9;
-            border: 2px solid #4caf50;
-            border-radius: 16px;
-            padding: 16px 20px;
-            text-align: center;
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #2e7d32;
-        }
-        .group-card {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 18px;
-            padding: 16px 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-        }
-        .group-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .group-title {
-            font-weight: 700;
-            font-size: 1.05rem;
-            color: #0b2b44;
-            background: #eef3fa;
-            padding: 5px 16px;
-            border-radius: 24px;
-        }
-        .badge {
-            background: #c62828;
-            color: white;
-            border-radius: 16px;
-            padding: 2px 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin-left: 6px;
-        }
-        .copy-btn {
-            background: white;
-            border: 1px solid #cbd5e1;
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: #1e405b;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            transition: 0.2s;
-        }
-        .copy-btn:hover { background: #e8eef6; border-color: #94a3b8; }
-        .copy-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .copy-btn.copied { background: #dcfce7; border-color: #86efac; color: #166534; }
-        .combo-list {
-            background: #f8fafd;
-            border-radius: 12px;
-            padding: 12px 16px;
-            font-family: 'Fira Code', monospace;
-            font-size: 0.88rem;
-            white-space: pre-wrap;
-            word-break: break-word;
-            color: #1a3244;
-            max-height: 220px;
-            overflow-y: auto;
-            border: 1px solid #ebf0f7;
-            line-height: 1.7;
-            min-height: 36px;
-        }
-        .empty { color: #8899aa; font-style: italic; }
-        .error-box {
-            background: #fff5f5;
-            border: 1px solid #fecaca;
-            border-left: 4px solid #c62828;
-            padding: 12px 16px;
-            border-radius: 12px;
-            color: #7f1d1d;
-            font-size: 0.85rem;
-            margin-bottom: 6px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        .error-box summary {
-            cursor: pointer;
-            font-weight: 700;
-            margin-bottom: 8px;
-            color: #991b1b;
-        }
-        .error-item {
-            background: #fef2f2;
-            padding: 6px 10px;
-            border-radius: 6px;
-            margin-bottom: 4px;
-            border-left: 3px solid #ef4444;
-        }
-        .error-line { font-weight: 700; color: #b91c1c; }
-        .error-reason { color: #7f1d1d; margin-left: 6px; }
-        .dup-box {
-            background: #fffbeb;
-            border: 1px solid #fde68a;
-            border-left: 4px solid #f59e0b;
-            padding: 12px 16px;
-            border-radius: 12px;
-            color: #78350f;
-            font-size: 0.85rem;
-            margin-top: 6px;
-        }
-        .dup-box summary {
-            cursor: pointer;
-            font-weight: 700;
-            margin-bottom: 8px;
-            color: #92400e;
-            font-size: 0.95rem;
-        }
-        .dup-list {
-            max-height: 420px;
-            overflow-y: auto;
-            background: #fffaeb;
-            border-radius: 8px;
-            padding: 8px 10px;
-            border: 1px solid #fef3c7;
-        }
-        .dup-item {
-            padding: 8px 10px;
-            border-bottom: 1px dashed #fde68a;
-            font-size: 0.85rem;
-            line-height: 1.7;
-            word-break: break-all;
-        }
-        .dup-item:last-child { border-bottom: none; }
-        .dup-raw {
-            font-family: 'Fira Code', monospace;
-            color: #1a3244;
-            font-weight: 600;
-            background: #fef3c7;
-            padding: 2px 8px;
-            border-radius: 6px;
-        }
-        .dup-type {
-            display: inline-block;
-            background: #0b2b44;
-            color: #fff;
-            font-size: 0.72rem;
-            font-weight: 600;
-            padding: 2px 10px;
-            border-radius: 12px;
-            margin-left: 8px;
-            vertical-align: middle;
-        }
-        .dup-type.cross {
-            background: #b45309;
-        }
-        .dup-count { color: #b45309; font-weight: 700; margin-left: 8px; }
-        .dup-lines { color: #92400e; margin-left: 4px; }
-        .dup-more { text-align: center; color: #92400e; padding: 6px; font-style: italic; }
-        .dup-ok {
-            background: #ecfdf5;
-            border-left: 3px solid #10b981;
-            padding: 10px 14px;
-            border-radius: 8px;
-            color: #065f46;
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
-        .dup-section-title {
-            font-weight: 700;
-            font-size: 0.95rem;
-            color: #78350f;
-            margin: 4px 0 8px 0;
-            padding: 6px 12px;
-            background: #fef3c7;
-            border-radius: 8px;
-            border-left: 3px solid #f59e0b;
-        }
-        .empty-tip {
-            color: #8899aa;
-            text-align: center;
-            padding: 20px;
-            font-style: italic;
-        }
-        @media (max-width: 600px) {
-            .container { padding: 16px; }
-            .btn { padding: 10px 18px; }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=2.0">
+  <title>双分组</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #f0f4f8;
+      font-family: 'Segoe UI', Roboto, 'Helvetica Neue', system-ui, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      width: 100%;
+      max-width: 960px;
+      background: white;
+      border-radius: 28px;
+      box-shadow: 0 20px 40px rgba(0, 20, 40, 0.1);
+      padding: 28px 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    h1 {
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: #0a2a40;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 2px solid #e8eef4;
+      padding-bottom: 16px;
+    }
+    h1 .icon {
+      background: linear-gradient(135deg, #c62828, #b71c1c);
+      color: white;
+      font-size: 1.3rem;
+      padding: 4px 16px;
+      border-radius: 30px;
+    }
+    .input-area { display: flex; flex-direction: column; gap: 10px; }
+    label { font-weight: 600; color: #1a3a52; font-size: 0.95rem; }
+    textarea {
+      width: 100%;
+      height: 220px;
+      border: 2px solid #dce3ec;
+      border-radius: 16px;
+      padding: 14px 16px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      font-family: 'Fira Code', 'Courier New', monospace;
+      background: #fafbfd;
+      resize: vertical;
+      transition: 0.2s;
+      color: #152b3c;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: #1565c0;
+      box-shadow: 0 0 0 4px rgba(21, 101, 192, 0.12);
+      background: white;
+    }
+    .hint {
+      font-size: 0.82rem;
+      color: #5d6f82;
+      background: #f0f4fa;
+      padding: 8px 14px;
+      border-radius: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+    }
+    .hint code {
+      background: #dfe6f0;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+    }
+    .btn-group { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn {
+      padding: 11px 26px;
+      border-radius: 30px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      border: none;
+      background: #eef2f7;
+      color: #1e3b5a;
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary {
+      background: #0b2b44;
+      color: white;
+      box-shadow: 0 4px 12px rgba(11, 43, 68, 0.25);
+    }
+    .btn-primary:hover { background: #123c5a; }
+    .btn:hover { background: #dfe6f0; }
+    .results { display: flex; flex-direction: column; gap: 16px; margin-top: 4px; }
+    .total-box {
+      background: #e8f5e9;
+      border: 2px solid #4caf50;
+      border-radius: 16px;
+      padding: 16px 20px;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #2e7d32;
+    }
+    .group-card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 16px 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+    .group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .group-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: #0b2b44;
+      background: #eef3fa;
+      padding: 5px 16px;
+      border-radius: 24px;
+    }
+    .badge {
+      background: #c62828;
+      color: white;
+      border-radius: 16px;
+      padding: 2px 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: 6px;
+    }
+    .copy-btn {
+      background: white;
+      border: 1px solid #cbd5e1;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #1e405b;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: 0.2s;
+    }
+    .copy-btn:hover { background: #e8eef6; border-color: #94a3b8; }
+    .copy-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .copy-btn.copied { background: #dcfce7; border-color: #86efac; color: #166534; }
+    .combo-list {
+      background: #f8fafd;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.88rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #1a3244;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #ebf0f7;
+      line-height: 1.7;
+      min-height: 36px;
+    }
+    .empty { color: #8899aa; font-style: italic; }
+    .error-box {
+      background: #fff5f5;
+      border: 1px solid #fecaca;
+      border-left: 4px solid #c62828;
+      padding: 12px 16px;
+      border-radius: 12px;
+      color: #7f1d1d;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .error-box summary {
+      cursor: pointer;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #991b1b;
+    }
+    .error-item {
+      background: #fef2f2;
+      padding: 6px 10px;
+      border-radius: 6px;
+      margin-bottom: 4px;
+      border-left: 3px solid #ef4444;
+    }
+    .error-line { font-weight: 700; color: #b91c1c; }
+    .error-reason { color: #7f1d1d; margin-left: 6px; }
+    /* 重复检测样式 */
+    .dup-box {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-left: 4px solid #f59e0b;
+      padding: 12px 16px;
+      border-radius: 12px;
+      color: #78350f;
+      font-size: 0.85rem;
+      margin-top: 6px;
+    }
+    .dup-box summary {
+      cursor: pointer;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #92400e;
+      font-size: 0.95rem;
+    }
+    .dup-list {
+      max-height: 420px;
+      overflow-y: auto;
+      background: #fffaeb;
+      border-radius: 8px;
+      padding: 8px 10px;
+      border: 1px solid #fef3c7;
+    }
+    .dup-item {
+      padding: 8px 10px;
+      border-bottom: 1px dashed #fde68a;
+      font-size: 0.85rem;
+      line-height: 1.7;
+      word-break: break-all;
+    }
+    .dup-item:last-child { border-bottom: none; }
+    .dup-raw {
+      font-family: 'Fira Code', monospace;
+      color: #1a3244;
+      font-weight: 600;
+      background: #fef3c7;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+    .dup-type {
+      display: inline-block;
+      background: #0b2b44;
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: 12px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .dup-type.cross {
+      background: #b45309;
+    }
+    .dup-count { color: #b45309; font-weight: 700; margin-left: 8px; }
+    .dup-lines { color: #92400e; margin-left: 4px; }
+    .dup-ok {
+      background: #ecfdf5;
+      border-left: 3px solid #10b981;
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: #065f46;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .dup-section-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #78350f;
+      margin: 4px 0 8px 0;
+      padding: 6px 12px;
+      background: #fef3c7;
+      border-radius: 8px;
+      border-left: 3px solid #f59e0b;
+    }
+    @media (max-width: 600px) {
+      .container { padding: 16px; }
+      .btn { padding: 10px 18px; }
+    }
+  </style>
 </head>
 <body>
 <div class="container">
-    <h1>
-        🎯 分组工具
-        <span class="icon">前区·后区</span>
-    </h1>
+  <h1>
+    🎱 双分组
+    <span class="icon">逐项分组·重复检测</span>
+  </h1>
 
-    <div class="input-area">
-        <label>📋 输入组合（支持复式、胆拖，胆码可写“无”）</label>
-        <textarea id="comboInput" placeholder="单式：1,2,3,4,5-1,2
-复式：1,2,3,4,5,6,7,8-1,2,3
-胆拖：前区胆：1，前区拖：10，12，13，15，21，后区胆：6，后区拖：7，8，9
-前区胆：无，前区拖：01,02,03,04,05,06，后区胆：无，后区拖：01,02,03
+  <div class="input-area">
+    <label>📋 输入组合（蓝球可多个，胆拖必须带“拖”字）</label>
+    <textarea id="comboInput" placeholder="单式：1,2,3,4,5,6-1,2,3
+复式：1,2,3,4,5,6,7,8-1
+胆拖：胆:04,07,16,27 拖:05,08,14,15,20,30-1
 ..."></textarea>
-        <div class="hint">
-            <span>✅ 前区号码范围 1-35，后区号码范围 1-12</span>
-            <span>✅ 中文逗号、英文逗号均可</span>
-            <span>✅ 数字 1-9 或 01-09 均可识别</span>
-            <span>✅ 胆拖中“无”表示该区没有胆码</span>
-            <span>📊 自动拆分并统计单式注数</span>
-            <span>🔁 单式5个只看跨块重复；复式≥6与胆拖看所有重复</span>
-        </div>
+    <div class="hint">
+      <span>✅ 蓝球用 <code>-</code> 分隔，多个蓝球用逗号</span>
+      <span>✅ 胆拖必须含“拖”字</span>
+      <span>📊 自动统计拆分后的6数字组合总数</span>
     </div>
+  </div>
 
-    <div class="btn-group">
-        <button class="btn btn-primary" id="groupBtn">📊 确定并分组</button>
-        <button class="btn" id="clearBtn">🗑️ 清空</button>
-        <button class="btn" id="demoBtn">✨ 加载示例</button>
-    </div>
+  <div class="btn-group">
+    <button class="btn btn-primary" id="groupBtn">📊 确定并分组</button>
+    <button class="btn" id="clearBtn">🗑️ 清空</button>
+    <button class="btn" id="demoBtn">✨ 加载示例</button>
+  </div>
 
-    <div id="resultsContainer" class="results"></div>
+  <div id="resultsContainer" class="results"></div>
 </div>
 
 <script>
-    (function() {
-        // 动态生成分组定义：标准型 5-35 每个数量单独一组；胆拖按前区胆 0-4
-        const GROUP_DEFS = [];
-        for (let i = 5; i <= 35; i++) {
-            GROUP_DEFS.push({
-                id: 'g' + i,
-                label: `前区${i}个数字的组合`,
-                test: (item) => item.type === 'standard' && item.qianCount === i
-            });
+(function() {
+  // ========== 工具函数 ==========
+  function extractNums(str) {
+    const cleaned = str.replace(/\./g, ',').replace(/，/g, ',').replace(/\s+/g, ',').replace(/,+/g, ',');
+    const parts = cleaned.split(',');
+    const nums = [];
+    const invalidNums = [];
+    for (let p of parts) {
+      const v = p.trim();
+      if (!v) continue;
+      const n = Number(v);
+      if (!isNaN(n) && Number.isInteger(n)) {
+        if (n >= 1 && n <= 33) nums.push(n);
+        else invalidNums.push(n);
+      }
+    }
+    return { nums, invalidNums };
+  }
+
+  function splitBlue(line) {
+    const trimmed = line.trim();
+    const lastDash = trimmed.lastIndexOf('-');
+    if (lastDash === -1) return { redPart: trimmed, blueList: [] };
+    const redPart = trimmed.substring(0, lastDash).trim();
+    const blueStr = trimmed.substring(lastDash + 1).trim();
+    const parts = blueStr.split(',').map(s => s.trim()).filter(s => s !== '');
+    const blueList = [];
+    for (let p of parts) {
+      const n = parseInt(p, 10);
+      if (!isNaN(n) && n >= 1 && n <= 16) blueList.push(n);
+    }
+    if (blueList.length === 0) return { redPart: trimmed, blueList: [] };
+    return { redPart, blueList };
+  }
+
+  function isDanLine(line) {
+    const t = line.trim();
+    return /胆\s*[:：]/i.test(t) && !/拖\s*[:：]/i.test(t);
+  }
+  function isTuoLine(line) {
+    const t = line.trim();
+    return /^拖\s*[:：]\s*\d/i.test(t) && !/胆/i.test(t);
+  }
+  function isDantuoSameLine(line) {
+    const d = line.search(/胆\s*[:：]/i);
+    const t = line.search(/拖\s*[:：]/i);
+    return d !== -1 && t !== -1 && d < t;
+  }
+
+  function preprocessLines(rawLines) {
+    const merged = [];
+    let i = 0;
+    while (i < rawLines.length) {
+      const line = rawLines[i].trim();
+      if (!line) { i++; continue; }
+      if (isDantuoSameLine(line)) { merged.push(line); i++; continue; }
+      if (isDanLine(line)) {
+        let j = i + 1;
+        while (j < rawLines.length && rawLines[j].trim() === '') j++;
+        if (j < rawLines.length && isTuoLine(rawLines[j].trim())) {
+          const tuoRaw = rawLines[j].trim();
+          merged.push(line + ' ' + tuoRaw);
+          i = j + 1;
+        } else {
+          merged.push(line);
+          i++;
         }
-        const dantuoLabels = {
-            0: '前区0个胆（全拖）',
-            1: '前区1个胆的组合',
-            2: '前区2个胆的组合',
-            3: '前区3个胆的组合',
-            4: '前区4个胆的组合'
-        };
-        for (let i = 0; i <= 4; i++) {
-            GROUP_DEFS.push({
-                id: 'd' + i,
-                label: dantuoLabels[i],
-                test: (item) => item.type === 'dantuo' && item.qianDanCount === i
-            });
+        continue;
+      }
+      if (isTuoLine(line)) { merged.push(line); i++; continue; }
+      merged.push(line);
+      i++;
+    }
+    return merged;
+  }
+
+  function parseLine(line) {
+    const trimmed = line.trim();
+    if (!trimmed) return null;
+    const { redPart, blueList } = splitBlue(trimmed);
+    const danIdx = redPart.search(/胆\s*[:：]/i);
+    const tuoIdx = redPart.search(/拖\s*[:：]/i);
+
+    if (danIdx !== -1 && tuoIdx !== -1 && danIdx < tuoIdx) {
+      const danPart = redPart.substring(danIdx, tuoIdx).replace(/胆\s*[:：]\s*/i, '').trim();
+      const tuoPart = redPart.substring(tuoIdx).replace(/拖\s*[:：]\s*/i, '').trim();
+      return buildDantuoResult(trimmed, danPart, tuoPart, blueList);
+    } else if (danIdx !== -1 && tuoIdx === -1) {
+      return { type: 'invalid', raw: trimmed, reason: '缺少拖码（必须包含“拖”字）' };
+    } else if (danIdx === -1 && tuoIdx !== -1) {
+      return { type: 'invalid', raw: trimmed, reason: '缺少胆码' };
+    } else {
+      const result = extractNums(redPart);
+      if (result.invalidNums.length > 0) {
+        return { type: 'invalid', raw: trimmed, reason: `超出1-33：[${result.invalidNums.join(',')}]` };
+      }
+      const nums = result.nums.sort((a,b)=>a-b);
+      if (nums.length === 0) return { type: 'invalid', raw: trimmed, reason: '未识别到1-33的数字' };
+      if (new Set(nums).size !== nums.length) return { type: 'invalid', raw: trimmed, reason: `数字重复：[${nums.join(',')}]` };
+      if (nums.length < 6) return { type: 'invalid', raw: trimmed, reason: `只有${nums.length}个数字：[${nums.join(',')}]，至少需要6个` };
+      return { type: 'standard', raw: trimmed, count: nums.length, nums, blueList };
+    }
+  }
+
+  function buildDantuoResult(raw, danPart, tuoPart, blueList) {
+    const danResult = extractNums(danPart);
+    const tuoResult = extractNums(tuoPart);
+    if (danResult.invalidNums.length > 0) return { type: 'invalid', raw, reason: `胆码超出1-33：[${danResult.invalidNums.join(',')}]` };
+    if (tuoResult.invalidNums.length > 0) return { type: 'invalid', raw, reason: `拖码超出1-33：[${tuoResult.invalidNums.join(',')}]` };
+    const danNums = danResult.nums.sort((a,b)=>a-b);
+    const tuoNums = tuoResult.nums.sort((a,b)=>a-b);
+    if (danNums.length < 1 || danNums.length > 5) return { type: 'invalid', raw, reason: `胆码数量必须1-5个，当前${danNums.length}个` };
+    if (tuoNums.length < 2) return { type: 'invalid', raw, reason: `拖码至少需要2个，当前${tuoNums.length}个` };
+    if (danNums.length + tuoNums.length < 6) return { type: 'invalid', raw, reason: `胆拖总数不足6个` };
+    if (new Set(danNums).size !== danNums.length) return { type: 'invalid', raw, reason: `胆码重复：[${danNums.join(',')}]` };
+    if (new Set(tuoNums).size !== tuoNums.length) return { type: 'invalid', raw, reason: `拖码重复：[${tuoNums.join(',')}]` };
+    for (let n of danNums) if (tuoNums.includes(n)) return { type: 'invalid', raw, reason: `数字${n}在胆拖中重复` };
+    return { type: 'dantuo', raw, danCount: danNums.length, tuoCount: tuoNums.length, danNums, tuoNums, blueList };
+  }
+
+  function combinations(arr, k) {
+    if (k === 0) return [[]];
+    if (arr.length < k) return [];
+    const result = [];
+    const f = (start, chosen) => {
+      if (chosen.length === k) { result.push([...chosen]); return; }
+      for (let i = start; i <= arr.length - (k - chosen.length); i++) {
+        chosen.push(arr[i]);
+        f(i + 1, chosen);
+        chosen.pop();
+      }
+    };
+    f(0, []);
+    return result;
+  }
+
+  function countExpanded(item) {
+    let combos = 0;
+    if (item.type === 'standard') {
+      if (item.count === 6) combos = 1;
+      else combos = combinations(item.nums, 6).length;
+    } else if (item.type === 'dantuo') {
+      const need = 6 - item.danCount;
+      combos = combinations(item.tuoNums, need).length;
+    }
+    const blueCount = item.blueList && item.blueList.length > 0 ? item.blueList.length : 1;
+    return combos * blueCount;
+  }
+
+  function getNormKey(parsed) {
+    if (parsed.type === 'standard') {
+      const red = parsed.nums.slice().sort((a,b)=>a-b).join(',');
+      const blue = (parsed.blueList || []).slice().sort((a,b)=>a-b).join(',');
+      return `S|${red}|${blue}`;
+    } else if (parsed.type === 'dantuo') {
+      const dan = parsed.danNums.slice().sort((a,b)=>a-b).join(',');
+      const tuo = parsed.tuoNums.slice().sort((a,b)=>a-b).join(',');
+      const blue = (parsed.blueList || []).slice().sort((a,b)=>a-b).join(',');
+      return `D|${dan}|${tuo}|${blue}`;
+    }
+    return null;
+  }
+
+  // 找出连续段
+  function findSegments(lineNums) {
+    if (lineNums.length === 0) return [];
+    const segments = [];
+    let start = lineNums[0];
+    let end = lineNums[0];
+    for (let i = 1; i < lineNums.length; i++) {
+      if (lineNums[i] === end + 1) {
+        end = lineNums[i];
+      } else {
+        segments.push({ start, end });
+        start = lineNums[i];
+        end = lineNums[i];
+      }
+    }
+    segments.push({ start, end });
+    return segments;
+  }
+
+  // ========== 主处理 ==========
+  function process() {
+    const textarea = document.getElementById('comboInput');
+    const rawLines = textarea.value.split(/\r?\n/);
+    const mergedLines = preprocessLines(rawLines);
+
+    const parsedList = [];
+    const errors = [];
+    let totalCount = 0;
+
+    // 用于重复检测（同时保存原始行文本）
+    const single6Map = new Map(); // normKey -> { lines: [], raw }
+    const multiMap = new Map();   // normKey -> { count, label, lines: [], raw }
+    const dantuoMap = new Map();  // normKey -> { count, label, lines: [], raw }
+
+    const standardCounts = new Set();
+    const dantuoCounts = new Set();
+
+    for (let i = 0; i < mergedLines.length; i++) {
+      const line = mergedLines[i];
+      if (!line.trim()) continue;
+      const parsed = parseLine(line);
+      if (parsed.type === 'invalid') {
+        errors.push({ lineNum: i + 1, reason: parsed.reason, raw: parsed.raw });
+        continue;
+      }
+
+      const lineNum = i + 1;
+      parsedList.push({ lineNum, parsed });
+      totalCount += countExpanded(parsed);
+
+      if (parsed.type === 'standard') {
+        standardCounts.add(parsed.count);
+      } else if (parsed.type === 'dantuo') {
+        dantuoCounts.add(parsed.danCount);
+      }
+
+      const norm = getNormKey(parsed);
+      if (norm) {
+        if (parsed.type === 'standard' && parsed.count === 6) {
+          if (!single6Map.has(norm)) single6Map.set(norm, { lines: [], raw: parsed.raw });
+          single6Map.get(norm).lines.push(lineNum);
+        } else if (parsed.type === 'standard' && parsed.count >= 7) {
+          if (!multiMap.has(norm)) multiMap.set(norm, { count: 0, label: `${parsed.count}个数字的组合`, lines: [], raw: parsed.raw });
+          const info = multiMap.get(norm);
+          info.count++;
+          info.lines.push(lineNum);
+        } else if (parsed.type === 'dantuo') {
+          if (!dantuoMap.has(norm)) dantuoMap.set(norm, { count: 0, label: `${parsed.danCount}个胆的组合`, lines: [], raw: parsed.raw });
+          const info = dantuoMap.get(norm);
+          info.count++;
+          info.lines.push(lineNum);
         }
+      }
+    }
 
-        function extractNumsInRange(str, min, max) {
-            if (!str) return { nums: [], invalidNums: [] };
-            let cleaned = str.replace(/，/g, ',').replace(/\s+/g, ',');
-            cleaned = cleaned.replace(/,+/g, ',');
-            const parts = cleaned.split(',');
-            const nums = [];
-            const invalidNums = [];
-            for (let p of parts) {
-                const v = p.trim();
-                if (!v) continue;
-                const n = Number(v);
-                if (!isNaN(n) && Number.isInteger(n) && n >= min && n <= max) {
-                    nums.push(n);
-                } else if (!isNaN(n) && Number.isInteger(n)) {
-                    invalidNums.push(n);
-                } else {
-                    invalidNums.push(v);
-                }
-            }
-            return { nums, invalidNums };
+    // ========== 动态分组 ==========
+    const GROUP_DEFS = [];
+    const sortedStandardCounts = Array.from(standardCounts).sort((a,b)=>a-b);
+    for (let cnt of sortedStandardCounts) {
+      GROUP_DEFS.push({
+        id: 'g' + cnt,
+        label: `单式/复式：${cnt}个数字的组合`,
+        test: (item) => item.type === 'standard' && item.count === cnt
+      });
+    }
+    const sortedDantuoCounts = Array.from(dantuoCounts).sort((a,b)=>a-b);
+    for (let dc of sortedDantuoCounts) {
+      GROUP_DEFS.push({
+        id: 'd' + dc,
+        label: `胆拖形式：${dc}个胆的组合`,
+        test: (item) => item.type === 'dantuo' && item.danCount === dc
+      });
+    }
+
+    const groups = GROUP_DEFS.map(g => ({ ...g, items: [] }));
+    for (let { parsed } of parsedList) {
+      for (let g of groups) {
+        if (g.test(parsed)) {
+          g.items.push(parsed.raw);
         }
+      }
+    }
 
-        function isNoneOrEmpty(s) {
-            if (!s) return true;
-            let cleaned = s.replace(/^[,，\s]+|[,，\s]+$/g, '').trim();
-            return !cleaned || /^无$/i.test(cleaned);
+    // ========== 生成重复数据（结构化） ==========
+    const single6Dups = [];
+    for (let [key, info] of single6Map.entries()) {
+      if (info.lines.length < 2) continue;
+      const lines = info.lines.slice().sort((a,b)=>a-b);
+      const segments = findSegments(lines);
+      if (segments.length > 1) {
+        // 找第一个跨块对（第一段起点 + 后面某段起点）
+        let crossPair = null;
+        let firstStart = lines[0];
+        for (let i = 1; i < lines.length; i++) {
+          if (lines[i] - lines[i-1] > 1) {
+            crossPair = [firstStart, lines[i]];
+            break;
+          }
         }
-
-        function parseStandardLine(trimmed, raw) {
-            const lastDash = trimmed.lastIndexOf('-');
-            if (lastDash === -1) {
-                return { type: 'invalid', raw, reason: '缺少分隔符“-”来区分前区和后区' };
-            }
-            const qianPart = trimmed.substring(0, lastDash).trim();
-            const houPart = trimmed.substring(lastDash + 1).trim();
-            if (!qianPart || !houPart) {
-                return { type: 'invalid', raw, reason: '前区或后区为空' };
-            }
-            const qianResult = extractNumsInRange(qianPart, 1, 35);
-            const houResult = extractNumsInRange(houPart, 1, 12);
-
-            if (qianResult.invalidNums.length > 0) {
-                return { type: 'invalid', raw, reason: `前区号码超出1-35或非法：[${qianResult.invalidNums.join(',')}]` };
-            }
-            if (houResult.invalidNums.length > 0) {
-                return { type: 'invalid', raw, reason: `后区号码超出1-12或非法：[${houResult.invalidNums.join(',')}]` };
-            }
-
-            const qianNums = qianResult.nums.sort((a, b) => a - b);
-            const houNums = houResult.nums.sort((a, b) => a - b);
-
-            if (qianNums.length < 5) {
-                return { type: 'invalid', raw, reason: `前区只有${qianNums.length}个号码，至少需要5个` };
-            }
-            if (houNums.length < 2) {
-                return { type: 'invalid', raw, reason: `后区只有${houNums.length}个号码，至少需要2个` };
-            }
-            if (new Set(qianNums).size !== qianNums.length) {
-                return { type: 'invalid', raw, reason: `前区号码重复：[${qianNums.join(',')}]` };
-            }
-            if (new Set(houNums).size !== houNums.length) {
-                return { type: 'invalid', raw, reason: `后区号码重复：[${houNums.join(',')}]` };
-            }
-
-            return {
-                type: 'standard',
-                raw,
-                qianCount: qianNums.length,
-                houCount: houNums.length,
-                qianNums,
-                houNums
-            };
-        }
-
-        function parseDantuoLine(trimmed, raw) {
-            const qianDanMatch = trimmed.match(/前区胆\s*[:：]\s*([\s\S]*?)(?=前区拖|后区胆|后区拖|$)/i);
-            const qianTuoMatch = trimmed.match(/前区拖\s*[:：]\s*([\s\S]*?)(?=后区胆|后区拖|$)/i);
-            const houDanMatch = trimmed.match(/后区胆\s*[:：]\s*([\s\S]*?)(?=后区拖|$)/i);
-            const houTuoMatch = trimmed.match(/后区拖\s*[:：]\s*([\s\S]*?)$/i);
-
-            const qianDanStr = qianDanMatch ? qianDanMatch[1].trim() : '';
-            const qianTuoStr = qianTuoMatch ? qianTuoMatch[1].trim() : '';
-            const houDanStr = houDanMatch ? houDanMatch[1].trim() : '';
-            const houTuoStr = houTuoMatch ? houTuoMatch[1].trim() : '';
-
-            if (!/前区胆\s*[:：]/i.test(trimmed)) return { type: 'invalid', raw, reason: '缺少“前区胆”' };
-            if (!/前区拖\s*[:：]/i.test(trimmed)) return { type: 'invalid', raw, reason: '缺少“前区拖”' };
-            if (!/后区胆\s*[:：]/i.test(trimmed)) return { type: 'invalid', raw, reason: '缺少“后区胆”' };
-            if (!/后区拖\s*[:：]/i.test(trimmed)) return { type: 'invalid', raw, reason: '缺少“后区拖”' };
-
-            let qianDanNums = [];
-            let qianTuoNums = [];
-            let houDanNums = [];
-            let houTuoNums = [];
-
-            if (!isNoneOrEmpty(qianDanStr)) {
-                const r = extractNumsInRange(qianDanStr, 1, 35);
-                qianDanNums = r.nums;
-                if (r.invalidNums.length > 0) return { type: 'invalid', raw, reason: `前区胆码超出1-35或非法：[${r.invalidNums.join(',')}]` };
-            }
-            if (!isNoneOrEmpty(qianTuoStr)) {
-                const r = extractNumsInRange(qianTuoStr, 1, 35);
-                qianTuoNums = r.nums;
-                if (r.invalidNums.length > 0) return { type: 'invalid', raw, reason: `前区拖码超出1-35或非法：[${r.invalidNums.join(',')}]` };
-            }
-            if (!isNoneOrEmpty(houDanStr)) {
-                const r = extractNumsInRange(houDanStr, 1, 12);
-                houDanNums = r.nums;
-                if (r.invalidNums.length > 0) return { type: 'invalid', raw, reason: `后区胆码超出1-12或非法：[${r.invalidNums.join(',')}]` };
-            }
-            if (!isNoneOrEmpty(houTuoStr)) {
-                const r = extractNumsInRange(houTuoStr, 1, 12);
-                houTuoNums = r.nums;
-                if (r.invalidNums.length > 0) return { type: 'invalid', raw, reason: `后区拖码超出1-12或非法：[${r.invalidNums.join(',')}]` };
-            }
-
-            qianDanNums.sort((a,b)=>a-b);
-            qianTuoNums.sort((a,b)=>a-b);
-            houDanNums.sort((a,b)=>a-b);
-            houTuoNums.sort((a,b)=>a-b);
-
-            const qianDanCount = qianDanNums.length;
-            const qianTuoCount = qianTuoNums.length;
-            const houDanCount = houDanNums.length;
-            const houTuoCount = houTuoNums.length;
-
-            if (qianDanCount > 4) return { type: 'invalid', raw, reason: `前区胆码最多4个，当前${qianDanCount}个` };
-            if (qianDanCount + qianTuoCount < 5) return { type: 'invalid', raw, reason: `前区胆+拖总数不足5个` };
-            if (houDanCount > 2) return { type: 'invalid', raw, reason: `后区胆码最多2个，当前${houDanCount}个` };
-            if (houDanCount + houTuoCount < 2) return { type: 'invalid', raw, reason: `后区胆+拖总数不足2个` };
-
-            if (new Set(qianDanNums).size !== qianDanNums.length) return { type: 'invalid', raw, reason: `前区胆码重复：[${qianDanNums.join(',')}]` };
-            if (new Set(qianTuoNums).size !== qianTuoNums.length) return { type: 'invalid', raw, reason: `前区拖码重复：[${qianTuoNums.join(',')}]` };
-            if (new Set(houDanNums).size !== houDanNums.length) return { type: 'invalid', raw, reason: `后区胆码重复：[${houDanNums.join(',')}]` };
-            if (new Set(houTuoNums).size !== houTuoNums.length) return { type: 'invalid', raw, reason: `后区拖码重复：[${houTuoNums.join(',')}]` };
-
-            for (let n of qianDanNums) if (qianTuoNums.includes(n)) return { type: 'invalid', raw, reason: `数字${n}在前区胆与拖中重复` };
-            for (let n of houDanNums) if (houTuoNums.includes(n)) return { type: 'invalid', raw, reason: `数字${n}在后区胆与拖中重复` };
-
-            return {
-                type: 'dantuo',
-                raw,
-                qianDanCount,
-                qianTuoCount,
-                houDanCount,
-                houTuoCount,
-                qianDanNums,
-                qianTuoNums,
-                houDanNums,
-                houTuoNums
-            };
-        }
-
-        function parseLine(line) {
-            const trimmed = line.trim();
-            if (!trimmed) return null;
-            if (/前区胆\s*[:：]|前区拖\s*[:：]|后区胆\s*[:：]|后区拖\s*[:：]/i.test(trimmed)) {
-                return parseDantuoLine(trimmed, trimmed);
-            } else {
-                return parseStandardLine(trimmed, trimmed);
-            }
-        }
-
-        function combinationsCount(n, k) {
-            if (k < 0 || n < k) return 0;
-            if (k === 0 || n === k) return 1;
-            let result = 1;
-            for (let i = 1; i <= k; i++) {
-                result = result * (n - k + i) / i;
-            }
-            return Math.round(result);
-        }
-
-        function countExpanded(item) {
-            if (item.type === 'standard') {
-                return combinationsCount(item.qianCount, 5) * combinationsCount(item.houCount, 2);
-            } else if (item.type === 'dantuo') {
-                const qianNeed = 5 - item.qianDanCount;
-                const houNeed = 2 - item.houDanCount;
-                return combinationsCount(item.qianTuoCount, qianNeed) * combinationsCount(item.houTuoCount, houNeed);
-            }
-            return 0;
-        }
-
-        function buildTypeLabel(parsed) {
-            if (parsed.type === 'standard') {
-                if (parsed.qianCount === 5) return '单式5个';
-                return `复式${parsed.qianCount}个`;
-            } else if (parsed.type === 'dantuo') {
-                return `前区${parsed.qianDanCount}胆`;
-            }
-            return '';
-        }
-
-        function isSingle5(parsed) {
-            return parsed.type === 'standard' && parsed.qianCount === 5;
-        }
-
-        function findSegments(lineNums) {
-            if (lineNums.length === 0) return [];
-            const segments = [];
-            let start = lineNums[0];
-            let end = lineNums[0];
-            for (let i = 1; i < lineNums.length; i++) {
-                if (lineNums[i] === end + 1) {
-                    end = lineNums[i];
-                } else {
-                    segments.push({ start, end });
-                    start = lineNums[i];
-                    end = lineNums[i];
-                }
-            }
-            segments.push({ start, end });
-            return segments;
-        }
-
-        function process() {
-            const textarea = document.getElementById('comboInput');
-            const rawLines = textarea.value.split(/\r?\n/);
-            const groups = GROUP_DEFS.map(g => ({ ...g, items: [] }));
-            const errors = [];
-            let totalCount = 0;
-
-            const dupMap = new Map();
-            let singleCheckedCount = 0;   // 只统计单式5个
-            let otherCheckedCount = 0;    // 统计复式≥6及胆拖
-
-            for (let i = 0; i < rawLines.length; i++) {
-                const line = rawLines[i];
-                if (!line.trim()) continue;
-                const parsed = parseLine(line);
-                if (parsed.type === 'invalid') {
-                    errors.push({ lineNum: i + 1, reason: parsed.reason, raw: parsed.raw });
-                    continue;
-                }
-
-                totalCount += countExpanded(parsed);
-
-                let anyMatched = false;
-                for (let g of groups) {
-                    if (g.test(parsed)) {
-                        g.items.push(parsed.raw);
-                        anyMatched = true;
-                    }
-                }
-                if (!anyMatched) errors.push({ lineNum: i + 1, reason: '无法匹配任何分组', raw: parsed.raw });
-
-                // 重复检测
-                let sig = '';
-                if (parsed.type === 'standard') {
-                    sig = 'S|' + parsed.qianNums.join(',') + '|' + parsed.houNums.join(',');
-                } else if (parsed.type === 'dantuo') {
-                    sig = 'D|'
-                        + parsed.qianDanNums.join(',') + '|'
-                        + parsed.qianTuoNums.join(',') + '|'
-                        + parsed.houDanNums.join(',') + '|'
-                        + parsed.houTuoNums.join(',');
-                }
-
-                if (sig) {
-                    // ★ 只统计单式5个；复式/胆拖统计到 otherCheckedCount
-                    if (isSingle5(parsed)) singleCheckedCount++;
-                    else otherCheckedCount++;
-
-                    let entry = dupMap.get(sig);
-                    if (!entry) {
-                        entry = { count: 0, lineNums: new Set(), raws: [], parsedFirst: parsed };
-                        dupMap.set(sig, entry);
-                    }
-                    entry.count++;
-                    entry.lineNums.add(i + 1);
-                    entry.raws.push(parsed.raw);
-                }
-            }
-
-            // 分类
-            const dupSingle5 = [];
-            const dupOther = [];
-            for (const [sig, entry] of dupMap) {
-                const sortedLines = [...entry.lineNums].sort((a, b) => a - b);
-                if (sortedLines.length < 2) continue;
-
-                const parsedFirst = entry.parsedFirst;
-
-                if (isSingle5(parsedFirst)) {
-                    const segments = findSegments(sortedLines);
-                    if (segments.length > 1) {
-                        dupSingle5.push({
-                            sig,
-                            displayLines: segments.map(s => s.start),
-                            segmentCount: segments.length,
-                            raws: entry.raws,
-                            typeLabel: buildTypeLabel(parsedFirst)
-                        });
-                    }
-                } else {
-                    dupOther.push({
-                        sig,
-                        displayLines: sortedLines,
-                        count: sortedLines.length,
-                        raws: entry.raws,
-                        typeLabel: buildTypeLabel(parsedFirst)
-                    });
-                }
-            }
-
-            dupSingle5.sort((a, b) => b.segmentCount - a.segmentCount || a.sig.localeCompare(b.sig));
-            dupOther.sort((a, b) => b.count - a.count || a.sig.localeCompare(b.sig));
-
-            const MAX_DUP_SHOW = 300;
-            const dupResult = {
-                dupSingle5: dupSingle5.slice(0, MAX_DUP_SHOW),
-                dupSingle5Total: dupSingle5.length,
-                dupOther: dupOther.slice(0, MAX_DUP_SHOW),
-                dupOtherTotal: dupOther.length,
-                singleCheckedCount,
-                otherCheckedCount
-            };
-
-            render(groups, errors, totalCount, dupResult);
-        }
-
-        function render(groups, errors, totalCount, dupResult) {
-            const container = document.getElementById('resultsContainer');
-            let html = '';
-
-            if (errors.length) {
-                html += `<details class="error-box" open><summary>⚠️ ${errors.length} 行错误，已跳过（点击折叠）</summary>`;
-                for (let err of errors) {
-                    html += `<div class="error-item"><span class="error-line">第${err.lineNum}行</span> <span class="error-reason">【${err.reason}】</span><br><span style="color:#991b1b;font-family:monospace;">原文：${escHtml(err.raw)}</span></div>`;
-                }
-                html += `</details>`;
-            }
-
-            html += `<div class="total-box">📊 一共生成了 <strong>${totalCount}</strong> 注单式组合</div>`;
-
-            const groupsData = {};
-            const nonEmptyGroups = [];
-            for (let g of groups) {
-                if (g.items.length > 0) {
-                    groupsData[g.id] = g.items.join('\n');
-                    nonEmptyGroups.push(g);
-                }
-            }
-
-            if (nonEmptyGroups.length === 0) {
-                html += `<div class="empty-tip">暂无有效分组内容</div>`;
-            } else {
-                for (let g of nonEmptyGroups) {
-                    const content = groupsData[g.id];
-                    html += `<div class="group-card"><div class="group-header"><span class="group-title">📌 ${escHtml(g.label)} <span class="badge">${g.items.length} 组</span></span><button class="copy-btn" data-group-id="${g.id}">📋 复制本组</button></div><div class="combo-list">${escHtml(content)}</div></div>`;
-                }
-            }
-
-            // ===== 重复检测：两个独立模块 =====
-            html += `<div class="dup-box">`;
-
-            // 模块1：单式5个（跨块）
-            html += `<div class="dup-section-title">① 单式5个 — 跨块重复检测</div>`;
-            if (dupResult.singleCheckedCount === 0) {
-                html += `<div class="dup-ok">🔁 本次输入中没有单式5个的组合。</div>`;
-            } else if (dupResult.dupSingle5Total === 0) {
-                html += `<div class="dup-ok">🔁 单式5个的没有跨块重复（参与检测 ${dupResult.singleCheckedCount} 行）。</div>`;
-            } else {
-                const t = `🔁 单式5个：发现 <strong>${dupResult.dupSingle5Total}</strong> 个跨块重复组合`;
-                html += `<details class="dup-box" open><summary>${t}</summary><div class="dup-list">`;
-                for (const d of dupResult.dupSingle5) {
-                    html += `<div class="dup-item">`;
-                    html += `<div><span class="dup-raw">${escHtml(d.raws[0])}</span>`;
-                    html += `<span class="dup-type cross">单式5个</span>`;
-                    html += `<span class="dup-count">跨块 ${d.segmentCount} 处</span></div>`;
-                    html += `<div class="dup-lines">所在行：第 ${d.displayLines.join('、')} 行</div>`;
-                    html += `</div>`;
-                }
-                if (dupResult.dupSingle5Total > dupResult.dupSingle5.length) {
-                    html += `<div class="dup-more">... 还有 ${dupResult.dupSingle5Total - dupResult.dupSingle5.length} 个未显示</div>`;
-                }
-                html += `</div></details>`;
-            }
-
-            // 模块2：复式≥6及胆拖（含连续块）
-            html += `<div class="dup-section-title" style="margin-top:14px;">② 复式6个以上及胆拖 — 重复检测</div>`;
-            if (dupResult.otherCheckedCount === 0) {
-                html += `<div class="dup-ok">🔁 本次输入中没有复式6个以上或胆拖的组合。</div>`;
-            } else if (dupResult.dupOtherTotal === 0) {
-                html += `<div class="dup-ok">🔁 复式6个以上及胆拖没有重复的（参与检测 ${dupResult.otherCheckedCount} 行）。</div>`;
-            } else {
-                const t = `🔁 复式6个以上及胆拖：发现 <strong>${dupResult.dupOtherTotal}</strong> 个重复组合`;
-                html += `<details class="dup-box" open><summary>${t}</summary><div class="dup-list">`;
-                for (const d of dupResult.dupOther) {
-                    html += `<div class="dup-item">`;
-                    html += `<div><span class="dup-raw">${escHtml(d.raws[0])}</span>`;
-                    html += `<span class="dup-type">${escHtml(d.typeLabel)}</span>`;
-                    html += `<span class="dup-count">出现 ${d.count} 次</span></div>`;
-                    html += `<div class="dup-lines">所在行：第 ${d.displayLines.join('、')} 行</div>`;
-                    html += `</div>`;
-                }
-                if (dupResult.dupOtherTotal > dupResult.dupOther.length) {
-                    html += `<div class="dup-more">... 还有 ${dupResult.dupOtherTotal - dupResult.dupOther.length} 个未显示</div>`;
-                }
-                html += `</div></details>`;
-            }
-
-            html += `</div>`;
-
-            container.innerHTML = html;
-
-            container.querySelectorAll('.copy-btn[data-group-id]').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const content = groupsData[this.getAttribute('data-group-id')] || '';
-                    if (!content) return;
-                    copyContent(content, this);
-                });
-            });
-        }
-
-        function copyContent(text, btn) {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(() => showCopied(btn)).catch(() => fallbackCopy(text, btn));
-            } else {
-                fallbackCopy(text, btn);
-            }
-        }
-        function fallbackCopy(text, btn) {
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.style.position = 'fixed';
-            textarea.style.left = '-9999px';
-            document.body.appendChild(textarea);
-            textarea.focus();
-            textarea.select();
-            try { document.execCommand('copy'); showCopied(btn); } catch (err) { alert('复制失败，请手动复制'); }
-            document.body.removeChild(textarea);
-        }
-        function showCopied(btn) {
-            const origHTML = btn.innerHTML;
-            btn.innerHTML = '✅ 已复制';
-            btn.classList.add('copied');
-            btn.disabled = true;
-            setTimeout(() => { btn.innerHTML = origHTML; btn.classList.remove('copied'); btn.disabled = false; }, 1500);
-        }
-        function escHtml(s) {
-            if (!s) return '';
-            return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-        }
-
-        function loadDemo() {
-            const demo = [
-                // 单式5个：连续块（第1-3行），不应显示
-                '01,02,03,04,05-06,07',
-                '01,02,03,04,05-06,07',
-                '01,02,03,04,05-06,07',
-                // 单式5个：跨块重复（第4行 与 第7行）
-                '02,07,15,20,21-07,10',
-                '03,05,20,30,31-02,12',
-                '07,09,12,17,20-08,12',
-                '02,07,15,20,21-07,10',
-                // 复式≥6：连续块重复（应该显示）
-                '01,02,03,04,05,06,07,08-01,02',
-                '01,02,03,04,05,06,07,08-01,02',
-                '09,10,11,12,13,14-03,04',
-                '01,02,03,04,05,06,07,08-01,02',
-                // 胆拖：跨块重复
-                '前区胆：07,09，前区拖：01,03,04,05,08,11,13,15,18,19,26,27,28,29,32,33，后区胆：无，后区拖：02,10',
-                '前区胆：07,09，前区拖：01,03,04,05,08,11,13,15,18,19,26,27,28,29,32,33，后区胆：无，后区拖：02,10'
-            ];
-            document.getElementById('comboInput').value = demo.join('\n');
-            process();
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('groupBtn').addEventListener('click', process);
-            document.getElementById('clearBtn').addEventListener('click', () => {
-                document.getElementById('comboInput').value = '';
-                document.getElementById('resultsContainer').innerHTML = '<div style="color:#8899aa;text-align:center;padding:20px;">请输入组合后点击确定</div>';
-            });
-            document.getElementById('demoBtn').addEventListener('click', loadDemo);
+        single6Dups.push({
+          raw: info.raw,
+          crossPair: crossPair,
+          segmentCount: segments.length,
+          allLines: lines
         });
-    })();
+      }
+    }
+
+    const multiDups = [];
+    for (let [key, info] of multiMap.entries()) {
+      if (info.count >= 2) {
+        multiDups.push({
+          raw: info.raw,
+          label: info.label,
+          count: info.count,
+          lines: info.lines.slice().sort((a,b)=>a-b)
+        });
+      }
+    }
+
+    const dantuoDups = [];
+    for (let [key, info] of dantuoMap.entries()) {
+      if (info.count >= 2) {
+        dantuoDups.push({
+          raw: info.raw,
+          label: info.label,
+          count: info.count,
+          lines: info.lines.slice().sort((a,b)=>a-b)
+        });
+      }
+    }
+
+    // 统计参与检测的行数
+    let single6Checked = 0;
+    for (let [key, info] of single6Map.entries()) single6Checked += info.lines.length;
+    let otherChecked = 0;
+    for (let [key, info] of multiMap.entries()) otherChecked += info.lines.length;
+    for (let [key, info] of dantuoMap.entries()) otherChecked += info.lines.length;
+
+    // 排序
+    single6Dups.sort((a, b) => b.segmentCount - a.segmentCount);
+    multiDups.sort((a, b) => b.count - a.count);
+    dantuoDups.sort((a, b) => b.count - a.count);
+
+    render(groups, errors, totalCount, {
+      single6Dups,
+      multiDups,
+      dantuoDups,
+      single6Checked,
+      otherChecked
+    });
+  }
+
+  // ========== 渲染 ==========
+  function render(groups, errors, totalCount, dupData) {
+    const container = document.getElementById('resultsContainer');
+    let html = '';
+
+    if (errors.length) {
+      html += `<details class="error-box" open><summary>⚠️ ${errors.length} 行错误，已跳过（点击折叠）</summary>`;
+      for (let err of errors) {
+        html += `<div class="error-item"><span class="error-line">第${err.lineNum}行</span> <span class="error-reason">【${err.reason}】</span><br><span style="color:#991b1b;font-family:monospace;">原文：${escHtml(err.raw)}</span></div>`;
+      }
+      html += `</details>`;
+    }
+
+    html += `<div class="total-box">📊 一共生成了 <strong>${totalCount}</strong> 组6数字组合</div>`;
+
+    // 分组卡片
+    const groupsData = {};
+    for (let g of groups) groupsData[g.id] = g.items.join('\n');
+    for (let g of groups) {
+      const content = groupsData[g.id];
+      const isEmpty = g.items.length === 0;
+      html += `<div class="group-card"><div class="group-header"><span class="group-title">📌 ${escHtml(g.label)} <span class="badge">${g.items.length} 组</span></span><button class="copy-btn" data-group-id="${g.id}" ${isEmpty ? 'disabled' : ''}>📋 复制本组</button></div><div class="combo-list ${isEmpty ? 'empty' : ''}">${isEmpty ? '（暂无）' : escHtml(content)}</div></div>`;
+    }
+
+    // ========== 重复检测区域 ==========
+    html += `<div class="dup-box">`;
+
+    // 模块1：单式6个（跨块）
+    html += `<div class="dup-section-title">① 单式6个 — 跨块重复检测</div>`;
+    if (dupData.single6Checked === 0) {
+      html += `<div class="dup-ok">🔁 本次输入中没有单式6个的组合。</div>`;
+    } else if (dupData.single6Dups.length === 0) {
+      html += `<div class="dup-ok">🔁 单式6个没有跨块重复（参与检测 ${dupData.single6Checked} 行）。</div>`;
+    } else {
+      html += `<details class="dup-box" open><summary>🔁 单式6个：发现 <strong>${dupData.single6Dups.length}</strong> 个跨块重复组合</summary><div class="dup-list">`;
+      for (const d of dupData.single6Dups) {
+        html += `<div class="dup-item">`;
+        html += `<div><span class="dup-raw">${escHtml(d.raw)}</span>`;
+        html += `<span class="dup-type cross">单式6个</span>`;
+        html += `<span class="dup-count">跨块 ${d.segmentCount} 处</span></div>`;
+        html += `<div class="dup-lines">跨块重复：第 ${d.crossPair[0]} 行 和 第 ${d.crossPair[1]} 行</div>`;
+        html += `</div>`;
+      }
+      html += `</div></details>`;
+    }
+
+    // 模块2：复式≥7及胆拖
+    html += `<div class="dup-section-title" style="margin-top:14px;">② 复式7个以上及胆拖 — 重复检测</div>`;
+    if (dupData.otherChecked === 0) {
+      html += `<div class="dup-ok">🔁 本次输入中没有复式7个以上或胆拖的组合。</div>`;
+    } else if (dupData.multiDups.length === 0 && dupData.dantuoDups.length === 0) {
+      html += `<div class="dup-ok">🔁 复式7个以上及胆拖没有重复（参与检测 ${dupData.otherChecked} 行）。</div>`;
+    } else {
+      const totalDup = dupData.multiDups.length + dupData.dantuoDups.length;
+      html += `<details class="dup-box" open><summary>🔁 复式7个以上及胆拖：发现 <strong>${totalDup}</strong> 个重复组合</summary><div class="dup-list">`;
+      for (const d of dupData.multiDups) {
+        html += `<div class="dup-item">`;
+        html += `<div><span class="dup-raw">${escHtml(d.raw)}</span>`;
+        html += `<span class="dup-type">${escHtml(d.label)}</span>`;
+        html += `<span class="dup-count">出现 ${d.count} 次</span></div>`;
+        html += `<div class="dup-lines">所在行：第 ${d.lines.join('、')} 行</div>`;
+        html += `</div>`;
+      }
+      for (const d of dupData.dantuoDups) {
+        html += `<div class="dup-item">`;
+        html += `<div><span class="dup-raw">${escHtml(d.raw)}</span>`;
+        html += `<span class="dup-type">${escHtml(d.label)}</span>`;
+        html += `<span class="dup-count">出现 ${d.count} 次</span></div>`;
+        html += `<div class="dup-lines">所在行：第 ${d.lines.join('、')} 行</div>`;
+        html += `</div>`;
+      }
+      html += `</div></details>`;
+    }
+
+    html += `</div>`;
+
+    container.innerHTML = html;
+
+    // 绑定复制
+    container.querySelectorAll('.copy-btn[data-group-id]').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const content = groupsData[this.getAttribute('data-group-id')] || '';
+        if (!content || this.disabled) return;
+        copyContent(content, this);
+      });
+    });
+  }
+
+  function copyContent(text, btn) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => showCopied(btn)).catch(() => fallbackCopy(text, btn));
+    } else {
+      fallbackCopy(text, btn);
+    }
+  }
+  function fallbackCopy(text, btn) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try { document.execCommand('copy'); showCopied(btn); } catch (err) { alert('复制失败，请手动复制'); }
+    document.body.removeChild(textarea);
+  }
+  function showCopied(btn) {
+    const origHTML = btn.innerHTML;
+    btn.innerHTML = '✅ 已复制';
+    btn.classList.add('copied');
+    btn.disabled = true;
+    setTimeout(() => { btn.innerHTML = origHTML; btn.classList.remove('copied'); btn.disabled = false; }, 1500);
+  }
+  function escHtml(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ========== 示例 ==========
+  function loadDemo() {
+    const demo = [
+      '1,2,3,4,5,6-1,2,3',
+      '1,2,3,4,5,6-1,2,3',
+      '1,2,3,4,5,6,7,8-1',
+      '1,2,3,4,5,6,7,8-1',
+      '胆:04,07,16,27 拖:05,08,14,15,20,30-1',
+      '胆:04,07,16,27 拖:05,08,14,15,20,30-1',
+      '胆:02,08,15,22,31 拖:01,04,09,13,18,21,25,27,33-7',
+      '1,2,3,4,5,6-4',
+      '1,2,3,4,5,6-5',
+      '1,2,3,4,5,6,7-1',
+      '1,2,3,4,5,6,7-1'
+    ];
+    document.getElementById('comboInput').value = demo.join('\n');
+    process();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('groupBtn').addEventListener('click', process);
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      document.getElementById('comboInput').value = '';
+      document.getElementById('resultsContainer').innerHTML = '<div style="color:#8899aa;text-align:center;padding:20px;">请输入组合后点击确定</div>';
+    });
+    document.getElementById('demoBtn').addEventListener('click', loadDemo);
+  });
+})();
 </script>
 </body>
 </html>
