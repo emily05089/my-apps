@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>双数字组合频率统计器 - 1至33红球 · 1至16蓝球</title>
+    <title>双数字组合频率统计器 - 红球1-33 · 蓝球1-16 (多蓝球)</title>
     <style>
         :root {
             --bg: #f0f4f8;
@@ -73,7 +73,7 @@
 <div class="app-container">
     <div style="text-align:center; padding: 8px 0;">
         <h1 style="font-size: 24px; font-weight: 800;">🎯 双数字组合频率统计器</h1>
-        <p style="color: #8899aa; font-size: 13px;">红球1‑33 · 蓝球1‑16 · 共528组双数字</p>
+        <p style="color: #8899aa; font-size: 13px;">红球1‑33 · 蓝球1‑16 · 支持多蓝球</p>
     </div>
 
     <div class="card">
@@ -82,13 +82,17 @@
             <div>
                 <div style="font-weight:700;">输入号码组合</div>
                 <div style="font-size:13px; color:var(--text-secondary);">
-                    支持格式：<br>• 单注：1,2,3,4,5,6 或 1,2,3,4,5,6-1<br>
-                    • 复式：1,2,3,4,5,6,7-2<br>• 胆拖：01,02,03-04,05,06-16
+                    支持格式（逗号中英文均可）：<br>
+                    • 单注：1,2,3,4,5,6-1<br>
+                    • 多蓝球：1,2,3,4,5,6-1,2,3 (3注)<br>
+                    • 复式：1,2,3,4,5,6,7-2<br>
+                    • 胆拖：01,02,03-04,05,06-16<br>
+                    • 多蓝球可搭配复式/胆拖
                 </div>
             </div>
         </div>
         <div class="card-body">
-            <textarea id="inputArea" placeholder="示例：&#10;1,2,3,4,5,6-1&#10;1,2,3,4,5,6,7-2&#10;01,02,03-04,05,06-16&#10;10,15,20,25,30,33-08"></textarea>
+            <textarea id="inputArea" placeholder="示例：&#10;1,2,3,4,5,6-1,2,3&#10;1,2,3,4,5,6,7-2&#10;01,02,03-04,05,06-16&#10;10,15,20,25,30,33-08"></textarea>
             <div class="btn-row">
                 <button class="btn btn-primary" onclick="calculate()">🔍 开始统计</button>
                 <button class="btn btn-outline" onclick="loadExample()">📋 加载示例</button>
@@ -219,16 +223,38 @@
         function parseLine(line, lineIdx) {
             line = line.trim();
             if (!line) return null;
-            let blueNum = null;
+
+            // 以最后一个 '-' 作为蓝球分隔符
+            const lastDash = line.lastIndexOf('-');
             let redPart = line;
-            const blueMatch = line.match(/-(0?[1-9]|1[0-6])$/);
-            if (blueMatch) {
-                blueNum = parseInt(blueMatch[1], 10);
-                if (blueNum < 1 || blueNum > BLUE_RANGE) return { error: `第${lineIdx+1}行：蓝球需在1-16之间` };
-                redPart = line.substring(0, blueMatch.index).trim();
-                if (!redPart) return { error: `第${lineIdx+1}行：红球部分为空` };
+            let bluePart = '';
+            if (lastDash !== -1) {
+                redPart = line.substring(0, lastDash).trim();
+                bluePart = line.substring(lastDash + 1).trim();
             }
+
+            // 解析蓝球列表（可能多个，逗号分隔）
+            let blueList = [];
+            if (bluePart !== '') {
+                const blueStrs = bluePart.replace(/，/g, ',').split(',').map(s => s.trim()).filter(s => s !== '');
+                for (const bs of blueStrs) {
+                    const bn = parseInt(bs, 10);
+                    if (isNaN(bn) || bn < 1 || bn > BLUE_RANGE) {
+                        return { error: `第${lineIdx+1}行：蓝球"${bs}"无效，需1-16` };
+                    }
+                    blueList.push(bn);
+                }
+                if (blueList.length === 0) {
+                    return { error: `第${lineIdx+1}行：蓝球部分为空` };
+                }
+            } else if (lastDash !== -1) {
+                // 有 '-' 但后面为空
+                return { error: `第${lineIdx+1}行：蓝球部分为空` };
+            }
+
+            // 解析红球部分
             if (redPart.includes('-')) {
+                // 胆拖格式
                 const parts = redPart.split('-');
                 if (parts.length !== 2) return { error: `第${lineIdx+1}行：胆拖格式错误` };
                 const danRes = parseNumbers(parts[0].trim(), lineIdx, '胆码');
@@ -242,14 +268,15 @@
                 const need = COMBO_SIZE - dan.length;
                 const tuoCombos = combinations(tuo, need);
                 const redCombos = tuoCombos.map(tc => [...dan, ...tc].sort((a,b)=>a-b));
-                return { combos: redCombos, blue: blueNum };
+                return { redCombos, blueList };
             } else {
+                // 普通复式或单注
                 const numRes = parseNumbers(redPart, lineIdx, '红球');
                 if (numRes.error) return numRes;
                 const nums = numRes;
                 if (nums.length < COMBO_SIZE) return { error: `第${lineIdx+1}行：至少需要6个红球` };
                 const redCombos = combinations(nums, COMBO_SIZE);
-                return { combos: redCombos, blue: blueNum };
+                return { redCombos, blueList };
             }
         }
 
@@ -262,10 +289,15 @@
                 const res = parseLine(lines[i], i);
                 if (!res) continue;
                 if (res.error) { errors.push(res.error); continue; }
-                if (res.combos) {
-                    for (const combo of res.combos) {
-                        allRedCombos.push(combo);
-                        if (res.blue !== null) blueFreq[res.blue]++;
+                const { redCombos, blueList } = res;
+                if (blueList.length === 0) {
+                    for (const combo of redCombos) allRedCombos.push(combo);
+                } else {
+                    for (const combo of redCombos) {
+                        for (const blue of blueList) {
+                            allRedCombos.push(combo);
+                            blueFreq[blue]++;
+                        }
                     }
                 }
             }
@@ -399,7 +431,7 @@
         };
 
         window.loadExample = () => {
-            inputArea.value = '1,2,3,4,5,6-1\n1,2,3,4,5,6,7-2\n01,02,03-04,05,06-16\n10,15,20,25,30,33-08';
+            inputArea.value = '1,2,3,4,5,6-1,2,3\n1,2,3,4,5,6,7-2\n01,02,03-04,05,06-16\n10,15,20,25,30,33-08';
             showToast('示例已加载');
             setTimeout(calculate, 200);
         };
