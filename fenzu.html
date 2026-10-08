@@ -482,7 +482,6 @@
     return null;
   }
 
-  // 找出连续段
   function findSegments(lineNums) {
     if (lineNums.length === 0) return [];
     const segments = [];
@@ -511,10 +510,10 @@
     const errors = [];
     let totalCount = 0;
 
-    // 用于重复检测（同时保存原始行文本）
-    const single6Map = new Map(); // normKey -> { lines: [], raw }
-    const multiMap = new Map();   // normKey -> { count, label, lines: [], raw }
-    const dantuoMap = new Map();  // normKey -> { count, label, lines: [], raw }
+    // 重复检测 map
+    const single6Map = new Map(); // count=6
+    const multiMap = new Map();   // count>=7
+    const dantuoMap = new Map();
 
     const standardCounts = new Set();
     const dantuoCounts = new Set();
@@ -544,7 +543,7 @@
           if (!single6Map.has(norm)) single6Map.set(norm, { lines: [], raw: parsed.raw });
           single6Map.get(norm).lines.push(lineNum);
         } else if (parsed.type === 'standard' && parsed.count >= 7) {
-          if (!multiMap.has(norm)) multiMap.set(norm, { count: 0, label: `${parsed.count}个数字的组合`, lines: [], raw: parsed.raw });
+          if (!multiMap.has(norm)) multiMap.set(norm, { count: 0, label: `${parsed.count}个数字的组合`, lines: [], raw: parsed.raw, numCount: parsed.count });
           const info = multiMap.get(norm);
           info.count++;
           info.lines.push(lineNum);
@@ -585,14 +584,18 @@
       }
     }
 
-    // ========== 生成重复数据（结构化） ==========
-    const single6Dups = [];
+    // ========== 重复检测数据（结构化） ==========
+    // 跨块重复：单式6个 + 复式7、8、9个
+    const crossBlockDups = [];
+    // 全重复：复式10个及以上 + 胆拖
+    const fullDups = [];
+
+    // 单式6个
     for (let [key, info] of single6Map.entries()) {
       if (info.lines.length < 2) continue;
       const lines = info.lines.slice().sort((a,b)=>a-b);
       const segments = findSegments(lines);
       if (segments.length > 1) {
-        // 找第一个跨块对（第一段起点 + 后面某段起点）
         let crossPair = null;
         let firstStart = lines[0];
         for (let i = 1; i < lines.length; i++) {
@@ -601,8 +604,9 @@
             break;
           }
         }
-        single6Dups.push({
+        crossBlockDups.push({
           raw: info.raw,
+          typeLabel: '单式6个',
           crossPair: crossPair,
           segmentCount: segments.length,
           allLines: lines
@@ -610,48 +614,75 @@
       }
     }
 
-    const multiDups = [];
+    // 复式7~9（跨块） + 复式>=10（全重复）
     for (let [key, info] of multiMap.entries()) {
-      if (info.count >= 2) {
-        multiDups.push({
-          raw: info.raw,
-          label: info.label,
-          count: info.count,
-          lines: info.lines.slice().sort((a,b)=>a-b)
-        });
+      const numCount = info.numCount;
+      if (numCount >= 7 && numCount <= 9) {
+        if (info.lines.length < 2) continue;
+        const lines = info.lines.slice().sort((a,b)=>a-b);
+        const segments = findSegments(lines);
+        if (segments.length > 1) {
+          let crossPair = null;
+          let firstStart = lines[0];
+          for (let i = 1; i < lines.length; i++) {
+            if (lines[i] - lines[i-1] > 1) {
+              crossPair = [firstStart, lines[i]];
+              break;
+            }
+          }
+          crossBlockDups.push({
+            raw: info.raw,
+            typeLabel: `复式${numCount}个`,
+            crossPair: crossPair,
+            segmentCount: segments.length,
+            allLines: lines
+          });
+        }
+      } else if (numCount >= 10) {
+        if (info.count >= 2) {
+          fullDups.push({
+            raw: info.raw,
+            typeLabel: `复式${numCount}个`,
+            count: info.count,
+            lines: info.lines.slice().sort((a,b)=>a-b)
+          });
+        }
       }
     }
 
-    const dantuoDups = [];
+    // 胆拖（全重复）
     for (let [key, info] of dantuoMap.entries()) {
       if (info.count >= 2) {
-        dantuoDups.push({
+        fullDups.push({
           raw: info.raw,
-          label: info.label,
+          typeLabel: info.label.replace('个胆的组合','胆'),
           count: info.count,
           lines: info.lines.slice().sort((a,b)=>a-b)
         });
       }
     }
 
-    // 统计参与检测的行数
-    let single6Checked = 0;
-    for (let [key, info] of single6Map.entries()) single6Checked += info.lines.length;
-    let otherChecked = 0;
-    for (let [key, info] of multiMap.entries()) otherChecked += info.lines.length;
-    for (let [key, info] of dantuoMap.entries()) otherChecked += info.lines.length;
+    // 统计参与检测行数
+    let crossChecked = 0;
+    for (let [key, info] of single6Map.entries()) crossChecked += info.lines.length;
+    for (let [key, info] of multiMap.entries()) {
+      if (info.numCount >= 7 && info.numCount <= 9) crossChecked += info.lines.length;
+    }
+    let fullChecked = 0;
+    for (let [key, info] of multiMap.entries()) {
+      if (info.numCount >= 10) fullChecked += info.lines.length;
+    }
+    for (let [key, info] of dantuoMap.entries()) fullChecked += info.lines.length;
 
     // 排序
-    single6Dups.sort((a, b) => b.segmentCount - a.segmentCount);
-    multiDups.sort((a, b) => b.count - a.count);
-    dantuoDups.sort((a, b) => b.count - a.count);
+    crossBlockDups.sort((a, b) => b.segmentCount - a.segmentCount);
+    fullDups.sort((a, b) => b.count - a.count);
 
     render(groups, errors, totalCount, {
-      single6Dups,
-      multiDups,
-      dantuoDups,
-      single6Checked,
-      otherChecked
+      crossBlockDups,
+      fullDups,
+      crossChecked,
+      fullChecked
     });
   }
 
@@ -682,18 +713,18 @@
     // ========== 重复检测区域 ==========
     html += `<div class="dup-box">`;
 
-    // 模块1：单式6个（跨块）
-    html += `<div class="dup-section-title">① 单式6个 — 跨块重复检测</div>`;
-    if (dupData.single6Checked === 0) {
-      html += `<div class="dup-ok">🔁 本次输入中没有单式6个的组合。</div>`;
-    } else if (dupData.single6Dups.length === 0) {
-      html += `<div class="dup-ok">🔁 单式6个没有跨块重复（参与检测 ${dupData.single6Checked} 行）。</div>`;
+    // 模块①：单式6个及复式7、8、9个 — 跨块重复
+    html += `<div class="dup-section-title">① 单式6个及复式7、8、9个 — 跨块重复检测</div>`;
+    if (dupData.crossChecked === 0) {
+      html += `<div class="dup-ok">🔁 本次输入中没有单式6个或复式7、8、9个的组合。</div>`;
+    } else if (dupData.crossBlockDups.length === 0) {
+      html += `<div class="dup-ok">🔁 没有跨块重复（参与检测 ${dupData.crossChecked} 行）。</div>`;
     } else {
-      html += `<details class="dup-box" open><summary>🔁 单式6个：发现 <strong>${dupData.single6Dups.length}</strong> 个跨块重复组合</summary><div class="dup-list">`;
-      for (const d of dupData.single6Dups) {
+      html += `<details class="dup-box" open><summary>🔁 跨块重复：发现 <strong>${dupData.crossBlockDups.length}</strong> 个组合</summary><div class="dup-list">`;
+      for (const d of dupData.crossBlockDups) {
         html += `<div class="dup-item">`;
         html += `<div><span class="dup-raw">${escHtml(d.raw)}</span>`;
-        html += `<span class="dup-type cross">单式6个</span>`;
+        html += `<span class="dup-type cross">${escHtml(d.typeLabel)}</span>`;
         html += `<span class="dup-count">跨块 ${d.segmentCount} 处</span></div>`;
         html += `<div class="dup-lines">跨块重复：第 ${d.crossPair[0]} 行 和 第 ${d.crossPair[1]} 行</div>`;
         html += `</div>`;
@@ -701,27 +732,18 @@
       html += `</div></details>`;
     }
 
-    // 模块2：复式≥7及胆拖
-    html += `<div class="dup-section-title" style="margin-top:14px;">② 复式7个以上及胆拖 — 重复检测</div>`;
-    if (dupData.otherChecked === 0) {
-      html += `<div class="dup-ok">🔁 本次输入中没有复式7个以上或胆拖的组合。</div>`;
-    } else if (dupData.multiDups.length === 0 && dupData.dantuoDups.length === 0) {
-      html += `<div class="dup-ok">🔁 复式7个以上及胆拖没有重复（参与检测 ${dupData.otherChecked} 行）。</div>`;
+    // 模块②：复式10个及以上及胆拖 — 全重复
+    html += `<div class="dup-section-title" style="margin-top:14px;">② 复式10个及以上及胆拖 — 重复检测</div>`;
+    if (dupData.fullChecked === 0) {
+      html += `<div class="dup-ok">🔁 本次输入中没有复式10个及以上或胆拖的组合。</div>`;
+    } else if (dupData.fullDups.length === 0) {
+      html += `<div class="dup-ok">🔁 没有重复（参与检测 ${dupData.fullChecked} 行）。</div>`;
     } else {
-      const totalDup = dupData.multiDups.length + dupData.dantuoDups.length;
-      html += `<details class="dup-box" open><summary>🔁 复式7个以上及胆拖：发现 <strong>${totalDup}</strong> 个重复组合</summary><div class="dup-list">`;
-      for (const d of dupData.multiDups) {
+      html += `<details class="dup-box" open><summary>🔁 重复组合：发现 <strong>${dupData.fullDups.length}</strong> 个</summary><div class="dup-list">`;
+      for (const d of dupData.fullDups) {
         html += `<div class="dup-item">`;
         html += `<div><span class="dup-raw">${escHtml(d.raw)}</span>`;
-        html += `<span class="dup-type">${escHtml(d.label)}</span>`;
-        html += `<span class="dup-count">出现 ${d.count} 次</span></div>`;
-        html += `<div class="dup-lines">所在行：第 ${d.lines.join('、')} 行</div>`;
-        html += `</div>`;
-      }
-      for (const d of dupData.dantuoDups) {
-        html += `<div class="dup-item">`;
-        html += `<div><span class="dup-raw">${escHtml(d.raw)}</span>`;
-        html += `<span class="dup-type">${escHtml(d.label)}</span>`;
+        html += `<span class="dup-type">${escHtml(d.typeLabel)}</span>`;
         html += `<span class="dup-count">出现 ${d.count} 次</span></div>`;
         html += `<div class="dup-lines">所在行：第 ${d.lines.join('、')} 行</div>`;
         html += `</div>`;
