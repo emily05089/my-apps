@@ -538,6 +538,20 @@
             return 0;
         }
 
+        function buildTypeLabel(parsed) {
+            if (parsed.type === 'standard') {
+                if (parsed.qianCount === 5) return '单式5个';
+                return `复式${parsed.qianCount}个`;
+            } else if (parsed.type === 'dantuo') {
+                return `前区${parsed.qianDanCount}胆`;
+            }
+            return '';
+        }
+
+        function isSingle5(parsed) {
+            return parsed.type === 'standard' && parsed.qianCount === 5;
+        }
+
         function findSegments(lineNums) {
             if (lineNums.length === 0) return [];
             const segments = [];
@@ -563,8 +577,9 @@
             const errors = [];
             let totalCount = 0;
 
-            // 收集所有有效解析结果
-            const parsedItems = []; // { lineNum, parsed }
+            const dupMap = new Map();
+            let singleCheckedCount = 0;   // 只统计单式5个
+            let otherCheckedCount = 0;    // 统计复式≥6及胆拖
 
             for (let i = 0; i < rawLines.length; i++) {
                 const line = rawLines[i];
@@ -586,93 +601,76 @@
                 }
                 if (!anyMatched) errors.push({ lineNum: i + 1, reason: '无法匹配任何分组', raw: parsed.raw });
 
-                parsedItems.push({ lineNum: i + 1, parsed });
-            }
+                // 重复检测
+                let sig = '';
+                if (parsed.type === 'standard') {
+                    sig = 'S|' + parsed.qianNums.join(',') + '|' + parsed.houNums.join(',');
+                } else if (parsed.type === 'dantuo') {
+                    sig = 'D|'
+                        + parsed.qianDanNums.join(',') + '|'
+                        + parsed.qianTuoNums.join(',') + '|'
+                        + parsed.houDanNums.join(',') + '|'
+                        + parsed.houTuoNums.join(',');
+                }
 
-            // ===== 重复检测 =====
-            // 按 sig 分组
-            const standardGroups = new Map(); // sig -> { lineNums: [], raw, qianCount }
-            const dantuoGroups = new Map();   // sig -> { lineNums: [], raw, qianDanCount }
+                if (sig) {
+                    // ★ 只统计单式5个；复式/胆拖统计到 otherCheckedCount
+                    if (isSingle5(parsed)) singleCheckedCount++;
+                    else otherCheckedCount++;
 
-            for (const item of parsedItems) {
-                const p = item.parsed;
-                if (p.type === 'standard') {
-                    const sig = 'S|' + p.qianNums.join(',') + '|' + p.houNums.join(',');
-                    if (!standardGroups.has(sig)) {
-                        standardGroups.set(sig, { lineNums: [], raw: p.raw, qianCount: p.qianCount });
+                    let entry = dupMap.get(sig);
+                    if (!entry) {
+                        entry = { count: 0, lineNums: new Set(), raws: [], parsedFirst: parsed };
+                        dupMap.set(sig, entry);
                     }
-                    standardGroups.get(sig).lineNums.push(item.lineNum);
-                } else if (p.type === 'dantuo') {
-                    const sig = 'D|' + p.qianDanNums.join(',') + '|' + p.qianTuoNums.join(',') + '|' + p.houDanNums.join(',') + '|' + p.houTuoNums.join(',');
-                    if (!dantuoGroups.has(sig)) {
-                        dantuoGroups.set(sig, { lineNums: [], raw: p.raw, qianDanCount: p.qianDanCount });
-                    }
-                    dantuoGroups.get(sig).lineNums.push(item.lineNum);
+                    entry.count++;
+                    entry.lineNums.add(i + 1);
+                    entry.raws.push(parsed.raw);
                 }
             }
 
-            // 单式5个：跨块重复
-            const single5Dups = [];
-            let single5Checked = 0;
-            for (const [sig, info] of standardGroups) {
-                single5Checked += info.lineNums.length;
-                if (info.qianCount !== 5) continue;
-                if (info.lineNums.length < 2) continue;
-                const sorted = [...info.lineNums].sort((a, b) => a - b);
-                const segments = findSegments(sorted);
-                if (segments.length > 1) {
-                    single5Dups.push({
-                        raw: info.raw,
-                        lineNums: sorted,
-                        segments,
-                        displayLines: segments.map(s => s.start)
+            // 分类
+            const dupSingle5 = [];
+            const dupOther = [];
+            for (const [sig, entry] of dupMap) {
+                const sortedLines = [...entry.lineNums].sort((a, b) => a - b);
+                if (sortedLines.length < 2) continue;
+
+                const parsedFirst = entry.parsedFirst;
+
+                if (isSingle5(parsedFirst)) {
+                    const segments = findSegments(sortedLines);
+                    if (segments.length > 1) {
+                        dupSingle5.push({
+                            sig,
+                            displayLines: segments.map(s => s.start),
+                            segmentCount: segments.length,
+                            raws: entry.raws,
+                            typeLabel: buildTypeLabel(parsedFirst)
+                        });
+                    }
+                } else {
+                    dupOther.push({
+                        sig,
+                        displayLines: sortedLines,
+                        count: sortedLines.length,
+                        raws: entry.raws,
+                        typeLabel: buildTypeLabel(parsedFirst)
                     });
                 }
             }
 
-            // 复式≥6：所有重复（含连续块）
-            const multiDups = [];
-            let multiChecked = 0;
-            for (const [sig, info] of standardGroups) {
-                if (info.qianCount < 6) continue;
-                multiChecked += info.lineNums.length;
-                if (info.lineNums.length < 2) continue;
-                const sorted = [...info.lineNums].sort((a, b) => a - b);
-                multiDups.push({
-                    raw: info.raw,
-                    typeLabel: `复式${info.qianCount}个`,
-                    count: sorted.length,
-                    lineNums: sorted
-                });
-            }
+            dupSingle5.sort((a, b) => b.segmentCount - a.segmentCount || a.sig.localeCompare(b.sig));
+            dupOther.sort((a, b) => b.count - a.count || a.sig.localeCompare(b.sig));
 
-            // 胆拖：所有重复（含连续块）
-            const dantuoDups = [];
-            let dantuoChecked = 0;
-            for (const [sig, info] of dantuoGroups) {
-                dantuoChecked += info.lineNums.length;
-                if (info.lineNums.length < 2) continue;
-                const sorted = [...info.lineNums].sort((a, b) => a - b);
-                dantuoDups.push({
-                    raw: info.raw,
-                    typeLabel: `前区${info.qianDanCount}胆`,
-                    count: sorted.length,
-                    lineNums: sorted
-                });
-            }
-
-            // 排序
-            single5Dups.sort((a, b) => b.segments.length - a.segments.length);
-            multiDups.sort((a, b) => b.count - a.count);
-            dantuoDups.sort((a, b) => b.count - a.count);
-
+            const MAX_DUP_SHOW = 300;
             const dupResult = {
-                single5Dups,
-                single5Checked,
-                multiDups,
-                multiChecked,
-                dantuoDups,
-                dantuoChecked
+                dupSingle5: dupSingle5.slice(0, MAX_DUP_SHOW),
+                dupSingle5Total: dupSingle5.length,
+                dupOther: dupOther.slice(0, MAX_DUP_SHOW),
+                dupOtherTotal: dupOther.length,
+                singleCheckedCount,
+                otherCheckedCount
             };
 
             render(groups, errors, totalCount, dupResult);
@@ -692,7 +690,6 @@
 
             html += `<div class="total-box">📊 一共生成了 <strong>${totalCount}</strong> 注单式组合</div>`;
 
-            // 收集非空分组数据
             const groupsData = {};
             const nonEmptyGroups = [];
             for (let g of groups) {
@@ -711,61 +708,52 @@
                 }
             }
 
-            // ===== 重复检测模块 =====
+            // ===== 重复检测：两个独立模块 =====
             html += `<div class="dup-box">`;
 
-            // 模块1：单式5个
+            // 模块1：单式5个（跨块）
             html += `<div class="dup-section-title">① 单式5个 — 跨块重复检测</div>`;
-            if (dupResult.single5Checked === 0) {
+            if (dupResult.singleCheckedCount === 0) {
                 html += `<div class="dup-ok">🔁 本次输入中没有单式5个的组合。</div>`;
-            } else if (dupResult.single5Dups.length === 0) {
-                html += `<div class="dup-ok">🔁 单式5个没有跨块重复（参与检测 ${dupResult.single5Checked} 行）。</div>`;
+            } else if (dupResult.dupSingle5Total === 0) {
+                html += `<div class="dup-ok">🔁 单式5个的没有跨块重复（参与检测 ${dupResult.singleCheckedCount} 行）。</div>`;
             } else {
-                html += `<details class="dup-box" open><summary>🔁 单式5个：发现 <strong>${dupResult.single5Dups.length}</strong> 个跨块重复组合</summary><div class="dup-list">`;
-                for (const d of dupResult.single5Dups) {
-                    // 显示跨块的行（每段第一行）
-                    const lineStr = d.displayLines.join('、');
+                const t = `🔁 单式5个：发现 <strong>${dupResult.dupSingle5Total}</strong> 个跨块重复组合`;
+                html += `<details class="dup-box" open><summary>${t}</summary><div class="dup-list">`;
+                for (const d of dupResult.dupSingle5) {
                     html += `<div class="dup-item">`;
-                    html += `<div><span class="dup-raw">${escHtml(d.raw)}</span>`;
-                    html += `<span class="dup-type cross">单式5个</span></div>`;
-                    html += `<div class="dup-lines">跨块重复：第 ${lineStr} 行</div>`;
+                    html += `<div><span class="dup-raw">${escHtml(d.raws[0])}</span>`;
+                    html += `<span class="dup-type cross">单式5个</span>`;
+                    html += `<span class="dup-count">跨块 ${d.segmentCount} 处</span></div>`;
+                    html += `<div class="dup-lines">所在行：第 ${d.displayLines.join('、')} 行</div>`;
                     html += `</div>`;
+                }
+                if (dupResult.dupSingle5Total > dupResult.dupSingle5.length) {
+                    html += `<div class="dup-more">... 还有 ${dupResult.dupSingle5Total - dupResult.dupSingle5.length} 个未显示</div>`;
                 }
                 html += `</div></details>`;
             }
 
-            // 模块2：复式≥6及胆拖
+            // 模块2：复式≥6及胆拖（含连续块）
             html += `<div class="dup-section-title" style="margin-top:14px;">② 复式6个以上及胆拖 — 重复检测</div>`;
-            const totalOtherChecked = dupResult.multiChecked + dupResult.dantuoChecked;
-            if (totalOtherChecked === 0) {
+            if (dupResult.otherCheckedCount === 0) {
                 html += `<div class="dup-ok">🔁 本次输入中没有复式6个以上或胆拖的组合。</div>`;
-            } else if (dupResult.multiDups.length === 0 && dupResult.dantuoDups.length === 0) {
-                html += `<div class="dup-ok">🔁 复式6个以上及胆拖没有重复（参与检测 ${totalOtherChecked} 行）。</div>`;
+            } else if (dupResult.dupOtherTotal === 0) {
+                html += `<div class="dup-ok">🔁 复式6个以上及胆拖没有重复的（参与检测 ${dupResult.otherCheckedCount} 行）。</div>`;
             } else {
-                html += `<details class="dup-box" open><summary>🔁 复式6个以上及胆拖：发现 <strong>${dupResult.multiDups.length + dupResult.dantuoDups.length}</strong> 个重复组合</summary><div class="dup-list">`;
-                
-                // 复式重复
-                for (const d of dupResult.multiDups) {
-                    const lineStr = d.lineNums.join('、');
+                const t = `🔁 复式6个以上及胆拖：发现 <strong>${dupResult.dupOtherTotal}</strong> 个重复组合`;
+                html += `<details class="dup-box" open><summary>${t}</summary><div class="dup-list">`;
+                for (const d of dupResult.dupOther) {
                     html += `<div class="dup-item">`;
-                    html += `<div><span class="dup-raw">${escHtml(d.raw)}</span>`;
+                    html += `<div><span class="dup-raw">${escHtml(d.raws[0])}</span>`;
                     html += `<span class="dup-type">${escHtml(d.typeLabel)}</span>`;
                     html += `<span class="dup-count">出现 ${d.count} 次</span></div>`;
-                    html += `<div class="dup-lines">所在行：第 ${lineStr} 行</div>`;
+                    html += `<div class="dup-lines">所在行：第 ${d.displayLines.join('、')} 行</div>`;
                     html += `</div>`;
                 }
-                
-                // 胆拖重复
-                for (const d of dupResult.dantuoDups) {
-                    const lineStr = d.lineNums.join('、');
-                    html += `<div class="dup-item">`;
-                    html += `<div><span class="dup-raw">${escHtml(d.raw)}</span>`;
-                    html += `<span class="dup-type">${escHtml(d.typeLabel)}</span>`;
-                    html += `<span class="dup-count">出现 ${d.count} 次</span></div>`;
-                    html += `<div class="dup-lines">所在行：第 ${lineStr} 行</div>`;
-                    html += `</div>`;
+                if (dupResult.dupOtherTotal > dupResult.dupOther.length) {
+                    html += `<div class="dup-more">... 还有 ${dupResult.dupOtherTotal - dupResult.dupOther.length} 个未显示</div>`;
                 }
-                
                 html += `</div></details>`;
             }
 
