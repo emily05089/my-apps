@@ -259,7 +259,7 @@
     }).join('，'));
     parts.push('');
 
-    /* 单式5个比例行（单独放在前面） */
+    /* 单式5个比例行（单独放在前面，去掉末尾逗号） */
     var single = secList.find(function (s) { return s.name === '单式5个'; });
     if (single) {
       parts.push(
@@ -268,21 +268,18 @@
         single.backRows + '➗' + single.totalRows + '），' +
         '单式5个后区全中不重复的行数比例：' +
         pct(single.uniqCount, single.totalRows) + '%（' +
-        single.uniqCount + '➗' + single.totalRows + '），'
+        single.uniqCount + '➗' + single.totalRows + '）'
       );
     }
     parts.push('');
 
-    /* 其他分区比例行（复式6个 → 复式N个，胆拖0胆 → 胆拖4胆） */
+    /* 其他分区比例行，每行一个 */
     var otherSecs = secList.filter(function (s) { return s.name !== '单式5个'; });
-    var ratioLines = otherSecs.map(function (s) {
-      return s.name + '后区全中的行数比例：' +
-             pct(s.backRows, s.totalRows) + '%（' +
-             s.backRows + '➗' + s.totalRows + '）';
+    otherSecs.forEach(function (s) {
+      parts.push(s.name + '后区全中的行数比例：' +
+                 pct(s.backRows, s.totalRows) + '%（' +
+                 s.backRows + '➗' + s.totalRows + '）');
     });
-    if (ratioLines.length > 0) {
-      parts.push(ratioLines.join('，'));
-    }
     parts.push('');
 
     /* 明细块 */
