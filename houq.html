@@ -245,7 +245,11 @@
     /* 5. 组装输出 */
     var parts = [];
 
-    if (data.matchId) parts.push(data.matchId);
+    /* 期号 + 空行 */
+    if (data.matchId) {
+      parts.push(data.matchId);
+      parts.push('');
+    }
 
     parts.push('一共有' + data.totalRowsStr + '行（共' + data.totalCombos + '注组合），');
     parts.push('后区全中的有' + totalBack + '行，全中的行数比例：' +
@@ -259,7 +263,7 @@
     }).join('，'));
     parts.push('');
 
-    /* 单式5个比例行（单独放在前面，去掉末尾逗号） */
+    /* 单式5个比例行（单独放在前面） */
     var single = secList.find(function (s) { return s.name === '单式5个'; });
     if (single) {
       parts.push(
@@ -273,8 +277,10 @@
     }
     parts.push('');
 
-    /* 其他分区比例行，每行一个 */
-    var otherSecs = secList.filter(function (s) { return s.name !== '单式5个'; });
+    /* 其他分区比例行，每行一个（跳过“全部总计”这类非投注分区） */
+    var otherSecs = secList.filter(function (s) {
+      return s.name !== '单式5个' && !/总计/.test(s.name);
+    });
     otherSecs.forEach(function (s) {
       parts.push(s.name + '后区全中的行数比例：' +
                  pct(s.backRows, s.totalRows) + '%（' +
