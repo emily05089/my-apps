@@ -187,49 +187,53 @@
 
   /* ================= 生成输出 ================= */
   function buildOutput(data) {
-    /* 1. 找出每个分区里后区全中（命中等级以 +2 结尾）的行 */
-    var secInfo = [];
-
-    data.sections.forEach(function (sec) {
-      var hits = sec.hits.filter(function (h) {
-        return /\+2$/.test(h.hit) && h.rows > 0;
+    /* 1. 计算每个分区的后区全中行数、不重复行数 */
+    var secList = data.sections.map(function (sec) {
+      var backRows = 0;
+      var uniqSet = {};
+      sec.hits.forEach(function (h) {
+        if (/\+2$/.test(h.hit) && h.rows > 0) {
+          backRows += h.rows;
+          h.numbers.forEach(function (n) {
+            var key = n.trim();
+            if (key) uniqSet[key] = 1;
+          });
+        }
       });
-      if (!hits.length) return;
-
-      var rows = 0;
-      var uniq = {};
-
-      hits.forEach(function (h) {
-        rows += h.rows;
-        h.numbers.forEach(function (n) {
-          var key = n.trim();
-          if (key) uniq[key] = 1;
-        });
-      });
-
-      secInfo.push({
+      return {
         name: sec.name,
         totalRows: sec.totalRows,
-        rows: rows,
-        uniqCount: Object.keys(uniq).length,
-        hits: hits
-      });
+        backRows: backRows,
+        uniqCount: Object.keys(uniqSet).length,
+        hits: sec.hits
+      };
     });
 
-    /* 2. 展平成明细块，按 后区命中数↓ → 前区命中数↓ → 奖金↓ 排序 */
+    /* 2. 后区全中总行数（优先取报告数字，缺失则累加） */
+    var totalBack = data.backRows;
+    if (!totalBack) {
+      totalBack = secList.reduce(function (s, x) { return s + x.backRows; }, 0);
+    }
+
+    /* 3. 有后区全中的分区（用于汇总行） */
+    var activeSecs = secList.filter(function (s) { return s.backRows > 0; });
+
+    /* 4. 明细块：收集所有后区全中的命中行 */
     var blocks = [];
-    secInfo.forEach(function (s) {
+    secList.forEach(function (s) {
       s.hits.forEach(function (h) {
-        var rk = h.hit.match(/(\d+)\+(\d+)/);
-        blocks.push({
-          section: s.name,
-          hit: h.hit,
-          rows: h.rows,
-          money: h.money,
-          numbers: h.numbers.slice(),
-          back: parseInt(rk[2], 10),
-          front: parseInt(rk[1], 10)
-        });
+        if (/\+2$/.test(h.hit) && h.rows > 0) {
+          var rk = h.hit.match(/(\d+)\+(\d+)/);
+          blocks.push({
+            section: s.name,
+            hit: h.hit,
+            rows: h.rows,
+            money: h.money,
+            numbers: h.numbers.slice(),
+            back: parseInt(rk[2], 10),
+            front: parseInt(rk[1], 10)
+          });
+        }
       });
     });
     blocks.sort(function (a, b) {
@@ -238,55 +242,53 @@
       return b.money - a.money;
     });
 
-    /* 3. 后区全中总行数（优先取报告数字，缺失则累加） */
-    var backTotal = data.backRows;
-    if (!backTotal) {
-      backTotal = secInfo.reduce(function (s, x) { return s + x.rows; }, 0);
-    }
-
-    /* 4. 组装输出 */
+    /* 5. 组装输出 */
     var parts = [];
 
     if (data.matchId) parts.push(data.matchId);
 
     parts.push('一共有' + data.totalRowsStr + '行（共' + data.totalCombos + '注组合），');
-    parts.push('后区全中的有' + backTotal + '行，全中的行数比例：' +
-               pct(backTotal, data.totalRows) + '%（' +
-               backTotal + '➗' + data.totalRowsStr + '）');
-
+    parts.push('后区全中的有' + totalBack + '行，全中的行数比例：' +
+               pct(totalBack, data.totalRows) + '%（' +
+               totalBack + '➗' + data.totalRowsStr + '）');
     parts.push('');
 
-    parts.push(secInfo.map(function (s) {
-      return s.name + '共' + s.rows + '行';
+    /* 有后区全中的分区汇总行 */
+    parts.push(activeSecs.map(function (s) {
+      return s.name + '共' + s.backRows + '行';
     }).join('，'));
-
     parts.push('');
 
-    /* 各分区比例行 */
-    secInfo.forEach(function (s, idx) {
-      var line = s.name + '后区全中的行数比例：' +
-                 pct(s.rows, s.totalRows) + '%（' +
-                 s.rows + '➗' + s.totalRows + '）';
+    /* 单式5个比例行（单独放在前面） */
+    var single = secList.find(function (s) { return s.name === '单式5个'; });
+    if (single) {
+      parts.push(
+        '单式5个后区全中的行数比例：' +
+        pct(single.backRows, single.totalRows) + '%（' +
+        single.backRows + '➗' + single.totalRows + '），' +
+        '单式5个后区全中不重复的行数比例：' +
+        pct(single.uniqCount, single.totalRows) + '%（' +
+        single.uniqCount + '➗' + single.totalRows + '），'
+      );
+    }
+    parts.push('');
 
-      if (s.name === '单式5个') {
-        line += '，' + s.name + '后区全中不重复的行数比例：' +
-                pct(s.uniqCount, s.totalRows) + '%（' +
-                s.uniqCount + '➗' + s.totalRows + '），';
-      } else {
-        line += '，';
-      }
-
-      parts.push(line);
-      if (idx < secInfo.length - 1) parts.push('');
+    /* 其他分区比例行（复式6个 → 复式N个，胆拖0胆 → 胆拖4胆） */
+    var otherSecs = secList.filter(function (s) { return s.name !== '单式5个'; });
+    var ratioLines = otherSecs.map(function (s) {
+      return s.name + '后区全中的行数比例：' +
+             pct(s.backRows, s.totalRows) + '%（' +
+             s.backRows + '➗' + s.totalRows + '）';
     });
-
+    if (ratioLines.length > 0) {
+      parts.push(ratioLines.join('，'));
+    }
     parts.push('');
 
-    /* 奖金明细块 */
+    /* 明细块 */
     blocks.forEach(function (b, i) {
       var prefix = (i === 0 ? '其中' : '') +
                    b.hit + '有' + b.rows + '行（' + b.section + '）';
-
       var blockText;
       if (b.numbers.length === 0) {
         blockText = prefix;
@@ -295,7 +297,6 @@
       } else {
         blockText = prefix + ' ' + b.numbers.join('\n');
       }
-
       parts.push(blockText);
       if (i < blocks.length - 1) parts.push('');
     });
@@ -330,7 +331,6 @@
     outEl.textContent = buildOutput(data);
     panelEl.hidden = false;
 
-    var winCount = (outEl.textContent.match(/➗/g) || []).length;
     msgEl.className = 'msg ok';
     msgEl.textContent = '已生成';
   }
