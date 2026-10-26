@@ -389,7 +389,7 @@
         return html;
     }
 
-    // ===== 模式一：按行统计，显示总行数、总注数，分组按单注统计命中分布 =====
+    // ===== 模式一：按单注统计（保持原有） =====
     (()=>{
         let baseSet=null, baseDisp=[];
         function updateBaseDisplay(){
@@ -422,47 +422,32 @@
             let raw = $('bulkInput').value;
             if(!raw.trim()) { showToast('⚠️ 请输入号码','warning'); return; }
             let lines = raw.split(/\n|\r\n|\r/);
-            // 全局统计
             let totalCounts = {0:0,1:0,2:0,3:0,4:0,5:0,6:0};
-            let totalLines = 0, totalTickets = 0, invalidLines = 0;
-            let invalidList = [];
-            // 分组统计：每个分组记录行数、注数、命中分布
             let groupStats = {};
-            // 用于收集命中详情（可保留）
+            let totalValid = 0, totalLines=0, invalidLines=0;
+            let invalidList = [];
             let hit4=[], hit5=[], hit6=[];
 
             for(let idx=0; idx<lines.length; idx++){
                 let line = lines[idx];
                 let t = line.trim(); if(!t) continue;
+                totalLines++;
                 let parsed = parseBetLine(t);
                 if(parsed.error || !parsed.tickets){
                     invalidLines++;
                     invalidList.push({ line: idx+1, content: t.substring(0,60), reason: parsed.error||'无法解析' });
                     continue;
                 }
-                totalLines++;
                 let gkey = parsed.groupKey;
-                if(!groupStats[gkey]) {
-                    groupStats[gkey] = {
-                        lines: 0,
-                        totalTickets: 0,
-                        counts: {0:0,1:0,2:0,3:0,4:0,5:0,6:0},
-                        maxHit: -1,
-                        minHit: 7
-                    };
-                }
-                groupStats[gkey].lines++;
-                // 遍历该行生成的每个单注
+                if(!groupStats[gkey]) groupStats[gkey] = {0:0,1:0,2:0,3:0,4:0,5:0,6:0, total:0};
                 for(let ticket of parsed.tickets){
-                    totalTickets++;
-                    groupStats[gkey].totalTickets++;
+                    totalValid++;
+                    groupStats[gkey].total++;
                     let frontNums = Array.from(ticket.front);
                     let hit = 0;
                     for(let n of frontNums) if(baseSet.has(parseInt(n))) hit++;
                     totalCounts[hit]++;
-                    groupStats[gkey].counts[hit]++;
-                    if(hit > groupStats[gkey].maxHit) groupStats[gkey].maxHit = hit;
-                    if(hit < groupStats[gkey].minHit) groupStats[gkey].minHit = hit;
+                    groupStats[gkey][hit]++;
                     let comboStr = frontNums.sort((a,b)=>a-b).map(n=>String(n).padStart(2,'0')).join(',');
                     if(hit===4) hit4.push(comboStr);
                     else if(hit===5) hit5.push(comboStr);
@@ -471,35 +456,19 @@
             }
             closeModal2();
 
-            // 计算全局最高/最低命中（在所有单注中）
-            let globalMaxHit = -1, globalMinHit = 7;
-            for(let k in totalCounts) {
-                if(totalCounts[k] > 0) {
-                    let h = parseInt(k);
-                    if(h > globalMaxHit) globalMaxHit = h;
-                    if(h < globalMinHit) globalMinHit = h;
-                }
-            }
-            if(globalMaxHit === -1) globalMaxHit = 0;
-            if(globalMinHit === 7) globalMinHit = 0;
-
-            // 摘要
             $('resultsSummary').innerHTML = `
                 <div class="summary-chip"><strong>${totalLines}</strong>输入行</div>
-                <div class="summary-chip"><strong>${totalTickets}</strong>总注数</div>
-                <div class="summary-chip" style="border-color:#27ae60;"><strong style="color:#27ae60;">${totalTickets - invalidLines}</strong>有效注</div>
+                <div class="summary-chip" style="border-color:#27ae60;"><strong style="color:#27ae60;">${totalValid}</strong>有效单注</div>
                 <div class="summary-chip" style="${invalidLines?'border-color:#e74c3c;':''}"><strong>${invalidLines}</strong>无效行</div>
                 <div class="summary-chip"><strong>${baseDisp.join(',')}</strong>基准</div>`;
-            // 全局命中分布表
             let rows='';
             for(let m=6; m>=0; m--){
-                let cnt=totalCounts[m], pct=totalTickets?((cnt/totalTickets)*100).toFixed(2):'0.00';
+                let cnt=totalCounts[m], pct=totalValid?((cnt/totalValid)*100).toFixed(2):'0.00';
                 let label=m===6?'🎯全中':m===5?'🔥中5':m===4?'⭐中4':`中${m}`;
                 rows+=`<tr><td><span class="match-badge badge-${m}">${label}</span></td><td><strong>${cnt}</strong></td><td>${pct}%</td></tr>`;
             }
             $('statsTableBody').innerHTML = rows;
 
-            // 命中详情（保留）
             let detail='';
             [{l:'🎯全中6',d:hit6},{l:'🔥中5',d:hit5},{l:'⭐中4',d:hit4}].forEach(b=>{
                 if(b.d.length){
@@ -509,23 +478,16 @@
             });
             $('hitDetailsArea').innerHTML = detail;
 
-            // 分组统计
             let groupHtml = '<h3 style="margin-bottom:10px;">📊 按投注类型分组统计</h3>';
-            groupHtml += `<div class="group-block"><div class="group-title">🎯 全部最多命中：${globalMaxHit} 个，最少命中：${globalMinHit} 个</div></div>`;
             let sortedKeys = sortGroupKeys(Object.keys(groupStats));
             for(let key of sortedKeys){
                 let g = groupStats[key];
-                let maxHit = g.maxHit === -1 ? 0 : g.maxHit;
-                let minHit = g.minHit === 7 ? 0 : g.minHit;
-                groupHtml += `<div class="group-block"><div class="group-title">🔹 ${key} （共${g.lines}行，${g.totalTickets}注）</div>`;
-                groupHtml += `<div style="font-size:0.85rem; margin-bottom:6px;">最多命中：${maxHit} 个 &nbsp;|&nbsp; 最少命中：${minHit} 个</div>`;
+                groupHtml += `<div class="group-block"><div class="group-title">🔹 ${key} （共${g.total}注）</div>`;
                 groupHtml += '<table class="stats-table" style="margin-bottom:0;"><thead><tr><th>命中数</th><th>注数</th><th>占比</th></tr></thead><tbody>';
                 for(let m=6; m>=0; m--){
-                    let cnt = g.counts[m]||0;
-                    if(cnt > 0) {
-                        let pct = g.totalTickets ? ((cnt/g.totalTickets)*100).toFixed(2) : '0.00';
-                        groupHtml += `<tr><td>中${m}个</td><td>${cnt}</td><td>${pct}%</td></tr>`;
-                    }
+                    let cnt = g[m]||0;
+                    let pct = g.total ? ((cnt/g.total)*100).toFixed(2) : '0.00';
+                    groupHtml += `<tr><td>中${m}个</td><td>${cnt}</td><td>${pct}%</td></tr>`;
                 }
                 groupHtml += '</tbody></table></div>';
             }
@@ -533,7 +495,7 @@
             $('invalidAreaMatch').innerHTML = renderInvalidList(invalidList);
 
             $('resultsContainer').classList.add('visible');
-            showToast(`✅ 共 ${totalLines} 行，生成 ${totalTickets} 注`);
+            showToast(`✅ 共 ${totalValid} 注参与对比`);
         };
         window.copyList = (id) => {
             let el = document.getElementById(id); if(!el) return;
@@ -548,7 +510,7 @@
         updateBtn();
     })();
 
-    // ===== 模式二：按行统计奖金，显示总行数、总注数，分组按单注统计奖级分布 =====
+    // ===== 模式二：按行统计最高等级，分布显示“行” =====
     let lastSSQResultText = '';
 
     function generateSSQResultText(draw, lines) {
@@ -558,12 +520,9 @@
             '2+0': 0, '1+0': 0, '0+0': 0
         };
 
-        let totalLines = 0, totalTickets = 0;
+        let totalLines = 0, totalTickets = 0, grandTotalMoney = 0;
+        let globalAllKeys = []; // 所有单注命中等级
         let invalidList = [];
-        // 全局奖级计数
-        let globalCounts = {};
-        for(let k of order) globalCounts[k] = 0;
-        // 分组统计
         let groupStats = {};
 
         for(let idx=0; idx<lines.length; idx++){
@@ -580,76 +539,82 @@
                 groupStats[gkey] = {
                     lines: 0,
                     totalTickets: 0,
-                    counts: {},
-                    maxKey: null,
-                    minKey: null
+                    totalMoney: 0,
+                    allKeys: [],
+                    hitDistribution: {}
                 };
-                for(let k of order) groupStats[gkey].counts[k] = 0;
+                for(let k of order) groupStats[gkey].hitDistribution[k] = { lines: 0, money: 0 };
             }
-            groupStats[gkey].lines++;
+            let g = groupStats[gkey];
+            g.lines++;
 
+            let lineKeys = [];
+            let lineMoney = 0;
             for(let ticket of parsed.tickets){
                 totalTickets++;
-                groupStats[gkey].totalTickets++;
+                g.totalTickets++;
                 let frontHit = 0;
                 for(let n of ticket.front) if(draw.front.has(n)) frontHit++;
                 let backHit = 0;
                 for(let n of ticket.back) if(draw.back.has(n)) backHit++;
                 let key = frontHit + '+' + backHit;
-                if(globalCounts[key] !== undefined) globalCounts[key]++;
-                if(groupStats[gkey].counts[key] !== undefined) groupStats[gkey].counts[key]++;
+                lineKeys.push(key);
+                globalAllKeys.push(key);
+                g.allKeys.push(key);
+                lineMoney += currentPrizeMap[key];
+            }
+            grandTotalMoney += lineMoney;
+            g.totalMoney += lineMoney;
 
-                // 更新该分组的最高/最低奖级
-                if(groupStats[gkey].maxKey === null || order.indexOf(key) < order.indexOf(groupStats[gkey].maxKey)) {
-                    groupStats[gkey].maxKey = key;
+            // 该行最高等级
+            let lineMaxKey = null;
+            for(let k of lineKeys) {
+                if(lineMaxKey === null || order.indexOf(k) < order.indexOf(lineMaxKey)) {
+                    lineMaxKey = k;
                 }
-                if(groupStats[gkey].minKey === null || order.indexOf(key) > order.indexOf(groupStats[gkey].minKey)) {
-                    groupStats[gkey].minKey = key;
-                }
+            }
+            if(lineMaxKey) {
+                g.hitDistribution[lineMaxKey].lines++;
+                g.hitDistribution[lineMaxKey].money += lineMoney;
             }
         }
 
-        // 全局最高/最低奖级
+        // 全局最高/最低
         let globalMaxKey = null, globalMinKey = null;
-        for(let k of order) {
-            if(globalCounts[k] > 0) {
-                if(globalMaxKey === null || order.indexOf(k) < order.indexOf(globalMaxKey)) globalMaxKey = k;
-                if(globalMinKey === null || order.indexOf(k) > order.indexOf(globalMinKey)) globalMinKey = k;
-            }
+        for(let k of globalAllKeys) {
+            if(globalMaxKey === null || order.indexOf(k) < order.indexOf(globalMaxKey)) globalMaxKey = k;
+            if(globalMinKey === null || order.indexOf(k) > order.indexOf(globalMinKey)) globalMinKey = k;
         }
         if(globalMaxKey === null) globalMaxKey = '0+0';
         if(globalMinKey === null) globalMinKey = '0+0';
 
-        // 生成文本
         let resultText = '';
         resultText += `🎯 全部最多中 ${globalMaxKey}\n`;
         resultText += `🎯 全部最少中 ${globalMinKey}\n\n`;
-        resultText += `===== 📈 全部总计 (共${totalTickets}注) =====\n`;
-        let grandTotal = 0;
-        for(let k of order) {
-            grandTotal += globalCounts[k] * currentPrizeMap[k];
-        }
-        resultText += `💰 总奖金：${grandTotal.toLocaleString()}元\n`;
-        resultText += `📊 总行数：${totalLines} 行\n`;
+        resultText += `===== 📈 全部总计 (共${totalLines}行，${totalTickets}注) =====\n`;
+        resultText += `💰 总奖金：${grandTotalMoney.toLocaleString()}元\n`;
 
         let sortedKeys = sortGroupKeys(Object.keys(groupStats));
         for(let gkey of sortedKeys){
             let g = groupStats[gkey];
-            let maxKey = g.maxKey || '0+0';
-            let minKey = g.minKey || '0+0';
-            let groupTotal = 0;
-            for(let k of order) {
-                groupTotal += g.counts[k] * currentPrizeMap[k];
+            // 分组最高/最低（所有单注）
+            let gMaxKey = null, gMinKey = null;
+            for(let k of g.allKeys) {
+                if(gMaxKey === null || order.indexOf(k) < order.indexOf(gMaxKey)) gMaxKey = k;
+                if(gMinKey === null || order.indexOf(k) > order.indexOf(gMinKey)) gMinKey = k;
             }
+            if(gMaxKey === null) gMaxKey = '0+0';
+            if(gMinKey === null) gMinKey = '0+0';
+
             resultText += `\n===== ${gkey} (共${g.lines}行，${g.totalTickets}注) =====\n`;
-            resultText += `最多命中：${maxKey}\n`;
-            resultText += `最少命中：${minKey}\n`;
-            resultText += `奖金小计：${groupTotal.toLocaleString()}元\n`;
-            resultText += `--- 命中分布（按单注统计） ---\n`;
-            for(let k of order) {
-                if(g.counts[k] > 0) {
-                    let money = currentPrizeMap[k];
-                    resultText += `${k} ： ${g.counts[k]} 注，小计：${(g.counts[k] * money).toLocaleString()}元\n`;
+            resultText += `最多命中：${gMaxKey}\n`;
+            resultText += `最少命中：${gMinKey}\n`;
+            resultText += `奖金小计：${g.totalMoney.toLocaleString()}元\n`;
+            resultText += `--- 命中分布（按每行最高等级统计） ---\n`;
+            for(let k of order){
+                let dist = g.hitDistribution[k];
+                if(dist.lines > 0) {
+                    resultText += `${k} ： ${dist.lines} 行，小计：${dist.money.toLocaleString()}元\n`;
                 }
             }
         }
