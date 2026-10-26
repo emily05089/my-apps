@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>组合合并工具</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: #f5f6fa; margin: 0; padding: 20px; color: #222;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 12px; }
+  .label { font-size: 14px; font-weight: 600; margin: 14px 0 6px; color: #333; }
+  textarea {
+    width: 100%; height: 190px; padding: 10px 12px;
+    font-family: Consolas, Monaco, monospace; font-size: 14px;
+    border: 1px solid #ccc; border-radius: 8px; resize: vertical;
+    line-height: 1.6; background: #fff; outline: none;
+  }
+  textarea:focus { border-color: #2d7ef7; box-shadow: 0 0 0 3px rgba(45,126,247,.15); }
+  .bar { margin: 12px 0; display: flex; gap: 10px; flex-wrap: wrap; }
+  button {
+    padding: 9px 20px; border-radius: 8px; border: none;
+    background: #2d7ef7; color: #fff; font-size: 14px; cursor: pointer;
+    transition: .15s;
+  }
+  button:hover { background: #1a68db; }
+  button.gray { background: #6b7280; }
+  button.gray:hover { background: #4b5563; }
+  button.mini {
+    padding: 4px 10px; font-size: 12px; background: #10b981; flex: 0 0 auto;
+    min-width: 58px;
+  }
+  button.mini:hover { background: #059669; }
+  #output {
+    background: #fff; border: 1px solid #ddd; border-radius: 8px;
+    padding: 10px 12px; min-height: 90px;
+  }
+  .row {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 6px 0; border-bottom: 1px dashed #eee;
+  }
+  .row:last-child { border-bottom: none; }
+  .row code {
+    font-family: Consolas, Monaco, monospace; font-size: 14px;
+    white-space: pre-wrap; word-break: break-all; line-height: 1.7;
+    padding-top: 3px;
+  }
+  .empty { color: #aaa; font-size: 14px; padding: 8px 0; }
+  .hint { font-size: 12px; color: #777; margin-top: 8px; line-height: 1.7; }
+  .count { font-size: 13px; color: #2d7ef7; margin: 10px 0 6px; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>组合合并工具</h1>
+
+  <div class="label">① 输入原数据（每行一条）</div>
+  <textarea id="input" placeholder="01,10,15,20,22,27,30,31-01
+01,10,15,20,22,27,30,31-02
+胆:03,24,29，拖:02,08,10,13,14,15,18,19,21,25,27,30,33-13"></textarea>
+
+  <div class="bar">
+    <button id="run">确定</button>
+    <button id="copyAll" class="gray">复制全部结果</button>
+    <button id="clearAll" class="gray">清空</button>
+  </div>
+
+  <div class="label">② 合并结果</div>
+  <div id="output"><div class="empty">（还没有结果，请先输入数据并点“确定”）</div></div>
+
+  <div class="hint">
+    规则：只有<b>连续相邻</b>且 “-” 前面完全相同的行才会合并；后区去重并升序排列；
+    输出行数 = 该段内某个后区号码出现的最大次数（例如 6 行里 01 出现 3 次、02 出现 3 次，则输出 3 行）。
+  </div>
+</div>
+
+<script>
+(function () {
+  const inputEl  = document.getElementById('input');
+  const outputEl = document.getElementById('output');
+
+  let currentRows = [];   // 当前输出结果（字符串数组）
+
+  /* ---------- 工具函数 ---------- */
+
+  // 用于去重的键：数字统一按数值比较（01 与 1 视为同一个）
+  function keyOf(s) {
+    const n = parseInt(s, 10);
+    return isNaN(n) ? s : n;
+  }
+  function numOf(s) {
+    const n = parseInt(s, 10);
+    return isNaN(n) ? 999999 : n;
+  }
+
+  // 拆分一行：front = "-" 前面的部分，backs = "-" 后面的后区号码数组
+  function splitLine(line) {
+    const s = line.trim();
+    if (!s) return null;
+    const i = s.lastIndexOf('-');
+    if (i <= 0) {
+      return { front: s.replace(/\s+/g, ''), backs: [] };
+    }
+    const front = s.slice(0, i).trim();
+    const backStr = s.slice(i + 1).trim();
+    const backs = backStr.split(/[,，、\s]+/).filter(Boolean);
+    return { front, backs };
+  }
+
+  /* ---------- 核心合并 ---------- */
+
+  function run() {
+    const lines = inputEl.value.split(/\r?\n/);
+    const items = [];
+    for (const line of lines) {
+      const p = splitLine(line);
+      if (p) items.push(p);
+    }
+
+    if (!items.length) {
+      currentRows = [];
+      render('（没有输入任何有效数据）');
+      return;
+    }
+
+    // 1. 按“连续且前区相同”切成若干段
+    const blocks = [];
+    for (const it of items) {
+      const last = blocks[blocks.length - 1];
+      if (last && last.front === it.front) {
+        last.items.push(it);
+      } else {
+        blocks.push({ front: it.front, items: [it] });
+      }
+    }
+
+    // 2. 每段内部合并后区
+    currentRows = [];
+    for (const b of blocks) {
+      const map = new Map();   // key -> { text, count }
+      for (const it of b.items) {
+        for (const bk of it.backs) {
+          const k = keyOf(bk);
+          if (!map.has(k)) map.set(k, { text: bk, count: 0 });
+          map.get(k).count++;
+        }
+      }
+
+      // 该段没有后区号码：原样输出一次
+      if (map.size === 0) {
+        currentRows.push(b.front);
+        continue;
+      }
+
+      // 后区去重 + 升序
+      const arr = Array.from(map.values())
+        .sort((a, c) => numOf(a.text) - numOf(c.text) || a.text.localeCompare(c.text));
+
+      const backStr = arr.map(v => v.text).join(',');
+      // 输出行数 = 该段内某个后区号码出现的最大次数
+      const times = Math.max.apply(null, arr.map(v => v.count));
+
+      for (let i = 0; i < times; i++) {
+        currentRows.push(b.front + '-' + backStr);
+      }
+    }
+
+    render();
+  }
+
+  /* ---------- 渲染 ---------- */
+
+  function render(emptyText) {
+    outputEl.innerHTML = '';
+
+    if (!currentRows.length) {
+      const d = document.createElement('div');
+      d.className = 'empty';
+      d.textContent = emptyText || '（无输出）';
+      outputEl.appendChild(d);
+      return;
+    }
+
+    // 行数提示
+    const c = document.createElement('div');
+    c.className = 'count';
+    c.textContent = '共 ' + currentRows.length + ' 行';
+    outputEl.appendChild(c);
+
+    currentRows.forEach(function (text) {
+      const row = document.createElement('div');
+      row.className = 'row';
+
+      const btn = document.createElement('button');
+      btn.className = 'mini';
+      btn.textContent = '复制';
+      btn.addEventListener('click', function () {
+        copyText(text).then(function () {
+          btn.textContent = '已复制';
+          setTimeout(function () { btn.textContent = '复制'; }, 900);
+        });
+      });
+
+      const code = document.createElement('code');
+      code.textContent = text;
+
+      row.appendChild(btn);   // 复制键在前面
+      row.appendChild(code);
+      outputEl.appendChild(row);
+    });
+  }
+
+  /* ---------- 复制 ---------- */
+
+  function copyText(t) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(t).catch(function () { fallbackCopy(t); });
+    }
+    fallbackCopy(t);
+    return Promise.resolve();
+  }
+
+  function fallbackCopy(t) {
+    const ta = document.createElement('textarea');
+    ta.value = t;
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  /* ---------- 事件绑定 ---------- */
+
+  document.getElementById('run').addEventListener('click', run);
+
+  document.getElementById('copyAll').addEventListener('click', function () {
+    if (!currentRows.length) { alert('没有可复制的结果'); return; }
+    const self = this;
+    copyText(currentRows.join('\n')).then(function () {
+      const old = self.textContent;
+      self.textContent = '已复制全部';
+      setTimeout(function () { self.textContent = old; }, 900);
+    });
+  });
+
+  document.getElementById('clearAll').addEventListener('click', function () {
+    inputEl.value = '';
+    currentRows = [];
+    render('（还没有结果，请先输入数据并点“确定”）');
+    inputEl.focus();
+  });
+
+  // Ctrl + Enter 快捷执行
+  inputEl.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') run();
+  });
+})();
+</script>
+</body>
+</html>
