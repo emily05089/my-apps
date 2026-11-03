@@ -10,7 +10,7 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
     background: #f5f6fa; margin: 0; padding: 20px; color: #222;
   }
-  .wrap { max-width: 900px; margin: 0 auto; }
+  .wrap { max-width: 920px; margin: 0 auto; }
   h1 { font-size: 20px; margin: 0 0 12px; }
   .label { font-size: 14px; font-weight: 600; margin: 14px 0 6px; color: #333; }
   textarea {
@@ -49,7 +49,7 @@
     padding-top: 3px;
   }
   .empty { color: #aaa; font-size: 14px; padding: 8px 0; }
-  .hint { font-size: 12px; color: #777; margin-top: 8px; line-height: 1.7; }
+  .hint { font-size: 12px; color: #777; margin-top: 8px; line-height: 1.8; }
   .count { font-size: 13px; color: #2d7ef7; margin: 10px 0 6px; font-weight: 600; }
 </style>
 </head>
@@ -73,51 +73,79 @@
 
   <div class="hint">
     规则：只有<b>连续相邻</b>且 “-” 前面完全相同的行才会合并；后区去重并升序排列；
-    输出行数 = 该段内某个后区号码出现的最大次数（例如 6 行里 01 出现 3 次、02 出现 3 次，则输出 3 行）。
+    输出行数 = 该段内某个后区号码出现的最大次数。<br>
+    注数按双色球规则计算：前区选 6 个、后区选 1 个。复式为 C(前区个数,6)×后区个数，
+    胆拖为 C(拖码个数, 6−胆码个数)×后区个数。输入内容会自动保存，下次打开自动恢复。
   </div>
 </div>
 
 <script>
 (function () {
+  const STORAGE_KEY = 'combine_input_v1';
   const inputEl  = document.getElementById('input');
   const outputEl = document.getElementById('output');
 
   let currentRows = [];   // 当前输出结果（字符串数组）
+  let totalBets   = 0;    // 原始输入合计注数
 
-  /* ---------- 工具函数 ---------- */
-
-  // 用于去重的键：数字统一按数值比较（01 与 1 视为同一个）
-  function keyOf(s) {
-    const n = parseInt(s, 10);
-    return isNaN(n) ? s : n;
+  /* ---------- 组合数 ---------- */
+  function comb(n, k) {
+    if (k < 0 || n < 0 || k > n) return 0;
+    if (k === 0 || k === n) return 1;
+    k = Math.min(k, n - k);
+    let r = 1;
+    for (let i = 1; i <= k; i++) r = r * (n - k + i) / i;
+    return Math.round(r);
   }
-  function numOf(s) {
-    const n = parseInt(s, 10);
-    return isNaN(n) ? 999999 : n;
-  }
 
-  // 拆分一行：front = "-" 前面的部分，backs = "-" 后面的后区号码数组
+  /* ---------- 行解析 ---------- */
   function splitLine(line) {
     const s = line.trim();
     if (!s) return null;
     const i = s.lastIndexOf('-');
-    if (i <= 0) {
-      return { front: s.replace(/\s+/g, ''), backs: [] };
+    if (i <= 0) return { front: s, backs: [] };
+    return {
+      front: s.slice(0, i).trim(),
+      backs: s.slice(i + 1).trim().split(/[,，、\s]+/).filter(Boolean)
+    };
+  }
+
+  // 用于比较前区是否相同（去空白、统一分隔符）
+  function normFront(f) {
+    return f.replace(/\s+/g, '').replace(/，/g, ',').replace(/、/g, ',');
+  }
+
+  /* ---------- 单行注数（双色球规则） ---------- */
+  function countBets(line) {
+    const p = splitLine(line);
+    if (!p) return 0;
+    const n = p.backs.length;
+    if (n === 0) return 0;
+    const front = p.front;
+
+    const danMatch = front.match(/胆\s*[:：]\s*([\s\S]*?)\s*拖\s*[:：]\s*([\s\S]*)$/);
+    if (danMatch) {
+      const dan = danMatch[1].split(/[,，、\s]+/).filter(Boolean);
+      const tuo = danMatch[2].split(/[,，、\s]+/).filter(Boolean);
+      return comb(tuo.length, 6 - dan.length) * n;
     }
-    const front = s.slice(0, i).trim();
-    const backStr = s.slice(i + 1).trim();
-    const backs = backStr.split(/[,，、\s]+/).filter(Boolean);
-    return { front, backs };
+
+    const nums = front.split(/[,，、\s]+/).filter(Boolean);
+    return comb(nums.length, 6) * n;
   }
 
   /* ---------- 核心合并 ---------- */
-
   function run() {
     const lines = inputEl.value.split(/\r?\n/);
     const items = [];
+    totalBets = 0;
+
     for (const line of lines) {
+      if (!line.trim()) continue;
       const p = splitLine(line);
-      if (p) items.push(p);
+      if (!p) continue;
+      items.push(p);
+      totalBets += countBets(line);
     }
 
     if (!items.length) {
@@ -129,11 +157,12 @@
     // 1. 按“连续且前区相同”切成若干段
     const blocks = [];
     for (const it of items) {
+      const key = normFront(it.front);
       const last = blocks[blocks.length - 1];
-      if (last && last.front === it.front) {
+      if (last && last.key === key) {
         last.items.push(it);
       } else {
-        blocks.push({ front: it.front, items: [it] });
+        blocks.push({ key: key, front: it.front, items: [it] });
       }
     }
 
@@ -143,25 +172,26 @@
       const map = new Map();   // key -> { text, count }
       for (const it of b.items) {
         for (const bk of it.backs) {
-          const k = keyOf(bk);
+          const k = String(parseInt(bk, 10) || bk);
           if (!map.has(k)) map.set(k, { text: bk, count: 0 });
           map.get(k).count++;
         }
       }
 
-      // 该段没有后区号码：原样输出一次
       if (map.size === 0) {
         currentRows.push(b.front);
         continue;
       }
 
-      // 后区去重 + 升序
-      const arr = Array.from(map.values())
-        .sort((a, c) => numOf(a.text) - numOf(c.text) || a.text.localeCompare(c.text));
+      const arr = Array.from(map.values()).sort(function (a, c) {
+        const na = parseInt(a.text, 10), nc = parseInt(c.text, 10);
+        if (!isNaN(na) && !isNaN(nc) && na !== nc) return na - nc;
+        return a.text.localeCompare(c.text);
+      });
 
-      const backStr = arr.map(v => v.text).join(',');
+      const backStr = arr.map(function (v) { return v.text; }).join(',');
       // 输出行数 = 该段内某个后区号码出现的最大次数
-      const times = Math.max.apply(null, arr.map(v => v.count));
+      const times = Math.max.apply(null, arr.map(function (v) { return v.count; }));
 
       for (let i = 0; i < times; i++) {
         currentRows.push(b.front + '-' + backStr);
@@ -172,7 +202,6 @@
   }
 
   /* ---------- 渲染 ---------- */
-
   function render(emptyText) {
     outputEl.innerHTML = '';
 
@@ -184,10 +213,9 @@
       return;
     }
 
-    // 行数提示
     const c = document.createElement('div');
     c.className = 'count';
-    c.textContent = '共 ' + currentRows.length + ' 行';
+    c.textContent = '共 ' + currentRows.length + ' 行，合计 ' + totalBets + ' 注';
     outputEl.appendChild(c);
 
     currentRows.forEach(function (text) {
@@ -214,7 +242,6 @@
   }
 
   /* ---------- 复制 ---------- */
-
   function copyText(t) {
     if (navigator.clipboard && window.isSecureContext) {
       return navigator.clipboard.writeText(t).catch(function () { fallbackCopy(t); });
@@ -236,9 +263,19 @@
     document.body.removeChild(ta);
   }
 
-  /* ---------- 事件绑定 ---------- */
+  /* ---------- 本地存储 ---------- */
+  function saveInput() {
+    try { localStorage.setItem(STORAGE_KEY, inputEl.value); } catch (e) {}
+  }
 
-  document.getElementById('run').addEventListener('click', run);
+  /* ---------- 事件绑定 ---------- */
+  document.getElementById('run').addEventListener('click', function () {
+    saveInput();
+    run();
+  });
+
+  // 输入时自动保存，下次打开恢复
+  inputEl.addEventListener('input', saveInput);
 
   document.getElementById('copyAll').addEventListener('click', function () {
     if (!currentRows.length) { alert('没有可复制的结果'); return; }
@@ -253,14 +290,28 @@
   document.getElementById('clearAll').addEventListener('click', function () {
     inputEl.value = '';
     currentRows = [];
+    totalBets = 0;
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
     render('（还没有结果，请先输入数据并点“确定”）');
     inputEl.focus();
   });
 
   // Ctrl + Enter 快捷执行
   inputEl.addEventListener('keydown', function (e) {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') run();
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      saveInput();
+      run();
+    }
   });
+
+  /* ---------- 启动时恢复上次输入 ---------- */
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      inputEl.value = saved;
+      if (saved.trim()) run();
+    }
+  } catch (e) {}
 })();
 </script>
 </body>
