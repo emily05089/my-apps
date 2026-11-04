@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>组合合并工具（紧凑版 + 注数统计）</title>
+<title>组合合并工具（紧凑版 + 注数统计 + 中奖分组）</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -29,6 +29,8 @@
   button:hover { background: #1a68db; }
   button.gray { background: #6b7280; }
   button.gray:hover { background: #4b5563; }
+  button.orange { background: #f59e0b; }
+  button.orange:hover { background: #d97706; }
   button.mini {
     padding: 4px 10px; font-size: 12px; background: #10b981; flex: 0 0 auto;
     min-width: 58px;
@@ -55,11 +57,17 @@
     line-height: 1.8;
   }
   .count b { color: #e11d48; }
+  .group { margin: 12px 0; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+  .group-title {
+    background: #f0f5ff; padding: 8px 12px; font-weight: 600;
+    font-size: 14px; color: #1d4ed8; border-bottom: 1px solid #e5e7eb;
+  }
+  .group .row { padding: 6px 12px; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>组合合并工具（紧凑版 + 注数统计）</h1>
+  <h1>组合合并工具（紧凑版 + 注数统计 + 中奖分组）</h1>
 
   <div class="label">① 输入原数据（每行一条）</div>
   <textarea id="input" placeholder="01,10,15,20,22,27,30,31-01
@@ -68,6 +76,7 @@
 
   <div class="bar">
     <button id="run">确定</button>
+    <button id="winBtn" class="orange">输入中奖号码</button>
     <button id="copyAll" class="gray">复制全部结果</button>
     <button id="clearAll" class="gray">清空</button>
   </div>
@@ -80,6 +89,7 @@
     若后区覆盖 01~16 全部号码，则显示为 <b>-全部</b>；
     相同组合重复出现时，用 <b>✖️次数</b> 表示（只出现一次不加乘号）。
     注数按前区 6 个号、后区 1 个号的组合规则计算：C(前区个数,6) × 后区个数（后区“全部”按 16 个计算），带 ✖️N 再乘以 N。
+    点击“输入中奖号码”后，可按命中情况分组展示。
   </div>
 </div>
 
@@ -88,8 +98,12 @@
   const inputEl  = document.getElementById('input');
   const outputEl = document.getElementById('output');
 
-  let currentRows = [];   // 当前输出结果（字符串数组）
+  let currentRows = [];   // 当前输出行对象数组
   let totalBets   = 0;    // 总注数
+  let winInfo     = null; // { fronts: [..], back: n, raw: '...' }
+
+  // 分组顺序
+  const ORDER = ['6+1','6+0','5+1','5+0','4+1','4+0','3+1','2+1','1+1','0+1','3+0','2+0','1+0','0+0'];
 
   /* ---------- 组合数 ---------- */
   function comb(n, k) {
@@ -102,7 +116,6 @@
   }
 
   /* ---------- 工具函数 ---------- */
-
   function keyOf(s) {
     const n = parseInt(s, 10);
     return isNaN(n) ? s : n;
@@ -129,24 +142,26 @@
   function parseFront(front) {
     if (/[胆拖]/.test(front)) {
       let danStr = '', tuoStr = '';
-      const danMatch = front.match(/胆\s*[:：]?\s*([\d,，、\s]+)/);
-      const tuoMatch = front.match(/拖\s*[:：]?\s*([\d,，、\s]+)/);
-      if (danMatch) danStr = danMatch[1];
-      if (tuoMatch) tuoStr = tuoMatch[1];
+      const dm = front.match(/胆\s*[:：]?\s*([\d,，、\s]+)/);
+      const tm = front.match(/拖\s*[:：]?\s*([\d,，、\s]+)/);
+      if (dm) danStr = dm[1];
+      if (tm) tuoStr = tm[1];
       const danNums = danStr.split(/[,，、\s]+/).filter(Boolean);
       const tuoNums = tuoStr.split(/[,，、\s]+/).filter(Boolean);
       return {
         isDanTuo: true,
+        danNums, tuoNums,
         danCount: danNums.length,
         tuoCount: tuoNums.length,
+        nums: danNums.concat(tuoNums),
         frontCount: danNums.length + tuoNums.length
       };
     }
     const nums = front.split(/[,，、\s]+/).filter(Boolean);
-    return { isDanTuo: false, frontCount: nums.length, danCount: 0, tuoCount: 0 };
+    return { isDanTuo: false, nums, danNums: [], tuoNums: [], danCount: 0, tuoCount: 0, frontCount: nums.length };
   }
 
-  /* ---------- 计算注数（前区 6 个，后区 1 个） ---------- */
+  // 计算注数（前区 6 个，后区 1 个）
   function calcBets(frontInfo, backCount, multiplier) {
     let frontComb;
     if (frontInfo.isDanTuo) {
@@ -157,12 +172,28 @@
       if (frontInfo.frontCount < 6) return 0;
       frontComb = comb(frontInfo.frontCount, 6);
     }
-    // 后区：每个后区号码对应 1 注
     return frontComb * backCount * (multiplier || 1);
   }
 
-  /* ---------- 核心合并 ---------- */
+  // 判定某行最佳命中
+  function classifyRow(row, winFrontSet, winBack) {
+    const fi = row.frontInfo;
+    let hit;
+    if (fi.isDanTuo) {
+      const danHit = fi.danNums.filter(n => winFrontSet.has(parseInt(n, 10))).length;
+      const tuoHit = fi.tuoNums.filter(n => winFrontSet.has(parseInt(n, 10))).length;
+      hit = danHit + Math.min(tuoHit, 6 - fi.danCount);
+    } else {
+      const raw = fi.nums.filter(n => winFrontSet.has(parseInt(n, 10))).length;
+      hit = Math.min(raw, 6);
+    }
+    let backHit = 0;
+    if (row.backAll) backHit = 1;
+    else if (row.backs.some(n => parseInt(n, 10) === winBack)) backHit = 1;
+    return { front: hit, back: backHit };
+  }
 
+  /* ---------- 核心合并 ---------- */
   function run() {
     const lines = inputEl.value.split(/\r?\n/);
     const items = [];
@@ -174,10 +205,11 @@
     if (!items.length) {
       currentRows = [];
       totalBets = 0;
-      render('（没有输入任何有效数据）');
+      render();
       return;
     }
 
+    // 1. 按“连续且前区相同”切成若干段
     const blocks = [];
     for (const it of items) {
       const last = blocks[blocks.length - 1];
@@ -188,6 +220,7 @@
       }
     }
 
+    // 2. 每段内部合并后区，并计算注数
     currentRows = [];
     totalBets = 0;
 
@@ -204,9 +237,7 @@
         }
       }
 
-      let base;
-      let maxCount;
-      let backCount;
+      let base, maxCount, backCount, backs = [], backAll = false;
 
       if (!hasBack) {
         base = b.front;
@@ -227,9 +258,11 @@
         if (isAll) {
           base = b.front + '-全部';
           backCount = 16;
+          backAll = true;
         } else {
           base = b.front + '-' + arr.map(v => v.text).join(',');
           backCount = arr.length;
+          backs = arr.map(v => v.text);
         }
 
         maxCount = Math.max.apply(null, arr.map(v => v.count));
@@ -239,59 +272,136 @@
       const betsPerLine = calcBets(frontInfo, backCount, maxCount);
       totalBets += betsPerLine;
 
-      let line = base;
-      if (maxCount > 1) line += ' ✖️' + maxCount;
-      if (betsPerLine > 0) line += ' （' + betsPerLine + '注）';
-      currentRows.push(line);
+      let display = base;
+      if (maxCount > 1) display += ' ✖️' + maxCount;
+
+      currentRows.push({
+        front: b.front,
+        frontInfo,
+        backs,
+        backAll,
+        maxCount,
+        bets: betsPerLine,
+        display
+      });
     }
 
     render();
   }
 
   /* ---------- 渲染 ---------- */
-
-  function render(emptyText) {
+  function render() {
     outputEl.innerHTML = '';
 
     if (!currentRows.length) {
       const d = document.createElement('div');
       d.className = 'empty';
-      d.textContent = emptyText || '（无输出）';
+      d.textContent = '（还没有结果，请先输入数据并点“确定”）';
       outputEl.appendChild(d);
       return;
     }
 
+    if (winInfo) renderGrouped();
+    else renderFlat();
+  }
+
+  function renderFlat() {
     const c = document.createElement('div');
     c.className = 'count';
     c.innerHTML = '共 ' + currentRows.length + ' 行 ｜ 总注数：<b>' + totalBets + '</b> 注';
     outputEl.appendChild(c);
+    currentRows.forEach(row => appendRow(outputEl, row));
+  }
 
-    currentRows.forEach(function (text) {
-      const row = document.createElement('div');
-      row.className = 'row';
+  function renderGrouped() {
+    const winFrontSet = new Set(winInfo.fronts);
+    const winBack = winInfo.back;
 
-      const btn = document.createElement('button');
-      btn.className = 'mini';
-      btn.textContent = '复制';
-      btn.addEventListener('click', function () {
-        const pure = text.replace(/\s*（\d+注）$/, '');
-        copyText(pure).then(function () {
-          btn.textContent = '已复制';
-          setTimeout(function () { btn.textContent = '复制'; }, 900);
-        });
-      });
+    const groups = {};
+    ORDER.forEach(k => groups[k] = []);
+    currentRows.forEach(row => {
+      const r = classifyRow(row, winFrontSet, winBack);
+      const key = r.front + '+' + r.back;
+      if (groups[key]) groups[key].push(row);
+    });
 
-      const code = document.createElement('code');
-      code.textContent = text;
+    // 顶部统计
+    const c = document.createElement('div');
+    c.className = 'count';
+    c.innerHTML = '共 ' + currentRows.length + ' 行 ｜ 总注数：<b>' + totalBets + '</b> 注 ｜ 中奖号码：<b>' +
+      winInfo.fronts.map(n => String(n).padStart(2, '0')).join(',') + '-' + String(winInfo.back).padStart(2, '0') + '</b>';
+    outputEl.appendChild(c);
 
-      row.appendChild(btn);
-      row.appendChild(code);
-      outputEl.appendChild(row);
+    ORDER.forEach(key => {
+      const list = groups[key];
+      if (!list.length) return;
+
+      const g = document.createElement('div');
+      g.className = 'group';
+
+      const t = document.createElement('div');
+      t.className = 'group-title';
+      const label = '中' + key.replace('+', '➕');
+      t.textContent = label + '（' + list.length + ' 行）';
+      g.appendChild(t);
+
+      list.forEach(row => appendRow(g, row));
+      outputEl.appendChild(g);
     });
   }
 
-  /* ---------- 复制 ---------- */
+  function appendRow(parent, row) {
+    const r = document.createElement('div');
+    r.className = 'row';
 
+    const btn = document.createElement('button');
+    btn.className = 'mini';
+    btn.textContent = '复制';
+    btn.addEventListener('click', function () {
+      copyText(row.display).then(function () {
+        btn.textContent = '已复制';
+        setTimeout(function () { btn.textContent = '复制'; }, 900);
+      });
+    });
+
+    const code = document.createElement('code');
+    code.textContent = row.display;
+
+    r.appendChild(btn);
+    r.appendChild(code);
+    parent.appendChild(r);
+  }
+
+  /* ---------- 中奖号码 ---------- */
+  function parseWin(str) {
+    str = str.trim().replace(/，/g, ',').replace(/：/g, ':');
+    const i = str.lastIndexOf('-');
+    if (i <= 0) return null;
+    const frontStr = str.slice(0, i);
+    const backStr = str.slice(i + 1);
+    const fronts = frontStr.split(/[,、\s]+/).filter(Boolean).map(n => parseInt(n, 10)).filter(n => !isNaN(n));
+    const backs = backStr.split(/[,、\s]+/).filter(Boolean).map(n => parseInt(n, 10)).filter(n => !isNaN(n));
+    if (fronts.length !== 6 || backs.length !== 1) return null;
+    return { fronts, back: backs[0], raw: str };
+  }
+
+  function getAllDisplayRows() {
+    if (!winInfo) return currentRows.map(r => r.display);
+    const winFrontSet = new Set(winInfo.fronts);
+    const winBack = winInfo.back;
+    const groups = {};
+    ORDER.forEach(k => groups[k] = []);
+    currentRows.forEach(row => {
+      const r = classifyRow(row, winFrontSet, winBack);
+      const key = r.front + '+' + r.back;
+      if (groups[key]) groups[key].push(row);
+    });
+    const result = [];
+    ORDER.forEach(key => groups[key].forEach(r => result.push(r.display)));
+    return result;
+  }
+
+  /* ---------- 复制 ---------- */
   function copyText(t) {
     if (navigator.clipboard && window.isSecureContext) {
       return navigator.clipboard.writeText(t).catch(function () { fallbackCopy(t); });
@@ -299,7 +409,6 @@
     fallbackCopy(t);
     return Promise.resolve();
   }
-
   function fallbackCopy(t) {
     const ta = document.createElement('textarea');
     ta.value = t;
@@ -314,14 +423,24 @@
   }
 
   /* ---------- 事件绑定 ---------- */
-
   document.getElementById('run').addEventListener('click', run);
 
+  document.getElementById('winBtn').addEventListener('click', function () {
+    if (!currentRows.length) { alert('请先输入原数据并点“确定”'); return; }
+    const def = winInfo ? winInfo.raw : '';
+    const input = prompt('请输入中奖号码（格式：1,2,3,4,5,6-1，支持中英文逗号，1-9 或 01-09 均可）', def);
+    if (input === null) return;
+    const parsed = parseWin(input);
+    if (!parsed) { alert('格式不正确，请重新输入。示例：1,2,3,4,5,6-1'); return; }
+    winInfo = parsed;
+    render();
+  });
+
   document.getElementById('copyAll').addEventListener('click', function () {
-    if (!currentRows.length) { alert('没有可复制的结果'); return; }
+    const rows = getAllDisplayRows();
+    if (!rows.length) { alert('没有可复制的结果'); return; }
     const self = this;
-    const plain = currentRows.map(t => t.replace(/\s*（\d+注）$/, ''));
-    copyText(plain.join('\n')).then(function () {
+    copyText(rows.join('\n')).then(function () {
       const old = self.textContent;
       self.textContent = '已复制全部';
       setTimeout(function () { self.textContent = old; }, 900);
@@ -332,7 +451,8 @@
     inputEl.value = '';
     currentRows = [];
     totalBets = 0;
-    render('（还没有结果，请先输入数据并点“确定”）');
+    winInfo = null;
+    render();
     inputEl.focus();
   });
 
