@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>组合合并工具（紧凑版）</title>
+<title>组合合并工具（紧凑版 + 注数统计）</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -50,12 +50,15 @@
   }
   .empty { color: #aaa; font-size: 14px; padding: 8px 0; }
   .hint { font-size: 12px; color: #777; margin-top: 8px; line-height: 1.7; }
-  .count { font-size: 13px; color: #2d7ef7; margin: 10px 0 6px; font-weight: 600; }
+  .count {
+    font-size: 13px; color: #2d7ef7; margin: 10px 0 6px; font-weight: 600;
+  }
+  .count b { color: #e11d48; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>组合合并工具（紧凑版）</h1>
+  <h1>组合合并工具（紧凑版 + 注数统计）</h1>
 
   <div class="label">① 输入原数据（每行一条）</div>
   <textarea id="input" placeholder="01,10,15,20,22,27,30,31-01
@@ -84,6 +87,7 @@
   const outputEl = document.getElementById('output');
 
   let currentRows = [];   // 当前输出结果（字符串数组）
+  let totalBets   = 0;    // 总注数（含重复次数）
 
   /* ---------- 工具函数 ---------- */
 
@@ -123,6 +127,7 @@
 
     if (!items.length) {
       currentRows = [];
+      totalBets = 0;
       render('（没有输入任何有效数据）');
       return;
     }
@@ -140,6 +145,8 @@
 
     // 2. 每段内部合并后区
     currentRows = [];
+    totalBets = 0;
+
     for (const b of blocks) {
       const map = new Map();   // key -> { text, count }
       let hasBack = false;
@@ -183,6 +190,9 @@
         maxCount = Math.max.apply(null, arr.map(v => v.count));
       }
 
+      // 注数：等于该段实际行数（含重复）
+      totalBets += b.items.length;
+
       let line = base;
       if (maxCount > 1) line += ' ✖️' + maxCount;
       currentRows.push(line);
@@ -204,10 +214,10 @@
       return;
     }
 
-    // 行数提示
+    // 统计信息：行数 + 总注数
     const c = document.createElement('div');
     c.className = 'count';
-    c.textContent = '共 ' + currentRows.length + ' 行';
+    c.innerHTML = '共 ' + currentRows.length + ' 行 ｜ 总注数：<b>' + totalBets + '</b> 注';
     outputEl.appendChild(c);
 
     currentRows.forEach(function (text) {
@@ -273,6 +283,7 @@
   document.getElementById('clearAll').addEventListener('click', function () {
     inputEl.value = '';
     currentRows = [];
+    totalBets = 0;
     render('（还没有结果，请先输入数据并点“确定”）');
     inputEl.focus();
   });
