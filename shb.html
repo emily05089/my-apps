@@ -52,6 +52,7 @@
   .hint { font-size: 12px; color: #777; margin-top: 8px; line-height: 1.7; }
   .count {
     font-size: 13px; color: #2d7ef7; margin: 10px 0 6px; font-weight: 600;
+    line-height: 1.8;
   }
   .count b { color: #e11d48; }
 </style>
@@ -78,6 +79,7 @@
     规则：只有<b>连续相邻</b>且 “-” 前面完全相同的行才会合并；后区去重并升序排列；
     若后区覆盖 01~16 全部号码，则显示为 <b>-全部</b>；
     相同组合重复出现时，用 <b>✖️次数</b> 表示（只出现一次不加乘号）。
+    注数按前区 6 个号、后区 1 个号的组合规则计算：C(前区个数,6) × 后区个数（后区“全部”按 16 个计算），带 ✖️N 再乘以 N。
   </div>
 </div>
 
@@ -87,11 +89,20 @@
   const outputEl = document.getElementById('output');
 
   let currentRows = [];   // 当前输出结果（字符串数组）
-  let totalBets   = 0;    // 总注数（含重复次数）
+  let totalBets   = 0;    // 总注数
+
+  /* ---------- 组合数 ---------- */
+  function comb(n, k) {
+    if (k < 0 || k > n) return 0;
+    if (k === 0 || k === n) return 1;
+    k = Math.min(k, n - k);
+    let r = 1;
+    for (let i = 1; i <= k; i++) r = r * (n - k + i) / i;
+    return Math.round(r);
+  }
 
   /* ---------- 工具函数 ---------- */
 
-  // 用于去重的键：数字统一按数值比较（01 与 1 视为同一个）
   function keyOf(s) {
     const n = parseInt(s, 10);
     return isNaN(n) ? s : n;
@@ -101,7 +112,6 @@
     return isNaN(n) ? 999999 : n;
   }
 
-  // 拆分一行：front = "-" 前面的部分，backs = "-" 后面的后区号码数组
   function splitLine(line) {
     const s = line.trim();
     if (!s) return null;
@@ -113,6 +123,42 @@
     const backStr = s.slice(i + 1).trim();
     const backs = backStr.split(/[,，、\s]+/).filter(Boolean);
     return { front, backs };
+  }
+
+  // 解析前区（支持单式、复式、胆拖）
+  function parseFront(front) {
+    if (/[胆拖]/.test(front)) {
+      let danStr = '', tuoStr = '';
+      const danMatch = front.match(/胆\s*[:：]?\s*([\d,，、\s]+)/);
+      const tuoMatch = front.match(/拖\s*[:：]?\s*([\d,，、\s]+)/);
+      if (danMatch) danStr = danMatch[1];
+      if (tuoMatch) tuoStr = tuoMatch[1];
+      const danNums = danStr.split(/[,，、\s]+/).filter(Boolean);
+      const tuoNums = tuoStr.split(/[,，、\s]+/).filter(Boolean);
+      return {
+        isDanTuo: true,
+        danCount: danNums.length,
+        tuoCount: tuoNums.length,
+        frontCount: danNums.length + tuoNums.length
+      };
+    }
+    const nums = front.split(/[,，、\s]+/).filter(Boolean);
+    return { isDanTuo: false, frontCount: nums.length, danCount: 0, tuoCount: 0 };
+  }
+
+  /* ---------- 计算注数（前区 6 个，后区 1 个） ---------- */
+  function calcBets(frontInfo, backCount, multiplier) {
+    let frontComb;
+    if (frontInfo.isDanTuo) {
+      const need = 6 - frontInfo.danCount;
+      if (need < 0 || need > frontInfo.tuoCount) return 0;
+      frontComb = comb(frontInfo.tuoCount, need);
+    } else {
+      if (frontInfo.frontCount < 6) return 0;
+      frontComb = comb(frontInfo.frontCount, 6);
+    }
+    // 后区：每个后区号码对应 1 注
+    return frontComb * backCount * (multiplier || 1);
   }
 
   /* ---------- 核心合并 ---------- */
@@ -132,7 +178,6 @@
       return;
     }
 
-    // 1. 按“连续且前区相同”切成若干段
     const blocks = [];
     for (const it of items) {
       const last = blocks[blocks.length - 1];
@@ -143,12 +188,11 @@
       }
     }
 
-    // 2. 每段内部合并后区
     currentRows = [];
     totalBets = 0;
 
     for (const b of blocks) {
-      const map = new Map();   // key -> { text, count }
+      const map = new Map();
       let hasBack = false;
 
       for (const it of b.items) {
@@ -162,17 +206,16 @@
 
       let base;
       let maxCount;
+      let backCount;
 
       if (!hasBack) {
-        // 该段所有行都没有后区
         base = b.front;
         maxCount = b.items.length;
+        backCount = 0;
       } else {
-        // 后区去重 + 按数值升序
         const arr = Array.from(map.values())
           .sort((a, c) => numOf(a.text) - numOf(c.text) || a.text.localeCompare(c.text));
 
-        // 判断是否恰好覆盖 01~16 全部号码
         let isAll = false;
         if (map.size === 16) {
           isAll = true;
@@ -183,18 +226,22 @@
 
         if (isAll) {
           base = b.front + '-全部';
+          backCount = 16;
         } else {
           base = b.front + '-' + arr.map(v => v.text).join(',');
+          backCount = arr.length;
         }
 
         maxCount = Math.max.apply(null, arr.map(v => v.count));
       }
 
-      // 注数：等于该段实际行数（含重复）
-      totalBets += b.items.length;
+      const frontInfo = parseFront(b.front);
+      const betsPerLine = calcBets(frontInfo, backCount, maxCount);
+      totalBets += betsPerLine;
 
       let line = base;
       if (maxCount > 1) line += ' ✖️' + maxCount;
+      if (betsPerLine > 0) line += ' （' + betsPerLine + '注）';
       currentRows.push(line);
     }
 
@@ -214,7 +261,6 @@
       return;
     }
 
-    // 统计信息：行数 + 总注数
     const c = document.createElement('div');
     c.className = 'count';
     c.innerHTML = '共 ' + currentRows.length + ' 行 ｜ 总注数：<b>' + totalBets + '</b> 注';
@@ -228,7 +274,8 @@
       btn.className = 'mini';
       btn.textContent = '复制';
       btn.addEventListener('click', function () {
-        copyText(text).then(function () {
+        const pure = text.replace(/\s*（\d+注）$/, '');
+        copyText(pure).then(function () {
           btn.textContent = '已复制';
           setTimeout(function () { btn.textContent = '复制'; }, 900);
         });
@@ -237,7 +284,7 @@
       const code = document.createElement('code');
       code.textContent = text;
 
-      row.appendChild(btn);   // 复制键在前面
+      row.appendChild(btn);
       row.appendChild(code);
       outputEl.appendChild(row);
     });
@@ -273,7 +320,8 @@
   document.getElementById('copyAll').addEventListener('click', function () {
     if (!currentRows.length) { alert('没有可复制的结果'); return; }
     const self = this;
-    copyText(currentRows.join('\n')).then(function () {
+    const plain = currentRows.map(t => t.replace(/\s*（\d+注）$/, ''));
+    copyText(plain.join('\n')).then(function () {
       const old = self.textContent;
       self.textContent = '已复制全部';
       setTimeout(function () { self.textContent = old; }, 900);
@@ -288,7 +336,6 @@
     inputEl.focus();
   });
 
-  // Ctrl + Enter 快捷执行
   inputEl.addEventListener('keydown', function (e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') run();
   });
