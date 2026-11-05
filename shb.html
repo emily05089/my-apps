@@ -88,8 +88,8 @@
     规则：只有<b>连续相邻</b>且 “-” 前面完全相同的行才会合并；后区去重并升序排列；
     若后区覆盖 01~16 全部号码，则显示为 <b>-全部</b>；
     相同组合重复出现时，用 <b>✖️次数</b> 表示（只出现一次不加乘号）。
-    注数按前区 6 个号、后区 1 个号的组合规则计算：C(前区个数,6) × 后区个数（后区“全部”按 16 个计算），带 ✖️N 再乘以 N。
-    点击“输入中奖号码”后，可按命中情况分组展示。
+    注数按前区 6 个号、后区 1 个号的组合规则计算：C(前区个数,6) × 后区总数（后区“全部”按 16 个计算），带 ✖️N 时内部已折算。
+    点击“输入中奖号码”后，可按命中情况分组展示，并在每行显示具体分类。
   </div>
 </div>
 
@@ -98,11 +98,10 @@
   const inputEl  = document.getElementById('input');
   const outputEl = document.getElementById('output');
 
-  let currentRows = [];   // 当前输出行对象数组
-  let totalBets   = 0;    // 总注数
-  let winInfo     = null; // { fronts: [..], back: n, raw: '...' }
+  let currentRows = [];
+  let totalBets   = 0;
+  let winInfo     = null;
 
-  // 分组顺序
   const ORDER = ['6+1','6+0','5+1','5+0','4+1','4+0','3+1','2+1','1+1','0+1','3+0','2+0','1+0','0+0'];
 
   /* ---------- 组合数 ---------- */
@@ -115,7 +114,7 @@
     return Math.round(r);
   }
 
-  /* ---------- 工具函数 ---------- */
+  /* ---------- 工具 ---------- */
   function keyOf(s) {
     const n = parseInt(s, 10);
     return isNaN(n) ? s : n;
@@ -125,17 +124,29 @@
     return isNaN(n) ? 999999 : n;
   }
 
+  // 解析一行：front, backs, multiplier, backAll
   function splitLine(line) {
     const s = line.trim();
     if (!s) return null;
-    const i = s.lastIndexOf('-');
-    if (i <= 0) {
-      return { front: s.replace(/\s+/g, ''), backs: [] };
+    let multiplier = 1;
+    let text = s;
+    // 末尾 ✖️N / ×N / xN / XN / *N
+    const m = text.match(/\s*[✖×xX*]\uFE0F?\s*(\d+)\s*$/);
+    if (m) {
+      multiplier = parseInt(m[1], 10) || 1;
+      text = text.slice(0, m.index).trim();
     }
-    const front = s.slice(0, i).trim();
-    const backStr = s.slice(i + 1).trim();
+    const i = text.lastIndexOf('-');
+    if (i <= 0) {
+      return { front: text.replace(/\s+/g, ''), backs: [], multiplier, backAll: false };
+    }
+    const front = text.slice(0, i).trim();
+    const backStr = text.slice(i + 1).trim();
+    if (/^全部$/.test(backStr)) {
+      return { front, backs: [], multiplier, backAll: true };
+    }
     const backs = backStr.split(/[,，、\s]+/).filter(Boolean);
-    return { front, backs };
+    return { front, backs, multiplier, backAll: false };
   }
 
   // 解析前区（支持单式、复式、胆拖）
@@ -149,10 +160,8 @@
       const danNums = danStr.split(/[,，、\s]+/).filter(Boolean);
       const tuoNums = tuoStr.split(/[,，、\s]+/).filter(Boolean);
       return {
-        isDanTuo: true,
-        danNums, tuoNums,
-        danCount: danNums.length,
-        tuoCount: tuoNums.length,
+        isDanTuo: true, danNums, tuoNums,
+        danCount: danNums.length, tuoCount: tuoNums.length,
         nums: danNums.concat(tuoNums),
         frontCount: danNums.length + tuoNums.length
       };
@@ -161,36 +170,21 @@
     return { isDanTuo: false, nums, danNums: [], tuoNums: [], danCount: 0, tuoCount: 0, frontCount: nums.length };
   }
 
-  // 计算注数（前区 6 个，后区 1 个）
-  function calcBets(frontInfo, backCount, multiplier) {
-    let frontComb;
-    if (frontInfo.isDanTuo) {
-      const need = 6 - frontInfo.danCount;
-      if (need < 0 || need > frontInfo.tuoCount) return 0;
-      frontComb = comb(frontInfo.tuoCount, need);
-    } else {
-      if (frontInfo.frontCount < 6) return 0;
-      frontComb = comb(frontInfo.frontCount, 6);
+  // 前区组合数
+  function frontCombOf(fi) {
+    if (fi.isDanTuo) {
+      const need = 6 - fi.danCount;
+      if (need < 0 || need > fi.tuoCount) return 0;
+      return comb(fi.tuoCount, need);
     }
-    return frontComb * backCount * (multiplier || 1);
+    if (fi.frontCount < 6) return 0;
+    return comb(fi.frontCount, 6);
   }
 
-  // 判定某行最佳命中
-  function classifyRow(row, winFrontSet, winBack) {
-    const fi = row.frontInfo;
-    let hit;
-    if (fi.isDanTuo) {
-      const danHit = fi.danNums.filter(n => winFrontSet.has(parseInt(n, 10))).length;
-      const tuoHit = fi.tuoNums.filter(n => winFrontSet.has(parseInt(n, 10))).length;
-      hit = danHit + Math.min(tuoHit, 6 - fi.danCount);
-    } else {
-      const raw = fi.nums.filter(n => winFrontSet.has(parseInt(n, 10))).length;
-      hit = Math.min(raw, 6);
-    }
-    let backHit = 0;
-    if (row.backAll) backHit = 1;
-    else if (row.backs.some(n => parseInt(n, 10) === winBack)) backHit = 1;
-    return { front: hit, back: backHit };
+  // 分类文本
+  function getCatText(fi, backCount) {
+    if (fi.isDanTuo) return fi.danCount + '胆' + fi.tuoCount + '拖➕' + backCount;
+    return fi.frontCount + '➕' + backCount;
   }
 
   /* ---------- 核心合并 ---------- */
@@ -209,43 +203,50 @@
       return;
     }
 
-    // 1. 按“连续且前区相同”切成若干段
+    // 连续相同前区切段
     const blocks = [];
     for (const it of items) {
       const last = blocks[blocks.length - 1];
-      if (last && last.front === it.front) {
-        last.items.push(it);
-      } else {
-        blocks.push({ front: it.front, items: [it] });
-      }
+      if (last && last.front === it.front) last.items.push(it);
+      else blocks.push({ front: it.front, items: [it] });
     }
 
-    // 2. 每段内部合并后区，并计算注数
     currentRows = [];
     totalBets = 0;
 
     for (const b of blocks) {
-      const map = new Map();
+      const map = new Map(); // key -> {text, count}
       let hasBack = false;
 
       for (const it of b.items) {
-        if (it.backs.length > 0) hasBack = true;
-        for (const bk of it.backs) {
-          const k = keyOf(bk);
-          if (!map.has(k)) map.set(k, { text: bk, count: 0 });
-          map.get(k).count++;
+        const mult = it.multiplier || 1;
+        if (it.backAll) {
+          hasBack = true;
+          for (let n = 1; n <= 16; n++) {
+            if (!map.has(n)) map.set(n, { text: String(n), count: 0 });
+            map.get(n).count += mult;
+          }
+        } else {
+          if (it.backs.length > 0) hasBack = true;
+          for (const bk of it.backs) {
+            const k = keyOf(bk);
+            if (!map.has(k)) map.set(k, { text: bk, count: 0 });
+            map.get(k).count += mult;
+          }
         }
       }
 
-      let base, maxCount, backCount, backs = [], backAll = false;
+      let base, maxCount = 1, sumCount = 0, backCount = 0, backAll = false;
+      let backNums = [];
 
       if (!hasBack) {
         base = b.front;
-        maxCount = b.items.length;
+        maxCount = b.items.reduce(function (a, it) { return a + (it.multiplier || 1); }, 0);
+        sumCount = 0;
         backCount = 0;
       } else {
         const arr = Array.from(map.values())
-          .sort((a, c) => numOf(a.text) - numOf(c.text) || a.text.localeCompare(c.text));
+          .sort(function (a, c) { return numOf(a.text) - numOf(c.text) || a.text.localeCompare(c.text); });
 
         let isAll = false;
         if (map.size === 16) {
@@ -255,38 +256,62 @@
           }
         }
 
+        backNums = arr.map(function (v) { return keyOf(v.text); });
+
         if (isAll) {
           base = b.front + '-全部';
-          backCount = 16;
           backAll = true;
+          backCount = 16;
         } else {
-          base = b.front + '-' + arr.map(v => v.text).join(',');
+          base = b.front + '-' + arr.map(function (v) { return v.text; }).join(',');
           backCount = arr.length;
-          backs = arr.map(v => v.text);
         }
 
-        maxCount = Math.max.apply(null, arr.map(v => v.count));
+        maxCount = Math.max.apply(null, arr.map(function (v) { return v.count; }));
+        sumCount = arr.reduce(function (a, v) { return a + v.count; }, 0);
       }
 
-      const frontInfo = parseFront(b.front);
-      const betsPerLine = calcBets(frontInfo, backCount, maxCount);
-      totalBets += betsPerLine;
+      const fi = parseFront(b.front);
+      const fc = frontCombOf(fi);
+      const bets = fc * sumCount;
+      totalBets += bets;
 
       let display = base;
       if (maxCount > 1) display += ' ✖️' + maxCount;
 
       currentRows.push({
         front: b.front,
-        frontInfo,
-        backs,
-        backAll,
-        maxCount,
-        bets: betsPerLine,
-        display
+        frontInfo: fi,
+        backNums: backNums,
+        backAll: backAll,
+        maxCount: maxCount,
+        sumCount: sumCount,
+        backCount: backCount,
+        bets: bets,
+        display: display,
+        catText: getCatText(fi, backCount)
       });
     }
 
     render();
+  }
+
+  /* ---------- 判定命中 ---------- */
+  function classifyRow(row, winFrontSet, winBack) {
+    const fi = row.frontInfo;
+    let hit;
+    if (fi.isDanTuo) {
+      const danHit = fi.danNums.filter(function (n) { return winFrontSet.has(parseInt(n, 10)); }).length;
+      const tuoHit = fi.tuoNums.filter(function (n) { return winFrontSet.has(parseInt(n, 10)); }).length;
+      hit = danHit + Math.min(tuoHit, 6 - fi.danCount);
+    } else {
+      const raw = fi.nums.filter(function (n) { return winFrontSet.has(parseInt(n, 10)); }).length;
+      hit = Math.min(raw, 6);
+    }
+    let backHit = 0;
+    if (row.backAll) backHit = 1;
+    else if (row.backNums.some(function (n) { return n === winBack; })) backHit = 1;
+    return { front: hit, back: backHit };
   }
 
   /* ---------- 渲染 ---------- */
@@ -310,7 +335,7 @@
     c.className = 'count';
     c.innerHTML = '共 ' + currentRows.length + ' 行 ｜ 总注数：<b>' + totalBets + '</b> 注';
     outputEl.appendChild(c);
-    currentRows.forEach(row => appendRow(outputEl, row));
+    currentRows.forEach(function (row) { appendRow(outputEl, row, false); });
   }
 
   function renderGrouped() {
@@ -318,21 +343,22 @@
     const winBack = winInfo.back;
 
     const groups = {};
-    ORDER.forEach(k => groups[k] = []);
-    currentRows.forEach(row => {
+    ORDER.forEach(function (k) { groups[k] = []; });
+
+    currentRows.forEach(function (row) {
       const r = classifyRow(row, winFrontSet, winBack);
       const key = r.front + '+' + r.back;
       if (groups[key]) groups[key].push(row);
     });
 
-    // 顶部统计
     const c = document.createElement('div');
     c.className = 'count';
     c.innerHTML = '共 ' + currentRows.length + ' 行 ｜ 总注数：<b>' + totalBets + '</b> 注 ｜ 中奖号码：<b>' +
-      winInfo.fronts.map(n => String(n).padStart(2, '0')).join(',') + '-' + String(winInfo.back).padStart(2, '0') + '</b>';
+      winInfo.fronts.map(function (n) { return String(n).padStart(2, '0'); }).join(',') +
+      '-' + String(winInfo.back).padStart(2, '0') + '</b>';
     outputEl.appendChild(c);
 
-    ORDER.forEach(key => {
+    ORDER.forEach(function (key) {
       const list = groups[key];
       if (!list.length) return;
 
@@ -341,16 +367,15 @@
 
       const t = document.createElement('div');
       t.className = 'group-title';
-      const label = '中' + key.replace('+', '➕');
-      t.textContent = label + '（' + list.length + ' 行）';
+      t.textContent = '中' + key.replace('+', '➕') + '（' + list.length + ' 行）';
       g.appendChild(t);
 
-      list.forEach(row => appendRow(g, row));
+      list.forEach(function (row) { appendRow(g, row, true); });
       outputEl.appendChild(g);
     });
   }
 
-  function appendRow(parent, row) {
+  function appendRow(parent, row, showCat) {
     const r = document.createElement('div');
     r.className = 'row';
 
@@ -365,39 +390,41 @@
     });
 
     const code = document.createElement('code');
-    code.textContent = row.display;
+    code.textContent = showCat ? (row.display + '（' + row.catText + '）') : row.display;
 
     r.appendChild(btn);
     r.appendChild(code);
     parent.appendChild(r);
   }
 
-  /* ---------- 中奖号码 ---------- */
+  /* ---------- 中奖号码解析 ---------- */
   function parseWin(str) {
-    str = str.trim().replace(/，/g, ',').replace(/：/g, ':');
+    str = str.trim().replace(/，/g, ',');
     const i = str.lastIndexOf('-');
     if (i <= 0) return null;
     const frontStr = str.slice(0, i);
     const backStr = str.slice(i + 1);
-    const fronts = frontStr.split(/[,、\s]+/).filter(Boolean).map(n => parseInt(n, 10)).filter(n => !isNaN(n));
-    const backs = backStr.split(/[,、\s]+/).filter(Boolean).map(n => parseInt(n, 10)).filter(n => !isNaN(n));
+    const fronts = frontStr.split(/[,、\s]+/).filter(Boolean).map(function (n) { return parseInt(n, 10); }).filter(function (n) { return !isNaN(n); });
+    const backs = backStr.split(/[,、\s]+/).filter(Boolean).map(function (n) { return parseInt(n, 10); }).filter(function (n) { return !isNaN(n); });
     if (fronts.length !== 6 || backs.length !== 1) return null;
-    return { fronts, back: backs[0], raw: str };
+    return { fronts: fronts, back: backs[0], raw: str };
   }
 
   function getAllDisplayRows() {
-    if (!winInfo) return currentRows.map(r => r.display);
+    if (!winInfo) return currentRows.map(function (r) { return r.display; });
     const winFrontSet = new Set(winInfo.fronts);
     const winBack = winInfo.back;
     const groups = {};
-    ORDER.forEach(k => groups[k] = []);
-    currentRows.forEach(row => {
+    ORDER.forEach(function (k) { groups[k] = []; });
+    currentRows.forEach(function (row) {
       const r = classifyRow(row, winFrontSet, winBack);
       const key = r.front + '+' + r.back;
       if (groups[key]) groups[key].push(row);
     });
     const result = [];
-    ORDER.forEach(key => groups[key].forEach(r => result.push(r.display)));
+    ORDER.forEach(function (key) {
+      groups[key].forEach(function (r) { result.push(r.display); });
+    });
     return result;
   }
 
@@ -422,7 +449,7 @@
     document.body.removeChild(ta);
   }
 
-  /* ---------- 事件绑定 ---------- */
+  /* ---------- 事件 ---------- */
   document.getElementById('run').addEventListener('click', run);
 
   document.getElementById('winBtn').addEventListener('click', function () {
