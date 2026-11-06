@@ -73,7 +73,9 @@
     padding: 2px 9px; cursor: pointer; flex: 0 0 auto;
   }
   .group-title .g-toggle:hover { background: #f3f4f6; }
+  .group-title .g-empty { font-size: 12px; color: #9ca3af; font-weight: normal; }
   .group-body.collapsed { display: none; }
+  .group-empty-text { padding: 8px 12px; font-size: 13px; color: #9ca3af; }
   .row {
     display: flex; align-items: flex-start; gap: 10px;
     padding: 5px 12px; border-bottom: 1px dashed #f0f0f0;
@@ -117,8 +119,8 @@
     只有<b>连续相邻</b>且 “-” 前面完全相同的行才会合并；后区去重升序；
     后区覆盖 01~16 时显示 <b>-全部</b>；重复组合用 <b>✖️次数</b> 表示。
     注数按前区 6 个号、后区 1 个号的组合规则计算：C(前区个数,6) × 后区总数（后区“全部”按 16 个计算），带 ✖️N 时已折算。
-    点击“输入中奖号码”后可按模式1（命中情况）或模式2（结构分类）查看；每种情况可单独收起/展开。
-    页面会自动保存输入数据、中奖号码和当前模式，下次打开自动恢复。
+    模式1固定展示全部 14 种命中情况；模式2动态列出所有实际出现的结构分类，并按“前区总数→后区数”升序排列，胆拖排在复式之后。
+    每种情况可单独收起/展开，页面状态自动保存。
   </div>
 </div>
 
@@ -135,16 +137,9 @@
   let totalBets   = 0;
   let winInfo     = null;
   let currentMode = 1;
-  let collapsedState = {}; // 'm1:6+1' -> true
+  let collapsedState = {};
 
   const ORDER_HIT = ['6+1','6+0','5+1','5+0','4+1','4+0','3+1','2+1','1+1','0+1','3+0','2+0','1+0','0+0'];
-
-  const ORDER_BUCKET = [
-    '6+16','6+3','6+2','6+1',
-    '7+16','7+5','7+1',
-    '8+1','9+1','15+1',
-    '1胆x拖+3','1胆x拖+1','2胆x拖+3','2胆x拖+1'
-  ];
 
   /* ---------- 组合数 ---------- */
   function comb(n, k) {
@@ -371,25 +366,49 @@
     const fi = row.frontInfo;
     const bc = row.backCount;
     if (!fi.isDanTuo) {
-      const fc = fi.frontCount;
-      if (fc === 6 && bc === 16) return '6+16';
-      if (fc === 6 && bc === 3)  return '6+3';
-      if (fc === 6 && bc === 2)  return '6+2';
-      if (fc === 6 && bc === 1)  return '6+1';
-      if (fc === 7 && bc === 16) return '7+16';
-      if (fc === 7 && bc === 5)  return '7+5';
-      if (fc === 7 && bc === 1)  return '7+1';
-      if (fc === 8 && bc === 1)  return '8+1';
-      if (fc === 9 && bc === 1)  return '9+1';
-      if (fc === 15 && bc === 1) return '15+1';
+      return fi.frontCount + '+' + bc;
     } else {
-      const dc = fi.danCount;
-      if (dc === 1 && bc === 3) return '1胆x拖+3';
-      if (dc === 1 && bc === 1) return '1胆x拖+1';
-      if (dc === 2 && bc === 3) return '2胆x拖+3';
-      if (dc === 2 && bc === 1) return '2胆x拖+1';
+      return fi.danCount + '胆' + fi.tuoCount + '拖+' + bc;
     }
-    return null;
+  }
+
+  // 结构分类排序键
+  // 复式：[0, 前区总数, 后区数]
+  // 胆拖：[1, 胆码数, 拖码数, 后区数]
+  function bucketSortArrOf(row) {
+    const fi = row.frontInfo;
+    const bc = row.backCount;
+    if (!fi.isDanTuo) return [0, fi.frontCount, bc];
+    return [1, fi.danCount, fi.tuoCount, bc];
+  }
+
+  function compareSortArr(a, b) {
+    const len = Math.max(a.length, b.length);
+    for (let i = 0; i < len; i++) {
+      const va = a[i] === undefined ? 0 : a[i];
+      const vb = b[i] === undefined ? 0 : b[i];
+      if (va !== vb) return va - vb;
+    }
+    return 0;
+  }
+
+  // 动态收集模式2分组
+  function collectBucketGroups() {
+    const map = new Map();
+    currentRows.forEach(function (row) {
+      const key = bucketKeyOf(row);
+      if (!map.has(key)) {
+        map.set(key, {
+          key: key,
+          rows: [],
+          sortArr: bucketSortArrOf(row)
+        });
+      }
+      map.get(key).rows.push(row);
+    });
+    const arr = Array.from(map.values());
+    arr.sort(function (a, b) { return compareSortArr(a.sortArr, b.sortArr); });
+    return arr;
   }
 
   function formatWin(winInfo) {
@@ -413,7 +432,7 @@
     });
   }
 
-  // 模式2：组内按命中情况由多到少（ORDER_HIT 顺序），再按前区总数升序
+  // 模式2：组内按命中由多到少（ORDER_HIT顺序），再按前区总数升序
   function sortMode2Rows(list, winInfo) {
     const winFrontSet = new Set(winInfo.fronts);
     const winBack = winInfo.back;
@@ -510,7 +529,7 @@
 
     const title = document.createElement('div');
     title.className = 'mode-title';
-    title.textContent = '模式1：按命中情况分组';
+    title.textContent = '模式1：按命中情况分组（全部 14 种）';
     sec.appendChild(title);
 
     const bar = document.createElement('div');
@@ -519,7 +538,7 @@
     btn.className = 'copy-mode';
     btn.textContent = '复制模式1全部';
     btn.addEventListener('click', function () {
-      const text = buildText(statLine, groups, ORDER_HIT, 'hit');
+      const text = buildTextMode1(statLine, groups);
       copyText(text).then(function () {
         btn.textContent = '已复制';
         setTimeout(function () { btn.textContent = '复制模式1全部'; }, 900);
@@ -535,7 +554,6 @@
 
     ORDER_HIT.forEach(function (key) {
       let list = groups[key];
-      if (!list.length) return;
       list = sortMode1Rows(list);
 
       const g = document.createElement('div');
@@ -548,27 +566,43 @@
       nameSpan.textContent = '中' + key.replace('+', '➕') + '（' + list.length + ' 行）';
       t.appendChild(nameSpan);
 
-      const toggleSpan = document.createElement('span');
-      toggleSpan.className = 'g-toggle';
-      t.appendChild(toggleSpan);
+      let toggleSpan = null;
+      if (list.length > 0) {
+        toggleSpan = document.createElement('span');
+        toggleSpan.className = 'g-toggle';
+        t.appendChild(toggleSpan);
+      } else {
+        const emptySpan = document.createElement('span');
+        emptySpan.className = 'g-empty';
+        emptySpan.textContent = '暂无';
+        t.appendChild(emptySpan);
+      }
 
       const body = document.createElement('div');
       body.className = 'group-body';
 
-      const collapsed = !!collapsedState['m1:' + key];
-      if (collapsed) body.classList.add('collapsed');
-      toggleSpan.textContent = collapsed ? '展开' : '收起';
+      if (list.length > 0) {
+        const collapsed = !!collapsedState['m1:' + key];
+        if (collapsed) body.classList.add('collapsed');
+        toggleSpan.textContent = collapsed ? '展开' : '收起';
 
-      t.addEventListener('click', function () {
-        const isC = body.classList.toggle('collapsed');
-        collapsedState['m1:' + key] = isC;
-        toggleSpan.textContent = isC ? '展开' : '收起';
-        saveState();
-      });
+        t.addEventListener('click', function () {
+          const isC = body.classList.toggle('collapsed');
+          collapsedState['m1:' + key] = isC;
+          toggleSpan.textContent = isC ? '展开' : '收起';
+          saveState();
+        });
 
-      list.forEach(function (row) {
-        appendDisplayRow(body, row.display, row.display + '（' + row.catText + '）');
-      });
+        list.forEach(function (row) {
+          appendDisplayRow(body, row.display, row.display + '（' + row.catText + '）');
+        });
+      } else {
+        const et = document.createElement('div');
+        et.className = 'group-empty-text';
+        et.textContent = '（该情况没有行）';
+        body.appendChild(et);
+        body.classList.add('collapsed');
+      }
 
       g.appendChild(t);
       g.appendChild(body);
@@ -582,19 +616,14 @@
     const winStr = formatWin(winInfo);
     const statLine = '共 ' + currentRows.length + ' 行 ｜ 总注数：' + totalBets + ' 注 ｜ 中奖号码：' + winStr;
 
-    const groups = {};
-    ORDER_BUCKET.forEach(function (k) { groups[k] = []; });
-    currentRows.forEach(function (row) {
-      const key = bucketKeyOf(row);
-      if (key && groups[key]) groups[key].push(row);
-    });
+    const bucketGroups = collectBucketGroups();
 
     const sec = document.createElement('div');
     sec.className = 'mode-section';
 
     const title = document.createElement('div');
     title.className = 'mode-title';
-    title.textContent = '模式2：按结构分类（组内按命中由多到少）';
+    title.textContent = '模式2：按结构分类（全部实际出现的分类，按前区总数→后区数排序）';
     sec.appendChild(title);
 
     const bar = document.createElement('div');
@@ -603,7 +632,7 @@
     btn.className = 'copy-mode';
     btn.textContent = '复制模式2全部';
     btn.addEventListener('click', function () {
-      const text = buildText(statLine, groups, ORDER_BUCKET, 'hitwin');
+      const text = buildTextMode2(statLine, bucketGroups);
       copyText(text).then(function () {
         btn.textContent = '已复制';
         setTimeout(function () { btn.textContent = '复制模式2全部'; }, 900);
@@ -617,10 +646,9 @@
     stat.textContent = statLine;
     sec.appendChild(stat);
 
-    ORDER_BUCKET.forEach(function (key) {
-      let list = groups[key];
-      if (!list.length) return;
-      list = sortMode2Rows(list, winInfo);
+    bucketGroups.forEach(function (group) {
+      const key = group.key;
+      let list = sortMode2Rows(group.rows, winInfo);
 
       const g = document.createElement('div');
       g.className = 'group';
@@ -686,25 +714,31 @@
     parent.appendChild(r);
   }
 
-  /* ---------- 构建复制文本：组间空行 ---------- */
-  function buildText(statLine, groups, order, kind) {
+  /* ---------- 构建复制文本 ---------- */
+  function buildTextMode1(statLine, groups) {
     const lines = [statLine, ''];
-    order.forEach(function (key) {
-      const list = groups[key];
+    ORDER_HIT.forEach(function (key) {
+      const list = sortMode1Rows(groups[key]);
       if (!list.length) return;
-      if (kind === 'hit') {
-        const sorted = sortMode1Rows(list);
-        lines.push('中' + key.replace('+', '➕') + '（' + sorted.length + ' 行）');
-        sorted.forEach(function (row) {
-          lines.push(row.display + '（' + row.catText + '）');
-        });
-      } else {
-        const sorted = sortMode2Rows(list, winInfo);
-        lines.push(key.replace('+', '➕') + '（' + sorted.length + ' 行）');
-        sorted.forEach(function (row) {
-          lines.push(row.display + '（' + getHitText(row, winInfo) + '）');
-        });
-      }
+      lines.push('中' + key.replace('+', '➕') + '（' + list.length + ' 行）');
+      list.forEach(function (row) {
+        lines.push(row.display + '（' + row.catText + '）');
+      });
+      lines.push('');
+    });
+    while (lines.length && lines[lines.length - 1] === '') lines.pop();
+    return lines.join('\n');
+  }
+
+  function buildTextMode2(statLine, bucketGroups) {
+    const lines = [statLine, ''];
+    bucketGroups.forEach(function (group) {
+      const list = sortMode2Rows(group.rows, winInfo);
+      if (!list.length) return;
+      lines.push(group.key.replace('+', '➕') + '（' + list.length + ' 行）');
+      list.forEach(function (row) {
+        lines.push(row.display + '（' + getHitText(row, winInfo) + '）');
+      });
       lines.push('');
     });
     while (lines.length && lines[lines.length - 1] === '') lines.pop();
@@ -723,15 +757,9 @@
         const key = r.front + '+' + r.back;
         if (groups[key]) groups[key].push(row);
       });
-      return buildText(statLine, groups, ORDER_HIT, 'hit');
+      return buildTextMode1(statLine, groups);
     } else {
-      const groups = {};
-      ORDER_BUCKET.forEach(function (k) { groups[k] = []; });
-      currentRows.forEach(function (row) {
-        const key = bucketKeyOf(row);
-        if (key && groups[key]) groups[key].push(row);
-      });
-      return buildText(statLine, groups, ORDER_BUCKET, 'hitwin');
+      return buildTextMode2(statLine, collectBucketGroups());
     }
   }
 
@@ -848,7 +876,6 @@
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') run();
   });
 
-  // 输入内容变化时也保存（防止未点确定就刷新丢失）
   inputEl.addEventListener('input', function () {
     saveState();
   });
