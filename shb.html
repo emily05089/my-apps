@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>组合合并工具（紧凑版 + 注数统计 + 中奖分组）</title>
+<title>组合合并工具（双模式 + 中奖分组）</title>
 <style>
   * { box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
     background: #f5f6fa; margin: 0; padding: 20px; color: #222;
   }
-  .wrap { max-width: 900px; margin: 0 auto; }
+  .wrap { max-width: 960px; margin: 0 auto; }
   h1 { font-size: 20px; margin: 0 0 12px; }
   .label { font-size: 14px; font-weight: 600; margin: 14px 0 6px; color: #333; }
   textarea {
-    width: 100%; height: 190px; padding: 10px 12px;
+    width: 100%; height: 170px; padding: 10px 12px;
     font-family: Consolas, Monaco, monospace; font-size: 14px;
     border: 1px solid #ccc; border-radius: 8px; resize: vertical;
     line-height: 1.6; background: #fff; outline: none;
@@ -36,13 +36,33 @@
     min-width: 58px;
   }
   button.mini:hover { background: #059669; }
-  #output {
-    background: #fff; border: 1px solid #ddd; border-radius: 8px;
-    padding: 10px 12px; min-height: 90px;
+  button.copy-mode { padding: 6px 14px; font-size: 13px; background: #2d7ef7; }
+  button.copy-mode:hover { background: #1a68db; }
+
+  #output { min-height: 90px; }
+  .empty { color: #aaa; font-size: 14px; padding: 16px 0; }
+
+  .mode-section {
+    margin-top: 18px; border: 1px solid #ddd; border-radius: 8px;
+    background: #fff; overflow: hidden;
+  }
+  .mode-title {
+    background: #eef4ff; padding: 9px 14px; font-weight: 600;
+    font-size: 15px; color: #1d4ed8; border-bottom: 1px solid #ddd;
+  }
+  .mode-bar { padding: 10px 14px 4px; }
+  .stat-line {
+    padding: 4px 14px 10px; font-size: 13px; color: #333;
+    border-bottom: 1px dashed #e5e7eb; margin-bottom: 4px;
+  }
+  .group { margin: 10px 14px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+  .group-title {
+    background: #f0f5ff; padding: 7px 12px; font-weight: 600;
+    font-size: 13.5px; color: #1d4ed8; border-bottom: 1px solid #e5e7eb;
   }
   .row {
     display: flex; align-items: flex-start; gap: 10px;
-    padding: 6px 0; border-bottom: 1px dashed #eee;
+    padding: 5px 12px; border-bottom: 1px dashed #f0f0f0;
   }
   .row:last-child { border-bottom: none; }
   .row code {
@@ -50,24 +70,18 @@
     white-space: pre-wrap; word-break: break-all; line-height: 1.7;
     padding-top: 3px;
   }
-  .empty { color: #aaa; font-size: 14px; padding: 8px 0; }
-  .hint { font-size: 12px; color: #777; margin-top: 8px; line-height: 1.7; }
-  .count {
+  .flat-count {
     font-size: 13px; color: #2d7ef7; margin: 10px 0 6px; font-weight: 600;
     line-height: 1.8;
   }
-  .count b { color: #e11d48; }
-  .group { margin: 12px 0; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
-  .group-title {
-    background: #f0f5ff; padding: 8px 12px; font-weight: 600;
-    font-size: 14px; color: #1d4ed8; border-bottom: 1px solid #e5e7eb;
-  }
-  .group .row { padding: 6px 12px; }
+  .flat-count b { color: #e11d48; }
+  .flat-list { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 10px 12px; }
+  .hint { font-size: 12px; color: #777; margin-top: 8px; line-height: 1.7; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>组合合并工具（紧凑版 + 注数统计 + 中奖分组）</h1>
+  <h1>组合合并工具（双模式 + 中奖分组）</h1>
 
   <div class="label">① 输入原数据（每行一条）</div>
   <textarea id="input" placeholder="01,10,15,20,22,27,30,31-01
@@ -77,7 +91,7 @@
   <div class="bar">
     <button id="run">确定</button>
     <button id="winBtn" class="orange">输入中奖号码</button>
-    <button id="copyAll" class="gray">复制全部结果</button>
+    <button id="copyFlat" class="gray">复制全部结果</button>
     <button id="clearAll" class="gray">清空</button>
   </div>
 
@@ -85,11 +99,10 @@
   <div id="output"><div class="empty">（还没有结果，请先输入数据并点“确定”）</div></div>
 
   <div class="hint">
-    规则：只有<b>连续相邻</b>且 “-” 前面完全相同的行才会合并；后区去重并升序排列；
-    若后区覆盖 01~16 全部号码，则显示为 <b>-全部</b>；
-    相同组合重复出现时，用 <b>✖️次数</b> 表示（只出现一次不加乘号）。
-    注数按前区 6 个号、后区 1 个号的组合规则计算：C(前区个数,6) × 后区总数（后区“全部”按 16 个计算），带 ✖️N 时内部已折算。
-    点击“输入中奖号码”后，可按命中情况分组展示，并在每行显示具体分类。
+    只有<b>连续相邻</b>且 “-” 前面完全相同的行才会合并；后区去重升序；
+    后区覆盖 01~16 时显示 <b>-全部</b>；重复组合用 <b>✖️次数</b> 表示。
+    注数按前区 6 个号、后区 1 个号的组合规则计算：C(前区个数,6) × 后区总数（后区“全部”按 16 个计算），带 ✖️N 时已折算。
+    点击“输入中奖号码”后，分为模式1（按命中情况）和模式2（按结构分类），各自顶部有复制按钮。
   </div>
 </div>
 
@@ -102,7 +115,16 @@
   let totalBets   = 0;
   let winInfo     = null;
 
-  const ORDER = ['6+1','6+0','5+1','5+0','4+1','4+0','3+1','2+1','1+1','0+1','3+0','2+0','1+0','0+0'];
+  // 模式1分组顺序
+  const ORDER_HIT = ['6+1','6+0','5+1','5+0','4+1','4+0','3+1','2+1','1+1','0+1','3+0','2+0','1+0','0+0'];
+
+  // 模式2分组顺序（按用户指定）
+  const ORDER_BUCKET = [
+    '6+16','6+3','6+2','6+1',
+    '7+16','7+5','7+1',
+    '8+1','9+1','15+1',
+    '1胆x拖+3','1胆x拖+1','2胆x拖+3','2胆x拖+1'
+  ];
 
   /* ---------- 组合数 ---------- */
   function comb(n, k) {
@@ -124,24 +146,28 @@
     return isNaN(n) ? 999999 : n;
   }
 
-  // 解析一行：front, backs, multiplier, backAll
+  // 解析一行，支持末尾 ✖️N、×N、xN、*N 以及行尾（分类）括号
   function splitLine(line) {
-    const s = line.trim();
+    let s = line.trim();
     if (!s) return null;
+
+    // 去掉行尾括号说明，例如（9➕1）或（4胆9拖➕1）
+    s = s.replace(/[（(][^（）()]*[）)]\s*$/, '').trim();
+    if (!s) return null;
+
     let multiplier = 1;
-    let text = s;
-    // 末尾 ✖️N / ×N / xN / XN / *N
-    const m = text.match(/\s*[✖×xX*]\uFE0F?\s*(\d+)\s*$/);
+    const m = s.match(/\s*[✖×xX*]\uFE0F?\s*(\d+)\s*$/);
     if (m) {
       multiplier = parseInt(m[1], 10) || 1;
-      text = text.slice(0, m.index).trim();
+      s = s.slice(0, m.index).trim();
     }
-    const i = text.lastIndexOf('-');
+
+    const i = s.lastIndexOf('-');
     if (i <= 0) {
-      return { front: text.replace(/\s+/g, ''), backs: [], multiplier, backAll: false };
+      return { front: s.replace(/\s+/g, ''), backs: [], multiplier, backAll: false };
     }
-    const front = text.slice(0, i).trim();
-    const backStr = text.slice(i + 1).trim();
+    const front = s.slice(0, i).trim();
+    const backStr = s.slice(i + 1).trim();
     if (/^全部$/.test(backStr)) {
       return { front, backs: [], multiplier, backAll: true };
     }
@@ -149,7 +175,7 @@
     return { front, backs, multiplier, backAll: false };
   }
 
-  // 解析前区（支持单式、复式、胆拖）
+  // 解析前区（单式、复式、胆拖）
   function parseFront(front) {
     if (/[胆拖]/.test(front)) {
       let danStr = '', tuoStr = '';
@@ -181,7 +207,7 @@
     return comb(fi.frontCount, 6);
   }
 
-  // 分类文本
+  // 分类文本（结构分类）
   function getCatText(fi, backCount) {
     if (fi.isDanTuo) return fi.danCount + '胆' + fi.tuoCount + '拖➕' + backCount;
     return fi.frontCount + '➕' + backCount;
@@ -296,7 +322,7 @@
     render();
   }
 
-  /* ---------- 判定命中 ---------- */
+  /* ---------- 命中判定 ---------- */
   function classifyRow(row, winFrontSet, winBack) {
     const fi = row.frontInfo;
     let hit;
@@ -314,6 +340,44 @@
     return { front: hit, back: backHit };
   }
 
+  function getHitText(row, winInfo) {
+    const winFrontSet = new Set(winInfo.fronts);
+    const r = classifyRow(row, winFrontSet, winInfo.back);
+    return r.front + '➕' + r.back;
+  }
+
+  /* ---------- 模式2桶判定 ---------- */
+  function bucketKeyOf(row) {
+    const fi = row.frontInfo;
+    const bc = row.backCount;
+    if (!fi.isDanTuo) {
+      const fc = fi.frontCount;
+      if (fc === 6 && bc === 16) return '6+16';
+      if (fc === 6 && bc === 3)  return '6+3';
+      if (fc === 6 && bc === 2)  return '6+2';
+      if (fc === 6 && bc === 1)  return '6+1';
+      if (fc === 7 && bc === 16) return '7+16';
+      if (fc === 7 && bc === 5)  return '7+5';
+      if (fc === 7 && bc === 1)  return '7+1';
+      if (fc === 8 && bc === 1)  return '8+1';
+      if (fc === 9 && bc === 1)  return '9+1';
+      if (fc === 15 && bc === 1) return '15+1';
+    } else {
+      const dc = fi.danCount;
+      if (dc === 1 && bc === 3) return '1胆x拖+3';
+      if (dc === 1 && bc === 1) return '1胆x拖+1';
+      if (dc === 2 && bc === 3) return '2胆x拖+3';
+      if (dc === 2 && bc === 1) return '2胆x拖+1';
+    }
+    return null;
+  }
+
+  function formatWin(winInfo) {
+    const f = winInfo.fronts.map(function (n) { return String(n).padStart(2, '0'); }).join(',');
+    const b = String(winInfo.back).padStart(2, '0');
+    return f + '-' + b;
+  }
+
   /* ---------- 渲染 ---------- */
   function render() {
     outputEl.innerHTML = '';
@@ -326,56 +390,155 @@
       return;
     }
 
-    if (winInfo) renderGrouped();
+    if (winInfo) renderModes();
     else renderFlat();
   }
 
   function renderFlat() {
     const c = document.createElement('div');
-    c.className = 'count';
+    c.className = 'flat-count';
     c.innerHTML = '共 ' + currentRows.length + ' 行 ｜ 总注数：<b>' + totalBets + '</b> 注';
     outputEl.appendChild(c);
-    currentRows.forEach(function (row) { appendRow(outputEl, row, false); });
+
+    const list = document.createElement('div');
+    list.className = 'flat-list';
+    currentRows.forEach(function (row) {
+      const r = document.createElement('div');
+      r.className = 'row';
+      const btn = document.createElement('button');
+      btn.className = 'mini';
+      btn.textContent = '复制';
+      btn.addEventListener('click', function () {
+        copyText(row.display).then(function () {
+          btn.textContent = '已复制';
+          setTimeout(function () { btn.textContent = '复制'; }, 900);
+        });
+      });
+      const code = document.createElement('code');
+      code.textContent = row.display;
+      r.appendChild(btn);
+      r.appendChild(code);
+      list.appendChild(r);
+    });
+    outputEl.appendChild(list);
   }
 
-  function renderGrouped() {
+  function renderModes() {
     const winFrontSet = new Set(winInfo.fronts);
     const winBack = winInfo.back;
+    const winStr = formatWin(winInfo);
+    const statLine = '共 ' + currentRows.length + ' 行 ｜ 总注数：' + totalBets + ' 注 ｜ 中奖号码：' + winStr;
 
-    const groups = {};
-    ORDER.forEach(function (k) { groups[k] = []; });
-
+    // ===== 模式1：按命中情况分组 =====
+    const groups1 = {};
+    ORDER_HIT.forEach(function (k) { groups1[k] = []; });
     currentRows.forEach(function (row) {
       const r = classifyRow(row, winFrontSet, winBack);
       const key = r.front + '+' + r.back;
-      if (groups[key]) groups[key].push(row);
+      if (groups1[key]) groups1[key].push(row);
     });
 
-    const c = document.createElement('div');
-    c.className = 'count';
-    c.innerHTML = '共 ' + currentRows.length + ' 行 ｜ 总注数：<b>' + totalBets + '</b> 注 ｜ 中奖号码：<b>' +
-      winInfo.fronts.map(function (n) { return String(n).padStart(2, '0'); }).join(',') +
-      '-' + String(winInfo.back).padStart(2, '0') + '</b>';
-    outputEl.appendChild(c);
+    const mode1 = document.createElement('div');
+    mode1.className = 'mode-section';
 
-    ORDER.forEach(function (key) {
-      const list = groups[key];
+    const title1 = document.createElement('div');
+    title1.className = 'mode-title';
+    title1.textContent = '模式1：按命中情况分组';
+    mode1.appendChild(title1);
+
+    const bar1 = document.createElement('div');
+    bar1.className = 'mode-bar';
+    const copyBtn1 = document.createElement('button');
+    copyBtn1.className = 'copy-mode';
+    copyBtn1.textContent = '复制模式1全部';
+    copyBtn1.addEventListener('click', function () {
+      const text = buildMode1Text(statLine, groups1);
+      copyText(text).then(function () {
+        copyBtn1.textContent = '已复制';
+        setTimeout(function () { copyBtn1.textContent = '复制模式1全部'; }, 900);
+      });
+    });
+    bar1.appendChild(copyBtn1);
+    mode1.appendChild(bar1);
+
+    const stat1 = document.createElement('div');
+    stat1.className = 'stat-line';
+    stat1.textContent = statLine;
+    mode1.appendChild(stat1);
+
+    ORDER_HIT.forEach(function (key) {
+      const list = groups1[key];
       if (!list.length) return;
-
       const g = document.createElement('div');
       g.className = 'group';
-
       const t = document.createElement('div');
       t.className = 'group-title';
       t.textContent = '中' + key.replace('+', '➕') + '（' + list.length + ' 行）';
       g.appendChild(t);
-
-      list.forEach(function (row) { appendRow(g, row, true); });
-      outputEl.appendChild(g);
+      list.forEach(function (row) {
+        appendDisplayRow(g, row, row.display + '（' + row.catText + '）', row.display);
+      });
+      mode1.appendChild(g);
     });
+
+    outputEl.appendChild(mode1);
+
+    // ===== 模式2：按结构分类 =====
+    const groups2 = {};
+    ORDER_BUCKET.forEach(function (k) { groups2[k] = []; });
+    currentRows.forEach(function (row) {
+      const key = bucketKeyOf(row);
+      if (key && groups2[key]) groups2[key].push(row);
+    });
+
+    const mode2 = document.createElement('div');
+    mode2.className = 'mode-section';
+
+    const title2 = document.createElement('div');
+    title2.className = 'mode-title';
+    title2.textContent = '模式2：按结构分类';
+    mode2.appendChild(title2);
+
+    const bar2 = document.createElement('div');
+    bar2.className = 'mode-bar';
+    const copyBtn2 = document.createElement('button');
+    copyBtn2.className = 'copy-mode';
+    copyBtn2.textContent = '复制模式2全部';
+    copyBtn2.addEventListener('click', function () {
+      const text = buildMode2Text(statLine, groups2, winInfo);
+      copyText(text).then(function () {
+        copyBtn2.textContent = '已复制';
+        setTimeout(function () { copyBtn2.textContent = '复制模式2全部'; }, 900);
+      });
+    });
+    bar2.appendChild(copyBtn2);
+    mode2.appendChild(bar2);
+
+    const stat2 = document.createElement('div');
+    stat2.className = 'stat-line';
+    stat2.textContent = statLine;
+    mode2.appendChild(stat2);
+
+    ORDER_BUCKET.forEach(function (key) {
+      const list = groups2[key];
+      if (!list.length) return;
+      const g = document.createElement('div');
+      g.className = 'group';
+      const t = document.createElement('div');
+      t.className = 'group-title';
+      t.textContent = key.replace('+', '➕') + '（' + list.length + ' 行）';
+      g.appendChild(t);
+      list.forEach(function (row) {
+        const hitText = getHitText(row, winInfo);
+        appendDisplayRow(g, row, row.display + '（' + hitText + '）', row.display);
+      });
+      mode2.appendChild(g);
+    });
+
+    outputEl.appendChild(mode2);
   }
 
-  function appendRow(parent, row, showCat) {
+  function appendDisplayRow(parent, row, displayText, copyTextValue) {
     const r = document.createElement('div');
     r.className = 'row';
 
@@ -383,18 +546,46 @@
     btn.className = 'mini';
     btn.textContent = '复制';
     btn.addEventListener('click', function () {
-      copyText(row.display).then(function () {
+      copyText(copyTextValue).then(function () {
         btn.textContent = '已复制';
         setTimeout(function () { btn.textContent = '复制'; }, 900);
       });
     });
 
     const code = document.createElement('code');
-    code.textContent = showCat ? (row.display + '（' + row.catText + '）') : row.display;
+    code.textContent = displayText;
 
     r.appendChild(btn);
     r.appendChild(code);
     parent.appendChild(r);
+  }
+
+  /* ---------- 构建复制文本 ---------- */
+  function buildMode1Text(statLine, groups) {
+    const lines = [statLine];
+    ORDER_HIT.forEach(function (key) {
+      const list = groups[key];
+      if (!list.length) return;
+      lines.push('中' + key.replace('+', '➕') + '（' + list.length + ' 行）');
+      list.forEach(function (row) {
+        lines.push(row.display + '（' + row.catText + '）');
+      });
+    });
+    return lines.join('\n');
+  }
+
+  function buildMode2Text(statLine, groups, winInfo) {
+    const lines = [statLine];
+    ORDER_BUCKET.forEach(function (key) {
+      const list = groups[key];
+      if (!list.length) return;
+      lines.push(key.replace('+', '➕') + '（' + list.length + ' 行）');
+      list.forEach(function (row) {
+        const hitText = getHitText(row, winInfo);
+        lines.push(row.display + '（' + hitText + '）');
+      });
+    });
+    return lines.join('\n');
   }
 
   /* ---------- 中奖号码解析 ---------- */
@@ -408,24 +599,6 @@
     const backs = backStr.split(/[,、\s]+/).filter(Boolean).map(function (n) { return parseInt(n, 10); }).filter(function (n) { return !isNaN(n); });
     if (fronts.length !== 6 || backs.length !== 1) return null;
     return { fronts: fronts, back: backs[0], raw: str };
-  }
-
-  function getAllDisplayRows() {
-    if (!winInfo) return currentRows.map(function (r) { return r.display; });
-    const winFrontSet = new Set(winInfo.fronts);
-    const winBack = winInfo.back;
-    const groups = {};
-    ORDER.forEach(function (k) { groups[k] = []; });
-    currentRows.forEach(function (row) {
-      const r = classifyRow(row, winFrontSet, winBack);
-      const key = r.front + '+' + r.back;
-      if (groups[key]) groups[key].push(row);
-    });
-    const result = [];
-    ORDER.forEach(function (key) {
-      groups[key].forEach(function (r) { result.push(r.display); });
-    });
-    return result;
   }
 
   /* ---------- 复制 ---------- */
@@ -463,11 +636,15 @@
     render();
   });
 
-  document.getElementById('copyAll').addEventListener('click', function () {
-    const rows = getAllDisplayRows();
-    if (!rows.length) { alert('没有可复制的结果'); return; }
+  document.getElementById('copyFlat').addEventListener('click', function () {
+    if (winInfo) {
+      alert('当前为分组模式，请使用模式1或模式2内部的复制按钮');
+      return;
+    }
+    if (!currentRows.length) { alert('没有可复制的结果'); return; }
     const self = this;
-    copyText(rows.join('\n')).then(function () {
+    const text = currentRows.map(function (r) { return r.display; }).join('\n');
+    copyText(text).then(function () {
       const old = self.textContent;
       self.textContent = '已复制全部';
       setTimeout(function () { self.textContent = old; }, 900);
