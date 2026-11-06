@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>组合合并工具（双模式切换 + 分组折叠 + 状态保存）</title>
+<title>组合合并工具（双模式 + 奖金计算）</title>
 <style>
   * { box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
     background: #f5f6fa; margin: 0; padding: 20px; color: #222;
   }
-  .wrap { max-width: 960px; margin: 0 auto; }
+  .wrap { max-width: 1000px; margin: 0 auto; }
   h1 { font-size: 20px; margin: 0 0 12px; }
   .label { font-size: 14px; font-weight: 600; margin: 14px 0 6px; color: #333; }
   textarea {
@@ -55,9 +55,11 @@
   }
   .mode-bar { padding: 10px 14px 4px; }
   .stat-line {
-    padding: 4px 14px 10px; font-size: 13px; color: #333;
-    border-bottom: 1px dashed #e5e7eb; margin-bottom: 4px;
+    padding: 6px 14px 10px; font-size: 13px; color: #333;
+    border-bottom: 1px dashed #e5e7eb; margin-bottom: 4px; line-height: 1.8;
   }
+  .stat-line b { color: #e11d48; }
+  .stat-line .green { color: #059669; }
   .group { margin: 10px 14px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
   .group-title {
     background: #f0f5ff; padding: 7px 12px; font-weight: 600;
@@ -73,9 +75,7 @@
     padding: 2px 9px; cursor: pointer; flex: 0 0 auto;
   }
   .group-title .g-toggle:hover { background: #f3f4f6; }
-  .group-title .g-empty { font-size: 12px; color: #9ca3af; font-weight: normal; }
   .group-body.collapsed { display: none; }
-  .group-empty-text { padding: 8px 12px; font-size: 13px; color: #9ca3af; }
   .row {
     display: flex; align-items: flex-start; gap: 10px;
     padding: 5px 12px; border-bottom: 1px dashed #f0f0f0;
@@ -97,7 +97,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>组合合并工具（双模式切换 + 分组折叠 + 状态保存）</h1>
+  <h1>组合合并工具（双模式 + 奖金计算）</h1>
 
   <div class="label">① 输入原数据（每行一条）</div>
   <textarea id="input" placeholder="01,10,15,20,22,27,30,31-01
@@ -116,11 +116,9 @@
   <div id="output"><div class="empty">（还没有结果，请先输入数据并点“确定”）</div></div>
 
   <div class="hint">
-    只有<b>连续相邻</b>且 “-” 前面完全相同的行才会合并；后区去重升序；
-    后区覆盖 01~16 时显示 <b>-全部</b>；重复组合用 <b>✖️次数</b> 表示。
-    注数按前区 6 个号、后区 1 个号的组合规则计算：C(前区个数,6) × 后区总数（后区“全部”按 16 个计算），带 ✖️N 时已折算。
-    模式1固定展示全部 14 种命中情况；模式2动态列出所有实际出现的结构分类，并按“前区总数→后区数”升序排列，胆拖排在复式之后。
-    每种情况可单独收起/展开，页面状态自动保存。
+    只有<b>连续相邻</b>且 “-” 前面完全相同的行才会合并；后区去重升序；后区覆盖 01~16 显示 <b>-全部</b>；重复组合用 <b>✖️次数</b> 表示。
+    每注按 2 元计算；奖金按单注固定奖级累加：6+1（500万）、6+0（50万）、5+1（3000）、5+0/4+1（200）、4+0/3+1（10）、2+1/1+1/0+1（5）、其余 0。
+    模式1只显示有行的命中分组；模式2动态列出所有实际出现的结构分类并按前区总数→后区数排序。
   </div>
 </div>
 
@@ -131,15 +129,30 @@
   const toggleBtn = document.getElementById('toggleBtn');
   const copyModeBtn = document.getElementById('copyModeBtn');
 
-  const STORAGE_KEY = 'combo_tool_state_v2';
+  const STORAGE_KEY = 'combo_tool_state_v3';
 
   let currentRows = [];
   let totalBets   = 0;
+  let totalMoney  = 0;
+  let totalPrize  = 0;
   let winInfo     = null;
   let currentMode = 1;
   let collapsedState = {};
 
   const ORDER_HIT = ['6+1','6+0','5+1','5+0','4+1','4+0','3+1','2+1','1+1','0+1','3+0','2+0','1+0','0+0'];
+
+  const PRIZE_MAP = {
+    '6+1': 5000000,
+    '6+0': 500000,
+    '5+1': 3000,
+    '5+0': 200,
+    '4+1': 200,
+    '4+0': 10,
+    '3+1': 10,
+    '2+1': 5,
+    '1+1': 5,
+    '0+1': 5
+  };
 
   /* ---------- 组合数 ---------- */
   function comb(n, k) {
@@ -159,6 +172,9 @@
   function numOf(s) {
     const n = parseInt(s, 10);
     return isNaN(n) ? 999999 : n;
+  }
+  function fmtNum(n) {
+    return Number(n).toLocaleString('en-US');
   }
 
   function splitLine(line) {
@@ -239,6 +255,8 @@
     if (!items.length) {
       currentRows = [];
       totalBets = 0;
+      totalMoney = 0;
+      totalPrize = 0;
       winInfo = null;
       saveState();
       render();
@@ -254,6 +272,7 @@
 
     currentRows = [];
     totalBets = 0;
+    totalMoney = 0;
 
     for (const b of blocks) {
       const map = new Map();
@@ -278,7 +297,7 @@
       }
 
       let base, maxCount = 1, sumCount = 0, backCount = 0, backAll = false;
-      let backNums = [];
+      let backList = [];
 
       if (!hasBack) {
         base = b.front;
@@ -297,7 +316,7 @@
           }
         }
 
-        backNums = arr.map(function (v) { return keyOf(v.text); });
+        backList = arr.map(function (v) { return { num: keyOf(v.text), text: v.text, count: v.count }; });
 
         if (isAll) {
           base = b.front + '-全部';
@@ -323,22 +342,68 @@
       currentRows.push({
         front: b.front,
         frontInfo: fi,
-        backNums: backNums,
+        backList: backList,
         backAll: backAll,
         maxCount: maxCount,
         sumCount: sumCount,
         backCount: backCount,
         bets: bets,
+        money: bets * 2,
         display: display,
         catText: getCatText(fi, backCount)
       });
     }
 
+    totalMoney = currentRows.reduce(function (a, r) { return a + r.money; }, 0);
+
     saveState();
     render();
   }
 
-  /* ---------- 命中判定 ---------- */
+  /* ---------- 真实奖金计算 ---------- */
+  function calcPrize(row, winInfo) {
+    if (!winInfo) return 0;
+    const winFrontSet = new Set(winInfo.fronts);
+    const winBack = winInfo.back;
+    const fi = row.frontInfo;
+    let total = 0;
+
+    // 前区命中分布：[{hit, ways}]
+    const frontDist = [];
+    if (!fi.isDanTuo) {
+      const n = fi.frontCount;
+      const h = fi.nums.filter(function (x) { return winFrontSet.has(parseInt(x, 10)); }).length;
+      for (let k = 0; k <= 6; k++) {
+        const w = comb(h, k) * comb(n - h, 6 - k);
+        if (w > 0) frontDist.push({ hit: k, ways: w });
+      }
+    } else {
+      const d = fi.danCount, t = fi.tuoCount;
+      const hd = fi.danNums.filter(function (x) { return winFrontSet.has(parseInt(x, 10)); }).length;
+      const ht = fi.tuoNums.filter(function (x) { return winFrontSet.has(parseInt(x, 10)); }).length;
+      const need = 6 - d;
+      for (let j = 0; j <= need; j++) {
+        const w = comb(ht, j) * comb(t - ht, need - j);
+        if (w > 0) frontDist.push({ hit: hd + j, ways: w });
+      }
+    }
+
+    // 后区：逐个后区号码按其出现次数计算
+    row.backList.forEach(function (bn) {
+      const isWin = (bn.num === winBack);
+      const suffix = isWin ? '+1' : '+0';
+      frontDist.forEach(function (fd) {
+        const prize = PRIZE_MAP[fd.hit + suffix] || 0;
+        if (prize > 0) {
+          total += fd.ways * bn.count * prize;
+        }
+      });
+    });
+
+    return total;
+  }
+
+  /* ---------- 命中分类 ---------- */
   function classifyRow(row, winFrontSet, winBack) {
     const fi = row.frontInfo;
     let hit;
@@ -352,7 +417,7 @@
     }
     let backHit = 0;
     if (row.backAll) backHit = 1;
-    else if (row.backNums.some(function (n) { return n === winBack; })) backHit = 1;
+    else if (row.backList.some(function (b) { return b.num === winBack; })) backHit = 1;
     return { front: hit, back: backHit };
   }
 
@@ -365,16 +430,10 @@
   function bucketKeyOf(row) {
     const fi = row.frontInfo;
     const bc = row.backCount;
-    if (!fi.isDanTuo) {
-      return fi.frontCount + '+' + bc;
-    } else {
-      return fi.danCount + '胆' + fi.tuoCount + '拖+' + bc;
-    }
+    if (!fi.isDanTuo) return fi.frontCount + '+' + bc;
+    return fi.danCount + '胆' + fi.tuoCount + '拖+' + bc;
   }
 
-  // 结构分类排序键
-  // 复式：[0, 前区总数, 后区数]
-  // 胆拖：[1, 胆码数, 拖码数, 后区数]
   function bucketSortArrOf(row) {
     const fi = row.frontInfo;
     const bc = row.backCount;
@@ -392,17 +451,12 @@
     return 0;
   }
 
-  // 动态收集模式2分组
   function collectBucketGroups() {
     const map = new Map();
     currentRows.forEach(function (row) {
       const key = bucketKeyOf(row);
       if (!map.has(key)) {
-        map.set(key, {
-          key: key,
-          rows: [],
-          sortArr: bucketSortArrOf(row)
-        });
+        map.set(key, { key: key, rows: [], sortArr: bucketSortArrOf(row) });
       }
       map.get(key).rows.push(row);
     });
@@ -418,7 +472,6 @@
   }
 
   /* ---------- 排序 ---------- */
-  // 模式1：复式在前、胆拖在后；同类型按前区总数升序，再按后区数升序
   function sortMode1Rows(list) {
     return list.slice().sort(function (a, b) {
       const aDan = a.frontInfo.isDanTuo ? 1 : 0;
@@ -432,7 +485,6 @@
     });
   }
 
-  // 模式2：组内按命中由多到少（ORDER_HIT顺序），再按前区总数升序
   function sortMode2Rows(list, winInfo) {
     const winFrontSet = new Set(winInfo.fronts);
     const winBack = winInfo.back;
@@ -484,7 +536,7 @@
   function renderFlat() {
     const c = document.createElement('div');
     c.className = 'flat-count';
-    c.innerHTML = '共 ' + currentRows.length + ' 行 ｜ 总注数：<b>' + totalBets + '</b> 注';
+    c.innerHTML = '共 ' + currentRows.length + ' 行 ｜ 总注数：<b>' + totalBets + '</b> 注 ｜ 总金额：<b>' + fmtNum(totalMoney) + '</b> 元';
     outputEl.appendChild(c);
 
     const list = document.createElement('div');
@@ -510,11 +562,19 @@
     outputEl.appendChild(list);
   }
 
+  function calcAllPrizes() {
+    let sum = 0;
+    if (!winInfo) return 0;
+    currentRows.forEach(function (row) { sum += calcPrize(row, winInfo); });
+    return sum;
+  }
+
   function renderMode1() {
     const winFrontSet = new Set(winInfo.fronts);
     const winBack = winInfo.back;
     const winStr = formatWin(winInfo);
-    const statLine = '共 ' + currentRows.length + ' 行 ｜ 总注数：' + totalBets + ' 注 ｜ 中奖号码：' + winStr;
+    totalPrize = calcAllPrizes();
+    const statLine = '共 ' + currentRows.length + ' 行 ｜ 总注数：' + totalBets + ' 注 ｜ 总金额：' + fmtNum(totalMoney) + ' 元 ｜ 总奖金：' + fmtNum(totalPrize) + ' 元 ｜ 中奖号码：' + winStr;
 
     const groups = {};
     ORDER_HIT.forEach(function (k) { groups[k] = []; });
@@ -529,7 +589,7 @@
 
     const title = document.createElement('div');
     title.className = 'mode-title';
-    title.textContent = '模式1：按命中情况分组（全部 14 种）';
+    title.textContent = '模式1：按命中情况分组（只显示有行的分组）';
     sec.appendChild(title);
 
     const bar = document.createElement('div');
@@ -549,11 +609,12 @@
 
     const stat = document.createElement('div');
     stat.className = 'stat-line';
-    stat.textContent = statLine;
+    stat.innerHTML = '共 ' + currentRows.length + ' 行 ｜ 总注数：<b>' + totalBets + '</b> 注 ｜ 总金额：<b>' + fmtNum(totalMoney) + '</b> 元 ｜ 总奖金：<span class="green"><b>' + fmtNum(totalPrize) + '</b></span> 元 ｜ 中奖号码：<b>' + winStr + '</b>';
     sec.appendChild(stat);
 
     ORDER_HIT.forEach(function (key) {
       let list = groups[key];
+      if (!list.length) return; // 0行不显示
       list = sortMode1Rows(list);
 
       const g = document.createElement('div');
@@ -566,43 +627,29 @@
       nameSpan.textContent = '中' + key.replace('+', '➕') + '（' + list.length + ' 行）';
       t.appendChild(nameSpan);
 
-      let toggleSpan = null;
-      if (list.length > 0) {
-        toggleSpan = document.createElement('span');
-        toggleSpan.className = 'g-toggle';
-        t.appendChild(toggleSpan);
-      } else {
-        const emptySpan = document.createElement('span');
-        emptySpan.className = 'g-empty';
-        emptySpan.textContent = '暂无';
-        t.appendChild(emptySpan);
-      }
+      const toggleSpan = document.createElement('span');
+      toggleSpan.className = 'g-toggle';
+      t.appendChild(toggleSpan);
 
       const body = document.createElement('div');
       body.className = 'group-body';
 
-      if (list.length > 0) {
-        const collapsed = !!collapsedState['m1:' + key];
-        if (collapsed) body.classList.add('collapsed');
-        toggleSpan.textContent = collapsed ? '展开' : '收起';
+      const collapsed = !!collapsedState['m1:' + key];
+      if (collapsed) body.classList.add('collapsed');
+      toggleSpan.textContent = collapsed ? '展开' : '收起';
 
-        t.addEventListener('click', function () {
-          const isC = body.classList.toggle('collapsed');
-          collapsedState['m1:' + key] = isC;
-          toggleSpan.textContent = isC ? '展开' : '收起';
-          saveState();
-        });
+      t.addEventListener('click', function () {
+        const isC = body.classList.toggle('collapsed');
+        collapsedState['m1:' + key] = isC;
+        toggleSpan.textContent = isC ? '展开' : '收起';
+        saveState();
+      });
 
-        list.forEach(function (row) {
-          appendDisplayRow(body, row.display, row.display + '（' + row.catText + '）');
-        });
-      } else {
-        const et = document.createElement('div');
-        et.className = 'group-empty-text';
-        et.textContent = '（该情况没有行）';
-        body.appendChild(et);
-        body.classList.add('collapsed');
-      }
+      list.forEach(function (row) {
+        const prize = calcPrize(row, winInfo);
+        const text = row.display + '（' + row.catText + '）（需要' + fmtNum(row.money) + '元）（奖金有' + fmtNum(prize) + '元）';
+        appendDisplayRow(body, row.display, text);
+      });
 
       g.appendChild(t);
       g.appendChild(body);
@@ -614,7 +661,8 @@
 
   function renderMode2() {
     const winStr = formatWin(winInfo);
-    const statLine = '共 ' + currentRows.length + ' 行 ｜ 总注数：' + totalBets + ' 注 ｜ 中奖号码：' + winStr;
+    totalPrize = calcAllPrizes();
+    const statLine = '共 ' + currentRows.length + ' 行 ｜ 总注数：' + totalBets + ' 注 ｜ 总金额：' + fmtNum(totalMoney) + ' 元 ｜ 总奖金：' + fmtNum(totalPrize) + ' 元 ｜ 中奖号码：' + winStr;
 
     const bucketGroups = collectBucketGroups();
 
@@ -623,7 +671,7 @@
 
     const title = document.createElement('div');
     title.className = 'mode-title';
-    title.textContent = '模式2：按结构分类（全部实际出现的分类，按前区总数→后区数排序）';
+    title.textContent = '模式2：按结构分类（动态列出所有实际分类）';
     sec.appendChild(title);
 
     const bar = document.createElement('div');
@@ -643,12 +691,22 @@
 
     const stat = document.createElement('div');
     stat.className = 'stat-line';
-    stat.textContent = statLine;
+    stat.innerHTML = '共 ' + currentRows.length + ' 行 ｜ 总注数：<b>' + totalBets + '</b> 注 ｜ 总金额：<b>' + fmtNum(totalMoney) + '</b> 元 ｜ 总奖金：<span class="green"><b>' + fmtNum(totalPrize) + '</b></span> 元 ｜ 中奖号码：<b>' + winStr + '</b>';
     sec.appendChild(stat);
 
     bucketGroups.forEach(function (group) {
       const key = group.key;
       let list = sortMode2Rows(group.rows, winInfo);
+
+      const prices = list.map(function (r) { return r.money; });
+      const minP = Math.min.apply(null, prices);
+      const maxP = Math.max.apply(null, prices);
+      let priceText;
+      if (minP === maxP) {
+        priceText = '（每行需要' + fmtNum(minP) + '元）';
+      } else {
+        priceText = '（每行需要' + fmtNum(minP) + '~' + fmtNum(maxP) + '元）';
+      }
 
       const g = document.createElement('div');
       g.className = 'group';
@@ -657,7 +715,7 @@
       t.className = 'group-title';
       const nameSpan = document.createElement('span');
       nameSpan.className = 'g-name';
-      nameSpan.textContent = key.replace('+', '➕') + '（' + list.length + ' 行）';
+      nameSpan.textContent = key.replace('+', '➕') + '（' + list.length + ' 行）' + priceText;
       t.appendChild(nameSpan);
 
       const toggleSpan = document.createElement('span');
@@ -680,7 +738,9 @@
 
       list.forEach(function (row) {
         const hitText = getHitText(row, winInfo);
-        appendDisplayRow(body, row.display, row.display + '（' + hitText + '）');
+        const prize = calcPrize(row, winInfo);
+        const text = row.display + '（' + hitText + '）（奖金有' + fmtNum(prize) + '元）';
+        appendDisplayRow(body, row.display, text);
       });
 
       g.appendChild(t);
@@ -722,7 +782,8 @@
       if (!list.length) return;
       lines.push('中' + key.replace('+', '➕') + '（' + list.length + ' 行）');
       list.forEach(function (row) {
-        lines.push(row.display + '（' + row.catText + '）');
+        const prize = calcPrize(row, winInfo);
+        lines.push(row.display + '（' + row.catText + '）（需要' + fmtNum(row.money) + '元）（奖金有' + fmtNum(prize) + '元）');
       });
       lines.push('');
     });
@@ -735,9 +796,20 @@
     bucketGroups.forEach(function (group) {
       const list = sortMode2Rows(group.rows, winInfo);
       if (!list.length) return;
-      lines.push(group.key.replace('+', '➕') + '（' + list.length + ' 行）');
+      const prices = list.map(function (r) { return r.money; });
+      const minP = Math.min.apply(null, prices);
+      const maxP = Math.max.apply(null, prices);
+      let priceText;
+      if (minP === maxP) {
+        priceText = '（每行需要' + fmtNum(minP) + '元）';
+      } else {
+        priceText = '（每行需要' + fmtNum(minP) + '~' + fmtNum(maxP) + '元）';
+      }
+      lines.push(group.key.replace('+', '➕') + '（' + list.length + ' 行）' + priceText);
       list.forEach(function (row) {
-        lines.push(row.display + '（' + getHitText(row, winInfo) + '）');
+        const hitText = getHitText(row, winInfo);
+        const prize = calcPrize(row, winInfo);
+        lines.push(row.display + '（' + hitText + '）（奖金有' + fmtNum(prize) + '元）');
       });
       lines.push('');
     });
@@ -747,7 +819,8 @@
 
   function buildCurrentModeText() {
     if (!winInfo) return '';
-    const statLine = '共 ' + currentRows.length + ' 行 ｜ 总注数：' + totalBets + ' 注 ｜ 中奖号码：' + formatWin(winInfo);
+    totalPrize = calcAllPrizes();
+    const statLine = '共 ' + currentRows.length + ' 行 ｜ 总注数：' + totalBets + ' 注 ｜ 总金额：' + fmtNum(totalMoney) + ' 元 ｜ 总奖金：' + fmtNum(totalPrize) + ' 元 ｜ 中奖号码：' + formatWin(winInfo);
     if (currentMode === 1) {
       const groups = {};
       ORDER_HIT.forEach(function (k) { groups[k] = []; });
@@ -864,6 +937,8 @@
     inputEl.value = '';
     currentRows = [];
     totalBets = 0;
+    totalMoney = 0;
+    totalPrize = 0;
     winInfo = null;
     currentMode = 1;
     collapsedState = {};
