@@ -134,7 +134,7 @@
   const toggleBtn = document.getElementById('toggleBtn');
   const copyModeBtn = document.getElementById('copyModeBtn');
 
-  const STORAGE_KEY = 'combo_tool_state_v6';
+  const STORAGE_KEY = 'combo_tool_state_v7';
 
   let currentRows = [];
   let totalBets   = 0;
@@ -731,8 +731,6 @@
       list = sortMode1Rows(list);
 
       const gPct = pct(list.length, currentRows.length);
-      const prizeRowsInGroup = list.filter(function (r) { return r.prize > 0; }).length;
-      const gPrizePct = pct(prizeRowsInGroup, list.length);
 
       const g = document.createElement('div');
       g.className = 'group';
@@ -741,7 +739,8 @@
       t.className = 'group-title';
       const nameSpan = document.createElement('span');
       nameSpan.className = 'g-name';
-      nameSpan.textContent = '中' + key.replace('+', '➕') + '（' + list.length + ' 行）（占比是' + gPct + '%）（有奖金的有' + prizeRowsInGroup + '行）（有奖金的行数占比是' + gPrizePct + '%）';
+      // 只显示行数和占比，不显示有奖金的行数
+      nameSpan.textContent = '中' + key.replace('+', '➕') + '（' + list.length + ' 行）（占比是' + gPct + '%）';
       t.appendChild(nameSpan);
 
       const toggleSpan = document.createElement('span');
@@ -943,9 +942,8 @@
       const list = sortMode1Rows(groups[key]);
       if (!list.length) return;
       const gPct = pct(list.length, currentRows.length);
-      const prizeRowsInGroup = list.filter(function (r) { return r.prize > 0; }).length;
-      const gPrizePct = pct(prizeRowsInGroup, list.length);
-      lines.push('中' + key.replace('+', '➕') + '（' + list.length + ' 行）（占比是' + gPct + '%）（有奖金的有' + prizeRowsInGroup + '行）（有奖金的行数占比是' + gPrizePct + '%）');
+      // 只显示行数和占比
+      lines.push('中' + key.replace('+', '➕') + '（' + list.length + ' 行）（占比是' + gPct + '%）');
       list.forEach(function (row) {
         lines.push(row.display + '（' + row.catText + '）（需要' + fmtNum(row.money) + '元）（奖金有' + fmtNum(row.prize) + '元）');
       });
