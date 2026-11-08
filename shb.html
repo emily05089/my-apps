@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>组合合并工具（双模式 + 奖金计算）</title>
+<title>组合合并工具（双模式 + 奖金统计）</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -56,10 +56,11 @@
   .mode-bar { padding: 10px 14px 4px; }
   .stat-line {
     padding: 6px 14px 10px; font-size: 13px; color: #333;
-    border-bottom: 1px dashed #e5e7eb; margin-bottom: 4px; line-height: 1.8;
+    border-bottom: 1px dashed #e5e7eb; margin-bottom: 4px; line-height: 1.9;
   }
   .stat-line b { color: #e11d48; }
   .stat-line .green { color: #059669; }
+  .stat-line .blue { color: #2563eb; }
   .group { margin: 10px 14px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
   .group-title {
     background: #f0f5ff; padding: 7px 12px; font-weight: 600;
@@ -97,7 +98,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>组合合并工具（双模式 + 奖金计算）</h1>
+  <h1>组合合并工具（双模式 + 奖金统计）</h1>
 
   <div class="label">① 输入原数据（每行一条）</div>
   <textarea id="input" placeholder="01,10,15,20,22,27,30,31-01
@@ -117,8 +118,8 @@
 
   <div class="hint">
     只有<b>连续相邻</b>且 “-” 前面完全相同的行才会合并；后区去重升序；后区覆盖 01~16 显示 <b>-全部</b>；重复组合用 <b>✖️次数</b> 表示。
-    每注按 2 元计算；奖金按单注固定奖级累加：6+1（500万）、6+0（50万）、5+1（3000）、5+0/4+1（200）、4+0/3+1（10）、2+1/1+1/0+1（5）、其余 0。
-    模式1只显示有行的命中分组；模式2动态列出所有实际出现的结构分类并按前区总数→后区数排序。
+    每注按 2 元计算；奖金按单注固定奖级逐注累加：6+1（500万）、6+0（50万）、5+1（3000）、5+0/4+1（200）、4+0/3+1（10）、2+1/1+1/0+1（5）、其余 0。
+    奖金占比 = 总奖金 ÷ 总金额；有奖金的行数占比 = 有奖金行数 ÷ 总行数。
   </div>
 </div>
 
@@ -129,12 +130,13 @@
   const toggleBtn = document.getElementById('toggleBtn');
   const copyModeBtn = document.getElementById('copyModeBtn');
 
-  const STORAGE_KEY = 'combo_tool_state_v3';
+  const STORAGE_KEY = 'combo_tool_state_v4';
 
   let currentRows = [];
   let totalBets   = 0;
   let totalMoney  = 0;
   let totalPrize  = 0;
+  let prizeRowCount = 0;
   let winInfo     = null;
   let currentMode = 1;
   let collapsedState = {};
@@ -175,6 +177,10 @@
   }
   function fmtNum(n) {
     return Number(n).toLocaleString('en-US');
+  }
+  function pct(a, b) {
+    if (!b) return '0.00';
+    return (a / b * 100).toFixed(2);
   }
 
   function splitLine(line) {
@@ -257,6 +263,7 @@
       totalBets = 0;
       totalMoney = 0;
       totalPrize = 0;
+      prizeRowCount = 0;
       winInfo = null;
       saveState();
       render();
@@ -350,7 +357,8 @@
         bets: bets,
         money: bets * 2,
         display: display,
-        catText: getCatText(fi, backCount)
+        catText: getCatText(fi, backCount),
+        prize: 0
       });
     }
 
@@ -368,7 +376,6 @@
     const fi = row.frontInfo;
     let total = 0;
 
-    // 前区命中分布：[{hit, ways}]
     const frontDist = [];
     if (!fi.isDanTuo) {
       const n = fi.frontCount;
@@ -388,7 +395,6 @@
       }
     }
 
-    // 后区：逐个后区号码按其出现次数计算
     row.backList.forEach(function (bn) {
       const isWin = (bn.num === winBack);
       const suffix = isWin ? '+1' : '+0';
@@ -401,6 +407,21 @@
     });
 
     return total;
+  }
+
+  function computeAllPrizes() {
+    totalPrize = 0;
+    prizeRowCount = 0;
+    if (!winInfo) {
+      currentRows.forEach(function (r) { r.prize = 0; });
+      return;
+    }
+    currentRows.forEach(function (row) {
+      const p = calcPrize(row, winInfo);
+      row.prize = p;
+      totalPrize += p;
+      if (p > 0) prizeRowCount++;
+    });
   }
 
   /* ---------- 命中分类 ---------- */
@@ -471,6 +492,21 @@
     return f + '-' + b;
   }
 
+  /* ---------- 统计行文本 ---------- */
+  function buildStatText() {
+    const winStr = formatWin(winInfo);
+    const prizePct = totalMoney > 0 ? (totalPrize / totalMoney * 100).toFixed(2) : '0.00';
+    const prizeRowPct = currentRows.length > 0 ? (prizeRowCount / currentRows.length * 100).toFixed(2) : '0.00';
+    return '共 ' + currentRows.length + ' 行 ｜ 总注数：' + totalBets + ' 注 ｜ 总金额：' + fmtNum(totalMoney) + '元 ｜ 总奖金：' + fmtNum(totalPrize) + ' 元 ｜ 奖金占比是' + prizePct + '% ｜ 有奖金的行数占比是' + prizeRowPct + '% ｜ 中奖号码：' + winStr;
+  }
+
+  function buildStatHtml() {
+    const winStr = formatWin(winInfo);
+    const prizePct = totalMoney > 0 ? (totalPrize / totalMoney * 100).toFixed(2) : '0.00';
+    const prizeRowPct = currentRows.length > 0 ? (prizeRowCount / currentRows.length * 100).toFixed(2) : '0.00';
+    return '共 ' + currentRows.length + ' 行 ｜ 总注数：<b>' + totalBets + '</b> 注 ｜ 总金额：<b>' + fmtNum(totalMoney) + '</b>元 ｜ 总奖金：<span class="green"><b>' + fmtNum(totalPrize) + '</b></span> 元 ｜ 奖金占比是<b>' + prizePct + '%</b> ｜ 有奖金的行数占比是<span class="blue"><b>' + prizeRowPct + '%</b></span> ｜ 中奖号码：<b>' + winStr + '</b>';
+  }
+
   /* ---------- 排序 ---------- */
   function sortMode1Rows(list) {
     return list.slice().sort(function (a, b) {
@@ -526,10 +562,10 @@
 
     if (!winInfo) {
       renderFlat();
-    } else if (currentMode === 1) {
-      renderMode1();
     } else {
-      renderMode2();
+      computeAllPrizes();
+      if (currentMode === 1) renderMode1();
+      else renderMode2();
     }
   }
 
@@ -562,19 +598,10 @@
     outputEl.appendChild(list);
   }
 
-  function calcAllPrizes() {
-    let sum = 0;
-    if (!winInfo) return 0;
-    currentRows.forEach(function (row) { sum += calcPrize(row, winInfo); });
-    return sum;
-  }
-
   function renderMode1() {
     const winFrontSet = new Set(winInfo.fronts);
     const winBack = winInfo.back;
-    const winStr = formatWin(winInfo);
-    totalPrize = calcAllPrizes();
-    const statLine = '共 ' + currentRows.length + ' 行 ｜ 总注数：' + totalBets + ' 注 ｜ 总金额：' + fmtNum(totalMoney) + ' 元 ｜ 总奖金：' + fmtNum(totalPrize) + ' 元 ｜ 中奖号码：' + winStr;
+    const statText = buildStatText();
 
     const groups = {};
     ORDER_HIT.forEach(function (k) { groups[k] = []; });
@@ -598,7 +625,7 @@
     btn.className = 'copy-mode';
     btn.textContent = '复制模式1全部';
     btn.addEventListener('click', function () {
-      const text = buildTextMode1(statLine, groups);
+      const text = buildTextMode1(statText, groups);
       copyText(text).then(function () {
         btn.textContent = '已复制';
         setTimeout(function () { btn.textContent = '复制模式1全部'; }, 900);
@@ -609,13 +636,15 @@
 
     const stat = document.createElement('div');
     stat.className = 'stat-line';
-    stat.innerHTML = '共 ' + currentRows.length + ' 行 ｜ 总注数：<b>' + totalBets + '</b> 注 ｜ 总金额：<b>' + fmtNum(totalMoney) + '</b> 元 ｜ 总奖金：<span class="green"><b>' + fmtNum(totalPrize) + '</b></span> 元 ｜ 中奖号码：<b>' + winStr + '</b>';
+    stat.innerHTML = buildStatHtml();
     sec.appendChild(stat);
 
     ORDER_HIT.forEach(function (key) {
       let list = groups[key];
-      if (!list.length) return; // 0行不显示
+      if (!list.length) return;
       list = sortMode1Rows(list);
+
+      const gPct = pct(list.length, currentRows.length);
 
       const g = document.createElement('div');
       g.className = 'group';
@@ -624,7 +653,7 @@
       t.className = 'group-title';
       const nameSpan = document.createElement('span');
       nameSpan.className = 'g-name';
-      nameSpan.textContent = '中' + key.replace('+', '➕') + '（' + list.length + ' 行）';
+      nameSpan.textContent = '中' + key.replace('+', '➕') + '（' + list.length + ' 行）（占比是' + gPct + '%）';
       t.appendChild(nameSpan);
 
       const toggleSpan = document.createElement('span');
@@ -646,8 +675,7 @@
       });
 
       list.forEach(function (row) {
-        const prize = calcPrize(row, winInfo);
-        const text = row.display + '（' + row.catText + '）（需要' + fmtNum(row.money) + '元）（奖金有' + fmtNum(prize) + '元）';
+        const text = row.display + '（' + row.catText + '）（需要' + fmtNum(row.money) + '元）（奖金有' + fmtNum(row.prize) + '元）';
         appendDisplayRow(body, row.display, text);
       });
 
@@ -660,9 +688,9 @@
   }
 
   function renderMode2() {
-    const winStr = formatWin(winInfo);
-    totalPrize = calcAllPrizes();
-    const statLine = '共 ' + currentRows.length + ' 行 ｜ 总注数：' + totalBets + ' 注 ｜ 总金额：' + fmtNum(totalMoney) + ' 元 ｜ 总奖金：' + fmtNum(totalPrize) + ' 元 ｜ 中奖号码：' + winStr;
+    const winFrontSet = new Set(winInfo.fronts);
+    const winBack = winInfo.back;
+    const statText = buildStatText();
 
     const bucketGroups = collectBucketGroups();
 
@@ -680,7 +708,7 @@
     btn.className = 'copy-mode';
     btn.textContent = '复制模式2全部';
     btn.addEventListener('click', function () {
-      const text = buildTextMode2(statLine, bucketGroups);
+      const text = buildTextMode2(statText, bucketGroups);
       copyText(text).then(function () {
         btn.textContent = '已复制';
         setTimeout(function () { btn.textContent = '复制模式2全部'; }, 900);
@@ -691,13 +719,14 @@
 
     const stat = document.createElement('div');
     stat.className = 'stat-line';
-    stat.innerHTML = '共 ' + currentRows.length + ' 行 ｜ 总注数：<b>' + totalBets + '</b> 注 ｜ 总金额：<b>' + fmtNum(totalMoney) + '</b> 元 ｜ 总奖金：<span class="green"><b>' + fmtNum(totalPrize) + '</b></span> 元 ｜ 中奖号码：<b>' + winStr + '</b>';
+    stat.innerHTML = buildStatHtml();
     sec.appendChild(stat);
 
     bucketGroups.forEach(function (group) {
       const key = group.key;
       let list = sortMode2Rows(group.rows, winInfo);
 
+      // 价格范围
       const prices = list.map(function (r) { return r.money; });
       const minP = Math.min.apply(null, prices);
       const maxP = Math.max.apply(null, prices);
@@ -708,6 +737,22 @@
         priceText = '（每行需要' + fmtNum(minP) + '~' + fmtNum(maxP) + '元）';
       }
 
+      // 有奖金的行数占比（组内）
+      const prizeRowsInGroup = list.filter(function (r) { return r.prize > 0; }).length;
+      const prizeRowPct = pct(prizeRowsInGroup, list.length);
+
+      // 最多中X+Y
+      let bestIdx = ORDER_HIT.length;
+      let bestHit = '0➕0';
+      list.forEach(function (row) {
+        const r = classifyRow(row, winFrontSet, winBack);
+        const idx = ORDER_HIT.indexOf(r.front + '+' + r.back);
+        if (idx !== -1 && idx < bestIdx) {
+          bestIdx = idx;
+          bestHit = r.front + '➕' + r.back;
+        }
+      });
+
       const g = document.createElement('div');
       g.className = 'group';
 
@@ -715,7 +760,8 @@
       t.className = 'group-title';
       const nameSpan = document.createElement('span');
       nameSpan.className = 'g-name';
-      nameSpan.textContent = key.replace('+', '➕') + '（' + list.length + ' 行）' + priceText;
+      nameSpan.textContent = key.replace('+', '➕') + '（' + list.length + ' 行）' + priceText +
+        '（有奖金的行数占比是' + prizeRowPct + '%）（最多中' + bestHit + '）';
       t.appendChild(nameSpan);
 
       const toggleSpan = document.createElement('span');
@@ -738,8 +784,7 @@
 
       list.forEach(function (row) {
         const hitText = getHitText(row, winInfo);
-        const prize = calcPrize(row, winInfo);
-        const text = row.display + '（' + hitText + '）（奖金有' + fmtNum(prize) + '元）';
+        const text = row.display + '（' + hitText + '）（奖金有' + fmtNum(row.prize) + '元）';
         appendDisplayRow(body, row.display, text);
       });
 
@@ -775,15 +820,15 @@
   }
 
   /* ---------- 构建复制文本 ---------- */
-  function buildTextMode1(statLine, groups) {
-    const lines = [statLine, ''];
+  function buildTextMode1(statText, groups) {
+    const lines = [statText, ''];
     ORDER_HIT.forEach(function (key) {
       const list = sortMode1Rows(groups[key]);
       if (!list.length) return;
-      lines.push('中' + key.replace('+', '➕') + '（' + list.length + ' 行）');
+      const gPct = pct(list.length, currentRows.length);
+      lines.push('中' + key.replace('+', '➕') + '（' + list.length + ' 行）（占比是' + gPct + '%）');
       list.forEach(function (row) {
-        const prize = calcPrize(row, winInfo);
-        lines.push(row.display + '（' + row.catText + '）（需要' + fmtNum(row.money) + '元）（奖金有' + fmtNum(prize) + '元）');
+        lines.push(row.display + '（' + row.catText + '）（需要' + fmtNum(row.money) + '元）（奖金有' + fmtNum(row.prize) + '元）');
       });
       lines.push('');
     });
@@ -791,11 +836,14 @@
     return lines.join('\n');
   }
 
-  function buildTextMode2(statLine, bucketGroups) {
-    const lines = [statLine, ''];
+  function buildTextMode2(statText, bucketGroups) {
+    const winFrontSet = new Set(winInfo.fronts);
+    const winBack = winInfo.back;
+    const lines = [statText, ''];
     bucketGroups.forEach(function (group) {
       const list = sortMode2Rows(group.rows, winInfo);
       if (!list.length) return;
+
       const prices = list.map(function (r) { return r.money; });
       const minP = Math.min.apply(null, prices);
       const maxP = Math.max.apply(null, prices);
@@ -805,11 +853,26 @@
       } else {
         priceText = '（每行需要' + fmtNum(minP) + '~' + fmtNum(maxP) + '元）';
       }
-      lines.push(group.key.replace('+', '➕') + '（' + list.length + ' 行）' + priceText);
+
+      const prizeRowsInGroup = list.filter(function (r) { return r.prize > 0; }).length;
+      const prizeRowPct = pct(prizeRowsInGroup, list.length);
+
+      let bestIdx = ORDER_HIT.length;
+      let bestHit = '0➕0';
+      list.forEach(function (row) {
+        const r = classifyRow(row, winFrontSet, winBack);
+        const idx = ORDER_HIT.indexOf(r.front + '+' + r.back);
+        if (idx !== -1 && idx < bestIdx) {
+          bestIdx = idx;
+          bestHit = r.front + '➕' + r.back;
+        }
+      });
+
+      lines.push(group.key.replace('+', '➕') + '（' + list.length + ' 行）' + priceText +
+        '（有奖金的行数占比是' + prizeRowPct + '%）（最多中' + bestHit + '）');
       list.forEach(function (row) {
         const hitText = getHitText(row, winInfo);
-        const prize = calcPrize(row, winInfo);
-        lines.push(row.display + '（' + hitText + '）（奖金有' + fmtNum(prize) + '元）');
+        lines.push(row.display + '（' + hitText + '）（奖金有' + fmtNum(row.prize) + '元）');
       });
       lines.push('');
     });
@@ -819,8 +882,7 @@
 
   function buildCurrentModeText() {
     if (!winInfo) return '';
-    totalPrize = calcAllPrizes();
-    const statLine = '共 ' + currentRows.length + ' 行 ｜ 总注数：' + totalBets + ' 注 ｜ 总金额：' + fmtNum(totalMoney) + ' 元 ｜ 总奖金：' + fmtNum(totalPrize) + ' 元 ｜ 中奖号码：' + formatWin(winInfo);
+    const statText = buildStatText();
     if (currentMode === 1) {
       const groups = {};
       ORDER_HIT.forEach(function (k) { groups[k] = []; });
@@ -830,9 +892,9 @@
         const key = r.front + '+' + r.back;
         if (groups[key]) groups[key].push(row);
       });
-      return buildTextMode1(statLine, groups);
+      return buildTextMode1(statText, groups);
     } else {
-      return buildTextMode2(statLine, collectBucketGroups());
+      return buildTextMode2(statText, collectBucketGroups());
     }
   }
 
@@ -939,6 +1001,7 @@
     totalBets = 0;
     totalMoney = 0;
     totalPrize = 0;
+    prizeRowCount = 0;
     winInfo = null;
     currentMode = 1;
     collapsedState = {};
