@@ -33,6 +33,10 @@
   button.orange:hover { background: #d97706; }
   button.purple { background: #8b5cf6; }
   button.purple:hover { background: #7c3aed; }
+  button.teal { background: #14b8a6; }
+  button.teal:hover { background: #0d9488; }
+  button.teal.on { background: #ef4444; }
+  button.teal.on:hover { background: #dc2626; }
   button.mini {
     padding: 4px 10px; font-size: 12px; background: #10b981; flex: 0 0 auto;
     min-width: 58px;
@@ -112,6 +116,7 @@
   <div class="bar">
     <button id="run">确定</button>
     <button id="winBtn" class="orange">输入中奖号码</button>
+    <button id="prize30Btn" class="teal">中3+0：0元（点击改为5元）</button>
     <button id="toggleBtn" class="purple" disabled>切换模式</button>
     <button id="copyModeBtn" class="gray" disabled>复制当前模式全部</button>
     <button id="clearAll" class="gray">清空</button>
@@ -123,6 +128,7 @@
   <div class="hint">
     只有<b>连续相邻</b>且 “-” 前面完全相同的行才会合并；后区去重升序；后区覆盖 01~16 显示 <b>-全部</b>；重复组合用 <b>✖️次数</b> 表示。
     每注 2 元；奖金按单注固定奖级逐注累加：6+1（500万）、6+0（50万）、5+1（3000）、5+0/4+1（200）、4+0/3+1（10）、2+1/1+1/0+1（5）、其余 0。
+    中3+0 默认为 0 元，可通过按钮切换为 5 元，所有统计会同步更新。
     倍数行模块按“前区-单个后区”精确拆分统计，只有该后区累计次数 ≥2 才显示，按奖金由多到少排序。
   </div>
 </div>
@@ -133,8 +139,9 @@
   const outputEl = document.getElementById('output');
   const toggleBtn = document.getElementById('toggleBtn');
   const copyModeBtn = document.getElementById('copyModeBtn');
+  const prize30Btn = document.getElementById('prize30Btn');
 
-  const STORAGE_KEY = 'combo_tool_state_v9';
+  const STORAGE_KEY = 'combo_tool_state_v10';
 
   let currentRows = [];
   let totalBets   = 0;
@@ -144,6 +151,7 @@
   let winInfo     = null;
   let currentMode = 1;
   let collapsedState = {};
+  let prize3_0 = 0; // 中3+0 的奖金：0 或 5
 
   const ORDER_HIT = ['6+1','6+0','5+1','5+0','4+1','4+0','3+1','2+1','1+1','0+1','3+0','2+0','1+0','0+0'];
 
@@ -159,6 +167,12 @@
     '1+1': 5,
     '0+1': 5
   };
+
+  // 动态获取单注奖金（支持中3+0切换）
+  function getPrize(hitKey) {
+    if (hitKey === '3+0') return prize3_0;
+    return PRIZE_MAP[hitKey] || 0;
+  }
 
   /* ---------- 组合数 ---------- */
   function comb(n, k) {
@@ -404,7 +418,7 @@
       const isWin = (bn.num === winBack);
       const suffix = isWin ? '+1' : '+0';
       frontDist.forEach(function (fd) {
-        const prize = PRIZE_MAP[fd.hit + suffix] || 0;
+        const prize = getPrize(fd.hit + suffix);
         if (prize > 0) {
           total += fd.ways * bn.count * prize;
         }
@@ -443,7 +457,7 @@
     const isWin = (backNum === winInfo.back);
     const suffix = isWin ? '+1' : '+0';
     frontDist.forEach(function (fd) {
-      const prize = PRIZE_MAP[fd.hit + suffix] || 0;
+      const prize = getPrize(fd.hit + suffix);
       total += fd.ways * prize;
     });
 
@@ -628,7 +642,6 @@
     const totalN = entries.length;
     const prizeN = entries.filter(function (e) { return e.prize > 0; }).length;
     const prizePct = pct(prizeN, totalN);
-    // entries 已按奖金降序，第一行即奖金最高（若有奖金）
     let bestHit = '0➕0';
     const bestEntry = entries.find(function (e) { return e.prize > 0; });
     if (bestEntry) bestHit = bestEntry.hitText;
@@ -636,9 +649,21 @@
     return '有倍数的行（共 ' + totalN + ' 行）（有奖金的有' + prizeN + '行）（有奖金的行数占比是' + prizePct + '%）（最多中' + bestHit + '）';
   }
 
+  /* ---------- 按钮文字 ---------- */
+  function updatePrize30Btn() {
+    if (prize3_0 === 5) {
+      prize30Btn.textContent = '中3+0：5元（点击改为0元）';
+      prize30Btn.classList.add('on');
+    } else {
+      prize30Btn.textContent = '中3+0：0元（点击改为5元）';
+      prize30Btn.classList.remove('on');
+    }
+  }
+
   /* ---------- 渲染 ---------- */
   function render() {
     outputEl.innerHTML = '';
+    updatePrize30Btn();
 
     const hasGroups = !!winInfo;
     toggleBtn.disabled = !hasGroups;
@@ -1076,7 +1101,8 @@
         input: inputEl.value,
         winRaw: winInfo ? winInfo.raw : '',
         mode: currentMode,
-        collapsed: collapsedState
+        collapsed: collapsedState,
+        prize30: prize3_0
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (e) {}
@@ -1094,6 +1120,7 @@
       }
       if (state.mode === 1 || state.mode === 2) currentMode = state.mode;
       if (state.collapsed && typeof state.collapsed === 'object') collapsedState = state.collapsed;
+      if (state.prize30 === 5) prize3_0 = 5; else prize3_0 = 0;
     } catch (e) {}
   }
 
@@ -1109,6 +1136,13 @@
     if (!parsed) { alert('格式不正确，请重新输入。示例：1,2,3,4,5,6-1'); return; }
     winInfo = parsed;
     currentMode = 1;
+    saveState();
+    render();
+  });
+
+  prize30Btn.addEventListener('click', function () {
+    prize3_0 = (prize3_0 === 5) ? 0 : 5;
+    updatePrize30Btn();
     saveState();
     render();
   });
@@ -1142,6 +1176,7 @@
     winInfo = null;
     currentMode = 1;
     collapsedState = {};
+    prize3_0 = 0;
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
     render();
     inputEl.focus();
@@ -1157,6 +1192,7 @@
 
   /* ---------- 页面加载恢复 ---------- */
   loadState();
+  updatePrize30Btn();
   if (inputEl.value.trim()) {
     run();
   } else {
