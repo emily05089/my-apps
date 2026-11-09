@@ -134,7 +134,7 @@
   const toggleBtn = document.getElementById('toggleBtn');
   const copyModeBtn = document.getElementById('copyModeBtn');
 
-  const STORAGE_KEY = 'combo_tool_state_v8';
+  const STORAGE_KEY = 'combo_tool_state_v9';
 
   let currentRows = [];
   let totalBets   = 0;
@@ -623,6 +623,19 @@
     return result;
   }
 
+  // 倍数行统计文本
+  function buildMultiplierSummary(entries) {
+    const totalN = entries.length;
+    const prizeN = entries.filter(function (e) { return e.prize > 0; }).length;
+    const prizePct = pct(prizeN, totalN);
+    // entries 已按奖金降序，第一行即奖金最高（若有奖金）
+    let bestHit = '0➕0';
+    const bestEntry = entries.find(function (e) { return e.prize > 0; });
+    if (bestEntry) bestHit = bestEntry.hitText;
+    else if (entries.length) bestHit = entries[0].hitText;
+    return '有倍数的行（共 ' + totalN + ' 行）（有奖金的有' + prizeN + '行）（有奖金的行数占比是' + prizePct + '%）（最多中' + bestHit + '）';
+  }
+
   /* ---------- 渲染 ---------- */
   function render() {
     outputEl.innerHTML = '';
@@ -881,7 +894,7 @@
 
     const title = document.createElement('div');
     title.className = 'mode-title';
-    title.textContent = '有倍数的行（共 ' + entries.length + ' 行，按奖金由多到少排序）';
+    title.textContent = buildMultiplierSummary(entries);
     sec.appendChild(title);
 
     const bar = document.createElement('div');
@@ -990,7 +1003,7 @@
   }
 
   function buildTextMultiplier(entries) {
-    const lines = ['有倍数的行', ''];
+    const lines = [buildMultiplierSummary(entries), ''];
     entries.forEach(function (entry) {
       lines.push(entry.front + '-' + entry.backText + ' ✖️' + entry.count +
         '（' + entry.catText + '）（中' + entry.hitText + '）（奖金有' + fmtNum(entry.prize) + '元）');
