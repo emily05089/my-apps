@@ -134,7 +134,7 @@
   const toggleBtn = document.getElementById('toggleBtn');
   const copyModeBtn = document.getElementById('copyModeBtn');
 
-  const STORAGE_KEY = 'combo_tool_state_v7';
+  const STORAGE_KEY = 'combo_tool_state_v8';
 
   let currentRows = [];
   let totalBets   = 0;
@@ -615,6 +615,7 @@
         entry.display = entry.front + '-' + entry.backText + ' ✖️' + entry.count;
         entry.prize = calcPrizeSingleBack(entry.row, winInfo, entry.backNum) * entry.count;
         entry.hitText = getHitTextSingleBack(entry.row, winInfo, entry.backNum);
+        entry.catText = entry.row.catText;
         result.push(entry);
       }
     });
@@ -739,7 +740,6 @@
       t.className = 'group-title';
       const nameSpan = document.createElement('span');
       nameSpan.className = 'g-name';
-      // 只显示行数和占比，不显示有奖金的行数
       nameSpan.textContent = '中' + key.replace('+', '➕') + '（' + list.length + ' 行）（占比是' + gPct + '%）';
       t.appendChild(nameSpan);
 
@@ -905,7 +905,8 @@
     sec.appendChild(body);
 
     entries.forEach(function (entry) {
-      const displayText = entry.front + '-' + entry.backText + ' ✖️' + entry.count + '（' + entry.hitText + '）（奖金有' + fmtNum(entry.prize) + '元）';
+      const displayText = entry.front + '-' + entry.backText + ' ✖️' + entry.count +
+        '（' + entry.catText + '）（中' + entry.hitText + '）（奖金有' + fmtNum(entry.prize) + '元）';
       appendDisplayRow(body, entry.front + '-' + entry.backText + ' ✖️' + entry.count, displayText);
     });
 
@@ -942,7 +943,6 @@
       const list = sortMode1Rows(groups[key]);
       if (!list.length) return;
       const gPct = pct(list.length, currentRows.length);
-      // 只显示行数和占比
       lines.push('中' + key.replace('+', '➕') + '（' + list.length + ' 行）（占比是' + gPct + '%）');
       list.forEach(function (row) {
         lines.push(row.display + '（' + row.catText + '）（需要' + fmtNum(row.money) + '元）（奖金有' + fmtNum(row.prize) + '元）');
@@ -992,7 +992,8 @@
   function buildTextMultiplier(entries) {
     const lines = ['有倍数的行', ''];
     entries.forEach(function (entry) {
-      lines.push(entry.front + '-' + entry.backText + ' ✖️' + entry.count + '（' + entry.hitText + '）（奖金有' + fmtNum(entry.prize) + '元）');
+      lines.push(entry.front + '-' + entry.backText + ' ✖️' + entry.count +
+        '（' + entry.catText + '）（中' + entry.hitText + '）（奖金有' + fmtNum(entry.prize) + '元）');
     });
     return lines.join('\n');
   }
