@@ -1,1 +1,705 @@
-1
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>号码组合分析筛选器</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box}
+body{font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif;background:#eef1f6;margin:0;padding:16px;color:#26303e;font-size:14px}
+.wrap{max-width:1080px;margin:0 auto}
+.card{background:#fff;border-radius:10px;padding:16px 20px;margin-bottom:14px;box-shadow:0 1px 5px rgba(20,40,80,.08)}
+h2{margin:0 0 10px;font-size:17px;color:#1a2b4a}
+h2 .sub{font-weight:normal;font-size:12px;color:#8894a8;margin-left:8px}
+.banner{background:linear-gradient(135deg,#1a2b4a,#2d4a7e);color:#fff;border-radius:10px;padding:16px 20px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px 28px;align-items:baseline}
+.banner .big{font-size:24px;font-weight:bold;font-family:Consolas,monospace}
+.banner .small{font-size:13px;opacity:.85}
+textarea{width:100%;height:120px;font-family:Consolas,Menlo,monospace;font-size:14px;padding:8px;border:1px solid #c3cddd;border-radius:6px;resize:vertical;line-height:1.5}
+textarea:focus{outline:none;border-color:#3a6bc7}
+button{background:#2d5db8;color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:14px;cursor:pointer;margin-right:8px;margin-top:8px}
+button:hover{background:#244c9c}
+button:disabled{background:#a8b4c8;cursor:not-allowed}
+button.gray{background:#5b6b84}
+button.gray:hover{background:#48566c}
+button.green{background:#2e8b57}
+button.green:hover{background:#256f45}
+button.op:disabled{opacity:.55}
+table{border-collapse:collapse;width:100%;margin-top:8px}
+th,td{border:1px solid #dde3ee;padding:5px 10px;text-align:left}
+th{background:#f2f5fb;font-weight:600}
+td.num{font-family:Consolas,monospace;text-align:right}
+.chkrow{display:flex;flex-wrap:wrap;gap:6px 14px;margin:6px 0}
+.chkrow label{display:inline-flex;align-items:center;gap:4px;background:#f2f5fb;border:1px solid #dde3ee;border-radius:5px;padding:3px 9px;cursor:pointer;user-select:none}
+.chkrow label:hover{background:#e6ecf7}
+.range{display:inline-flex;align-items:center;gap:6px;margin-right:18px}
+.range input{width:110px;padding:6px 8px;border:1px solid #c3cddd;border-radius:6px;font-size:14px}
+.hint{color:#8894a8;font-size:12px;line-height:1.7;margin-top:6px}
+.err{color:#c0392b;font-size:13px;white-space:pre-wrap}
+.stat{font-size:14px;margin-top:8px}
+.stat b{color:#c0392b}
+#progressWrap{display:none;margin-top:10px;position:fixed;left:50%;transform:translateX(-50%);bottom:18px;width:min(820px,94vw);z-index:50;border:1px solid #d5deec;box-shadow:0 8px 28px rgba(10,25,60,.22)}
+#progressBarOuter{background:#e2e8f2;border-radius:6px;height:18px;overflow:hidden;position:relative}
+#progressBar{background:linear-gradient(90deg,#2d5db8,#4a8ae0);height:100%;width:0%;transition:width .15s}
+#progressText{font-size:12px;color:#5b6b84;margin-top:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="banner">
+  <span>组合池总数：</span><span class="big" id="poolTotal">17,721,088</span>
+  <span class="small">（33选6 × 16 = 1,107,568 × 16）</span>
+  <span>当前剩余：</span><span class="big" id="remainTotal" style="color:#ffd76e">17,721,088</span>
+  <span class="small" id="opStatus" style="flex-basis:100%;color:#bcd3ff"></span>
+</div>
+
+<div class="card">
+  <h2>输入数据<span class="sub">每行一条，格式：红球-蓝球[ 倍数]</span></h2>
+  <textarea id="inputArea" placeholder="每行一条，例如：
+03,09,11,13,18,22,23,29-01,02,03,06,09,15        8红6蓝复式 = 168注
+03,04,07,12,18,20,30,32-全部                     蓝球全包 = 448注
+03,04,07,12,18,20,30,32-2 ✖️51                  51倍 = 1428注
+01胆02,03,04,05,06,07,08,09-05                  1胆7拖（也支持 01|02,03,04,05,06,07,08,09-05 写法，| 前为胆码）"></textarea>
+  <div>
+    <button class="op" id="btnParse">确定</button>
+    <span class="hint">支持中文逗号、全角符号、"全部"蓝球、倍数可用 ✖️ / × / x / * 表示</span>
+  </div>
+  <div class="err" id="parseErr"></div>
+  <div id="parseResult"></div>
+</div>
+
+<div class="card">
+  <h2>按命中类型排除<span class="sub">勾选上面表格中的行类型与下方命中类型后点排除</span></h2>
+  <div class="chkrow" id="exclHits"></div>
+  <div>
+    <button class="op" id="btnExclude">排除</button>
+    <button class="op gray" id="btnResetExcl">恢复全部勾选</button>
+  </div>
+  <div class="hint">规则：若某条【被勾选类型】的行，其命中结果属于【被勾选的命中类型】，则该中奖组合从当前剩余组合中排除。行类型不勾选视为对所有行生效。</div>
+</div>
+
+<div class="card">
+  <h2>保留奖金比例<span class="sub">应用于所有行</span></h2>
+  <div>
+    <span class="range">奖金比例区间 <input type="number" id="betLo" step="0.01" placeholder="如10.08"> % 至 <input type="number" id="betHi" step="0.01" placeholder="如30.25"> %</span>
+    <button class="op" id="btnPrizeRatio">保留奖金比例</button>
+  </div>
+  <div class="hint" id="betHint">奖金：中6+1=500万，中6+0=50万，中5+1=3000，中5+0/4+1=200，中4+0/3+1=10，中2+1/1+1/0+1=5；投注2元/注。复式/胆拖/倍投按实际中奖注数逐档计算总奖金，保留 奖金÷投注金额 在区间内的组合。</div>
+</div>
+
+<div class="card">
+  <h2>保留有奖金的行数比例<span class="sub">默认应用于所有行，可勾选类型只统计勾选类型的行</span></h2>
+  <div class="chkrow" id="plTypes"></div>
+  <div>
+    <span class="range">比例区间 <input type="number" id="plLo" step="0.01" placeholder="如10"> % 至 <input type="number" id="plHi" step="0.01" placeholder="如30"> %</span>
+    <button class="op" id="btnPrizeLines">保留有奖金行数比例</button>
+  </div>
+  <div class="hint">分子 = 有奖金的行数（勾选类型时只统计勾选类型的行），分母 = 全部总行数。不勾选类型 = 统计所有行。有奖金的行 = 该行中奖注数中存在奖金大于0的注（蓝球命中必有5元奖；红球命中≥4个时蓝球未中也有奖）。</div>
+</div>
+
+<div class="card">
+  <h2>筛选中奖行数<span class="sub">同时满足每个勾选类型的行数条件</span></h2>
+  <div style="font-size:13px;margin:4px 0 2px">行类型（不勾选 = 所有行）：</div>
+  <div class="chkrow" id="wcTypes"></div>
+  <div style="font-size:13px;margin:4px 0 2px">命中类型（不勾选 = 按"有奖金的行"统计）：</div>
+  <div class="chkrow" id="wcHits"></div>
+  <div>
+    <span class="range">行数区间 <input type="number" id="wcLo" step="1" placeholder="如0"> 至 <input type="number" id="wcHi" step="1" placeholder="如3"> 行</span>
+    <button class="op" id="btnWinLines">筛选中奖行数</button>
+  </div>
+  <div class="hint">勾选多个行类型时，要求每个类型的行数都同时落在区间内（例如勾选8+2和11+2、勾选中5+1、输入0至3：则8+2中5+1的行数和11+2中5+1的行数都必须是0~3行）。</div>
+</div>
+
+<div class="card">
+  <h2>导出<span class="sub">导出当前剩余组合</span></h2>
+  <button class="op green" id="btnExport">导出Excel</button>
+  <span class="hint">格式：01,02,03,04,05,06-01，一个组合一行。剩余超过 1,048,575 行时仅导出 Excel 上限内的部分。</span>
+</div>
+
+<div class="card" id="progressWrap">
+  <div id="progressBarOuter"><div id="progressBar"></div></div>
+  <div id="progressText"></div>
+  <button class="gray" id="btnCancel">取消计算</button>
+</div>
+
+</div>
+
+<script>
+'use strict';
+/* ================= 常量与基础数据 ================= */
+const TOTAL = 17721088, RC_TOTAL = 1107568, MAX_ROWS = 1048575;
+const HIT_LIST = [[6,1],[6,0],[5,1],[5,0],[4,1],[4,0],[3,1],[2,1],[1,1],[0,1],[3,0],[2,0],[1,0],[0,0]];
+
+/* 组合数表 C[n][k] */
+const C = (() => {
+  const t = [new Int32Array(34)]; t[0][0] = 1;
+  for (let n = 1; n <= 33; n++) {
+    const r = new Int32Array(34), p = t[n - 1]; r[0] = 1;
+    for (let k = 1; k <= n; k++) r[k] = p[k - 1] + p[k];
+    t.push(r);
+  }
+  return t;
+})();
+const PC16 = new Uint8Array(65536);
+for (let i = 1; i < 65536; i++) PC16[i] = PC16[i >> 1] + (i & 1);
+const PC4 = [0, 1, 1, 2];   /* 号码32/33的高位字节弹出计数 */
+
+/* 32位弹出计数（输入须为非负或按位与结果，lo掩码仅用0~30位，恒非负） */
+function popcnt(v) {
+  v = v - ((v >>> 1) & 0x55555555);
+  v = (v & 0x33333333) + ((v >>> 2) & 0x33333333);
+  v = (v + (v >>> 4)) & 0x0F0F0F0F;
+  return (v * 0x01010101) >>> 24;
+}
+
+/* ================= 状态 ================= */
+/* 红球掩码拆分存储：lo 低31位=号码1~31；hi 2位=号码32(bit0)、33(bit1) */
+let redLo = null, redHi = null;
+let blueSurv = null, tempSurv = null, tempRem = 0, remaining = TOTAL;
+let lines = [];
+let typeGroups = new Map();
+let totalBets = 0, totalLines = 0;
+let computing = false, cancelFlag = false;
+
+function initState() {
+  blueSurv = new Uint16Array(RC_TOTAL);
+  blueSurv.fill(0xFFFF);
+  remaining = TOTAL;
+  updateRemain();
+}
+function updateRemain() {
+  document.getElementById('remainTotal').textContent = remaining.toLocaleString('en-US');
+}
+/* 生成全部 C(33,6) 个红球组合掩码（lo + hi 拆分） */
+function buildRedMasks() {
+  if (redLo) return;
+  redLo = new Int32Array(RC_TOTAL);
+  redHi = new Uint8Array(RC_TOTAL);
+  const c = [0, 1, 2, 3, 4, 5];
+  let idx = 0;
+  for (;;) {
+    let lo = 0, hi = 0;
+    for (let j = 0; j < 6; j++) {
+      if (c[j] <= 30) lo |= 1 << c[j];
+      else hi |= (c[j] === 31) ? 1 : 2;
+    }
+    redLo[idx] = lo; redHi[idx] = hi; idx++;
+    let i = 5;
+    while (i >= 0 && c[i] === 33 - 6 + i) i--;
+    if (i < 0) break;
+    c[i]++;
+    for (let j = i + 1; j < 6; j++) c[j] = c[j - 1] + 1;
+  }
+}
+/* 号码 → 掩码 */
+function numToMask(n) {
+  return n <= 31 ? { lo: 1 << (n - 1), hi: 0 } : { lo: 0, hi: n === 32 ? 1 : 2 };
+}
+function maskToNums(lo, hi) {
+  const a = [];
+  for (let b = 0; b <= 30; b++) if (lo >> b & 1) a.push(b + 1);
+  if (hi & 1) a.push(32);
+  if (hi & 2) a.push(33);
+  return a;
+}
+
+/* ================= 解析输入 ================= */
+function parseNums(str, maxv, name) {
+  const out = [], seen = new Set();
+  if (!str) return out;
+  for (const tok of str.split(',')) {
+    const t = tok.trim();
+    if (!t) continue;
+    if (!/^\d{1,2}$/.test(t)) throw new Error(name + ' "' + tok + '" 不是有效号码');
+    const n = parseInt(t, 10);
+    if (n < 1 || n > maxv) throw new Error(name + ' ' + n + ' 超出范围 1-' + maxv);
+    if (seen.has(n)) continue;
+    seen.add(n); out.push(n);
+  }
+  return out;
+}
+
+function parseAll(text) {
+  const errs = [], out = [];
+  const rows = text.split(/\r?\n/);
+  rows.forEach((raw, ri) => {
+    let s = raw.trim();
+    if (!s) return;
+    const showRaw = s.length > 24 ? s.slice(0, 24) + '…' : s;
+    try {
+      s = s.replace(/\uFE0F/g, '').trim();
+      let mult = 1;
+      const mm = s.match(/(?:✖|×|[xX*])\s*(\d+)\s*$/);
+      if (mm) {
+        mult = parseInt(mm[1], 10);
+        if (!(mult >= 1)) throw new Error('倍数无效');
+        s = s.slice(0, mm.index).trim();
+      }
+      s = s.replace(/[，、]/g, ',').replace(/\s+/g, '');
+      const dash = s.indexOf('-');
+      if (dash < 0) throw new Error('缺少 "-" 分隔');
+      const left = s.slice(0, dash), right = s.slice(dash + 1);
+      let dan = [], tuo = [];
+      const sep = left.includes('胆') ? '胆' : (left.includes('|') ? '|' : (left.includes('｜') ? '｜' : null));
+      if (sep) {
+        const p = left.split(sep);
+        dan = parseNums(p[0], 33, '胆码');
+        tuo = parseNums(p[1], 33, '拖码');
+        if (dan.length === 0) throw new Error('胆码为空');
+        const need = 6 - dan.length;
+        if (need < 0) throw new Error('胆码不能超过6个');
+        if (tuo.length < need) throw new Error('拖码至少需要 ' + need + ' 个');
+      } else {
+        tuo = parseNums(left, 33, '红球');
+        if (tuo.length < 6) throw new Error('红球至少6个');
+      }
+      if (dan.length && dan.some(n => tuo.includes(n))) throw new Error('胆码与拖码重复');
+      let blues;
+      const mm2 = right.match(/^(\d{1,2})\s*,\s*(\d+)\s*$/);
+      if (/^(全部|全包|全|all)$/i.test(right)) {
+        blues = Array.from({ length: 16 }, (_, i) => i + 1);
+      } else if (mm2 && parseInt(mm2[1], 10) <= 16 && parseInt(mm2[2], 10) > 16) {
+        /* 兼容 "-2，51" 这类把倍数写在全角逗号后的情况 */
+        blues = [parseInt(mm2[1], 10)];
+        mult = parseInt(mm2[2], 10);
+        if (!(mult >= 1)) throw new Error('倍数无效');
+      } else {
+        blues = parseNums(right, 16, '蓝球');
+        if (blues.length < 1) throw new Error('蓝球为空');
+      }
+      const mk = arr => {
+        let lo = 0, hi = 0;
+        arr.forEach(n => { if (n <= 31) lo |= 1 << (n - 1); else hi |= (n === 32 ? 1 : 2); });
+        return [lo, hi];
+      };
+      const [danLo, danHi] = mk(dan), [tuoLo, tuoHi] = mk(tuo);
+      let bm = 0;
+      blues.forEach(n => bm |= 1 << (n - 1));
+      const d = dan.length, t = tuo.length, B = blues.length;
+      const need = Math.max(6 - d, 0);
+      if (t < need) throw new Error('号码个数不足以组成6个红球');
+      const bets = C[t][need] * B * mult;
+      const base = d > 0 ? (d + '胆' + t + '拖+' + B) : (t + '+' + B);
+      const key = base + (mult > 1 ? '×' + mult : '');
+      out.push({
+        danLo, danHi, tuoLo, tuoHi,
+        poolLo: danLo | tuoLo, poolHi: danHi | tuoHi,
+        blueMask: bm, bluesArr: blues, d, t, B, mult, bets, key,
+        label: base + (mult > 1 ? ' ×' + mult : '')
+      });
+    } catch (e) {
+      errs.push('第' + (ri + 1) + '行（' + showRaw + '）：' + e.message);
+    }
+  });
+  return { lines: out, errs };
+}
+
+/* ================= 界面渲染 ================= */
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function renderParseResult() {
+  typeGroups = new Map();
+  lines.forEach(L => {
+    let g = typeGroups.get(L.key);
+    if (!g) { g = { label: L.label, lineIdxs: [], bets: 0 }; typeGroups.set(L.key, g); }
+    g.lineIdxs.push(L); g.bets += L.bets;
+  });
+  totalLines = lines.length;
+  totalBets = lines.reduce((a, L) => a + L.bets, 0);
+
+  let html = '<table><tr><th>勾选</th><th>类型</th><th>行数</th><th>注数</th></tr>';
+  typeGroups.forEach((g, key) => {
+    html += '<tr><td><input type="checkbox" name="exclType" value="' + key + '" checked></td>'
+          + '<td>' + g.label + '</td>'
+          + '<td class="num">' + g.lineIdxs.length.toLocaleString('en-US') + '</td>'
+          + '<td class="num">' + g.bets.toLocaleString('en-US') + '</td></tr>';
+  });
+  html += '</table>';
+  html += '<div class="stat">共 <b>' + totalLines.toLocaleString('en-US') + '</b> 行，'
+        + '<b>' + totalBets.toLocaleString('en-US') + '</b> 注，投注金额 <b>'
+        + (totalBets * 2).toLocaleString('en-US') + '</b> 元</div>';
+  document.getElementById('parseResult').innerHTML = html;
+  document.getElementById('betHint').innerHTML =
+    '当前投注金额 = <b>' + (totalBets * 2).toLocaleString('en-US') + '</b> 元（' +
+    totalBets.toLocaleString('en-US') + ' 注 × 2元）。奖金：中6+1=500万，中6+0=50万，中5+1=3000，中5+0/4+1=200，中4+0/3+1=10，中2+1/1+1/0+1=5。' +
+    '复式/胆拖/倍投按实际中奖注数逐档计算总奖金，保留 奖金÷投注金额 在区间内的组合。';
+
+  buildTypeChecks('plTypes', 'plType', false);
+  buildTypeChecks('wcTypes', 'wcType', false);
+}
+
+function buildTypeChecks(elId, name, checked) {
+  const el = document.getElementById(elId);
+  let html = '';
+  typeGroups.forEach((g, key) => {
+    html += '<label><input type="checkbox" name="' + name + '" value="' + key + '"' + (checked ? ' checked' : '') + '>' + g.label + '</label>';
+  });
+  el.innerHTML = html || '<span class="hint">（暂无类型）</span>';
+}
+function buildHitChecks(elId, name) {
+  const el = document.getElementById(elId);
+  el.innerHTML = HIT_LIST.map(p =>
+    '<label><input type="checkbox" name="' + name + '" value="' + p[0] + '-' + p[1] + '">中' + p[0] + '+' + p[1] + '</label>'
+  ).join('');
+}
+function getChecked(name) {
+  return Array.from(document.querySelectorAll('input[name="' + name + '"]:checked')).map(el => el.value);
+}
+function hitArrFrom(sel) {
+  const a = new Uint8Array(68);
+  sel.forEach(v => { const p = v.split('-'); a[(+p[0]) * 2 + (+p[1])] = 1; });
+  return a;
+}
+function getRange(loId, hiId, isInt) {
+  let lo = parseFloat(document.getElementById(loId).value);
+  let hi = parseFloat(document.getElementById(hiId).value);
+  if (isNaN(lo) || isNaN(hi)) { alert('请输入有效的区间数值'); return null; }
+  if (lo > hi) { const t = lo; lo = hi; hi = t; }
+  if (isInt) { lo = Math.round(lo); hi = Math.round(hi); }
+  return [lo, hi];
+}
+function collectTypeLines(selTypes) {
+  const idxs = [];
+  if (selTypes.length) {
+    typeGroups.forEach((g, key) => { if (selTypes.includes(key)) g.lineIdxs.forEach(L => idxs.push(L)); });
+  } else {
+    lines.forEach(L => idxs.push(L));
+  }
+  return idxs;
+}
+
+/* ================= 通用分块计算框架（可取消） ================= */
+function setBtns(dis) {
+  document.querySelectorAll('button.op').forEach(b => b.disabled = dis);
+  document.getElementById('progressWrap').style.display = dis ? 'block' : 'none';
+}
+/* 分块让出：用 MessageChannel 宏任务，避免后台标签下 setTimeout 被节流 */
+const _yield = (() => {
+  if (typeof MessageChannel === 'undefined') {
+    return () => new Promise(r => setTimeout(r, 0));
+  }
+  const ch = new MessageChannel();
+  let pending = null;
+  ch.port1.onmessage = () => { const r = pending; pending = null; if (r) r(); };
+  return () => new Promise(r => { pending = r; ch.port2.postMessage(0); });
+})();
+
+async function runOp(engine, opName) {
+  if (!lines.length) { alert('请先输入数据并点击"确定"'); return; }
+  if (computing) return;
+  const beforeCount = remaining;
+  tempSurv = blueSurv.slice();
+  tempRem = remaining;
+  computing = true; cancelFlag = false;
+  setBtns(true);
+  const t0 = performance.now();
+  const CH = 30000;
+  let cancelled = false;
+  for (let s = 0; s < RC_TOTAL; s += CH) {
+    if (cancelFlag) { cancelled = true; break; }
+    engine(s, Math.min(s + CH, RC_TOTAL));
+    const pct = Math.min(100, (s + CH) / RC_TOTAL * 100);
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('progressText').textContent =
+      opName + '：' + pct.toFixed(1) + '%　已用 ' + ((performance.now() - t0) / 1000).toFixed(1) + ' 秒　（点击"取消计算"可中止，数据保持操作前状态）';
+    await _yield();
+  }
+  computing = false;
+  setBtns(false);
+  document.getElementById('progressBar').style.width = '0%';
+  const secs = ((performance.now() - t0) / 1000).toFixed(2);
+  const st = document.getElementById('opStatus');
+  if (cancelled) {
+    tempSurv = null;
+    updateRemain();
+    st.textContent = '已取消「' + opName + '」，数据保持操作前状态，当前剩余 ' + remaining.toLocaleString('en-US') + ' 个组合';
+  } else {
+    blueSurv = tempSurv; tempSurv = null;
+    remaining = tempRem;
+    updateRemain();
+    st.textContent = opName + ' 完成：原有 ' + beforeCount.toLocaleString('en-US')
+      + ' 个 → 剩余 ' + remaining.toLocaleString('en-US') + ' 个（本次排除 '
+      + (beforeCount - remaining).toLocaleString('en-US') + ' 个），耗时 ' + secs + ' 秒';
+    if (remaining === 0) alert('当前剩余 0 个组合');
+    else document.getElementById('progressText').textContent = '';
+  }
+}
+
+/* ================= 各操作 ================= */
+/* 排除：勾选类型 + 命中类型 */
+function opExclude() {
+  const selHits = getChecked('exclHit');
+  if (!selHits.length) { alert('请先勾选要排除的命中类型'); return; }
+  const idxs = collectTypeLines(getChecked('exclType'));
+  if (!idxs.length) { alert('没有可用的行'); return; }
+  const hitA = hitArrFrom(selHits);
+  const n = idxs.length;
+  const pLo = new Int32Array(n), pHi = new Uint8Array(n), bm = new Int32Array(n);
+  idxs.forEach((L, j) => { pLo[j] = L.poolLo; pHi[j] = L.poolHi; bm[j] = L.blueMask; });
+  const engine = (start, end) => {
+    for (let rc = start; rc < end; rc++) {
+      const bs = tempSurv[rc];
+      if (!bs) continue;
+      const rl = redLo[rc], rh = redHi[rc];
+      let forbid = 0;
+      for (let i = 0; i < n; i++) {
+        const r2 = (popcnt(rl & pLo[i]) + PC4[rh & pHi[i]]) << 1;
+        if (hitA[r2 + 1]) forbid |= bm[i];
+        if (hitA[r2]) forbid |= (~bm[i]) & 0xFFFF;
+        if (forbid === 0xFFFF) break;
+      }
+      if (forbid) {
+        const nv = bs & ~forbid;
+        if (nv !== bs) { tempSurv[rc] = nv; tempRem -= PC16[bs] - PC16[nv]; }
+      }
+    }
+  };
+  runOp(engine, '排除命中类型');
+}
+
+/* 单行奖金（写入全局 gP0/gP1）：给定该行 胆命中数 rd、拖命中数 rt */
+let gP0 = 0, gP1 = 0;
+function linePrize(L, rd, rt) {
+  const need = 6 - L.d, t = L.t, B = L.B, m = L.mult;
+  let a = 0, b0 = 0;
+  const jMax = Math.min(rt, need);
+  let jLo = need - (t - rt);
+  if (jLo < 0) jLo = 0;
+  for (let j = jLo; j <= jMax; j++) {
+    const cnt = C[rt][j] * C[t - rt][need - j];
+    const k = rd + j;
+    if (k >= 6) { a += cnt * 5000000; b0 += cnt * 500000; }
+    else if (k === 5) { a += cnt * 3000; b0 += cnt * 200; }
+    else if (k === 4) { a += cnt * 200; b0 += cnt * 10; }
+    else if (k === 3) { a += cnt * 10; }
+    else { a += cnt * 5; }          /* 2+1 / 1+1 / 0+1 各 5 元 */
+  }
+  gP0 = m * B * b0;                 /* 蓝球未中时的总奖金 */
+  gP1 = m * (a + (B - 1) * b0);     /* 蓝球命中时的总奖金 */
+}
+
+/* 保留奖金比例 */
+function opPrizeRatio() {
+  const rg = getRange('betLo', 'betHi', false);
+  if (!rg) return;
+  const betAmt = totalBets * 2;
+  const loV = betAmt * rg[0] / 100 - 1e-6;
+  const hiV = betAmt * rg[1] / 100 + 1e-6;
+  const n = lines.length;
+  const blueLines = Array.from({ length: 16 }, () => []);
+  lines.forEach((L, i) => L.bluesArr.forEach(b => blueLines[b - 1].push(i)));
+  const dA = new Float64Array(n);
+  const engine = (start, end) => {
+    for (let rc = start; rc < end; rc++) {
+      const bs = tempSurv[rc];
+      if (!bs) continue;
+      const rl = redLo[rc], rh = redHi[rc];
+      let base = 0;
+      for (let i = 0; i < n; i++) {
+        const L = lines[i];
+        linePrize(L,
+          popcnt(rl & L.danLo) + PC4[rh & L.danHi],
+          popcnt(rl & L.tuoLo) + PC4[rh & L.tuoHi]);
+        base += gP0;
+        dA[i] = gP1 - gP0;
+      }
+      let keep = 0;
+      for (let b = 0; b < 16; b++) {
+        if (!(bs >> b & 1)) continue;
+        let tot = base;
+        const bl = blueLines[b];
+        for (let q = 0; q < bl.length; q++) tot += dA[bl[q]];
+        if (tot >= loV && tot <= hiV) keep |= 1 << b;
+      }
+      if (keep !== bs) { tempSurv[rc] = keep; tempRem -= PC16[bs] - PC16[keep]; }
+    }
+  };
+  runOp(engine, '保留奖金比例');
+}
+
+/* 保留有奖金的行数比例（可勾选类型） */
+function opPrizeLines() {
+  const rg = getRange('plLo', 'plHi', false);
+  if (!rg) return;
+  const idxs = collectTypeLines(getChecked('plType'));
+  if (!idxs.length) { alert('没有可用的行'); return; }
+  const loV = totalLines * rg[0] / 100 - 1e-6;
+  const hiV = totalLines * rg[1] / 100 + 1e-6;
+  const blueLines = Array.from({ length: 16 }, () => []);
+  idxs.forEach(L => L.bluesArr.forEach(b => blueLines[b - 1].push(L)));
+  const f4 = new Uint8Array(lines.length);
+  const engine = (start, end) => {
+    for (let rc = start; rc < end; rc++) {
+      const bs = tempSurv[rc];
+      if (!bs) continue;
+      const rl = redLo[rc], rh = redHi[rc];
+      let base4 = 0;
+      for (let q = 0; q < idxs.length; q++) {
+        const L = idxs[q];
+        const maxK = (popcnt(rl & L.danLo) + PC4[rh & L.danHi])
+                   + Math.min(popcnt(rl & L.tuoLo) + PC4[rh & L.tuoHi], 6 - L.d);
+        if (maxK >= 4) { base4++; f4[L.idx] = 0; } else { f4[L.idx] = 1; }
+      }
+      let keep = 0;
+      for (let b = 0; b < 16; b++) {
+        if (!(bs >> b & 1)) continue;
+        let cnt = base4;
+        const bl = blueLines[b];
+        for (let q = 0; q < bl.length; q++) if (f4[bl[q].idx]) cnt++;
+        if (cnt >= loV && cnt <= hiV) keep |= 1 << b;
+      }
+      if (keep !== bs) { tempSurv[rc] = keep; tempRem -= PC16[bs] - PC16[keep]; }
+    }
+  };
+  runOp(engine, '保留有奖金行数比例');
+}
+
+/* 筛选中奖行数（可勾选类型 + 命中类型） */
+function opWinCount() {
+  const selHits = getChecked('wcHit');
+  const rg = getRange('wcLo', 'wcHi', true);
+  if (!rg) return;
+  const lo = rg[0], hi = rg[1];
+  const hitA = hitArrFrom(selHits);
+  const hasHit = selHits.length > 0;
+  const selTypes = getChecked('wcType');
+  let groupIdxs;
+  if (selTypes.length) {
+    groupIdxs = [];
+    typeGroups.forEach((g, key) => { if (selTypes.includes(key)) groupIdxs.push(g.lineIdxs); });
+  } else {
+    groupIdxs = [lines];
+  }
+  if (!groupIdxs.length || groupIdxs.some(g => !g.length)) { alert('没有可用的行'); return; }
+  const groups = groupIdxs.map(idxs => {
+    const m = idxs.length;
+    const dLo = new Int32Array(m), dHi = new Uint8Array(m),
+          tLo = new Int32Array(m), tHi = new Uint8Array(m),
+          pLo = new Int32Array(m), pHi = new Uint8Array(m),
+          blue = new Int32Array(m), need = new Int32Array(m);
+    const blueArr = new Array(m);
+    idxs.forEach((L, j) => {
+      dLo[j] = L.danLo; dHi[j] = L.danHi; tLo[j] = L.tuoLo; tHi[j] = L.tuoHi;
+      pLo[j] = L.poolLo; pHi[j] = L.poolHi;
+      blue[j] = L.blueMask; need[j] = 6 - L.d; blueArr[j] = L.bluesArr;
+    });
+    return { m, dLo, dHi, tLo, tHi, pLo, pHi, blue, need, blueArr };
+  });
+  const delta = new Int32Array(16);
+  const f4 = new Int32Array(Math.max(...groups.map(g => g.m)));
+  const engine = (start, end) => {
+    for (let rc = start; rc < end; rc++) {
+      const bs = tempSurv[rc];
+      if (!bs) continue;
+      const rl = redLo[rc], rh = redHi[rc];
+      let keep = 0xFFFF;
+      for (let gi = 0; gi < groups.length && keep; gi++) {
+        const G = groups[gi], m = G.m;
+        let keepG = 0xFFFF;
+        if (hasHit) {
+          delta.fill(0);
+          let base0 = 0;
+          for (let j = 0; j < m; j++) {
+            const r2 = (popcnt(rl & G.pLo[j]) + PC4[rh & G.pHi[j]]) << 1;
+            const inA = hitA[r2 + 1], inB = hitA[r2];
+            if (inB) base0++;
+            const ba = G.blueArr[j];
+            if (inA) for (let q = 0; q < ba.length; q++) delta[ba[q] - 1]++;
+            if (inB) for (let q = 0; q < ba.length; q++) delta[ba[q] - 1]--;
+          }
+          for (let b = 0; b < 16; b++) {
+            if (!(bs >> b & 1)) continue;
+            const cnt = base0 + delta[b];
+            if (cnt < lo || cnt > hi) keepG &= ~(1 << b);
+          }
+        } else {
+          let base4 = 0;
+          for (let j = 0; j < m; j++) {
+            const maxK = (popcnt(rl & G.dLo[j]) + PC4[rh & G.dHi[j]])
+                       + Math.min(popcnt(rl & G.tLo[j]) + PC4[rh & G.tHi[j]], G.need[j]);
+            if (maxK >= 4) { base4++; f4[j] = 0; } else { f4[j] = 1; }
+          }
+          for (let b = 0; b < 16; b++) {
+            if (!(bs >> b & 1)) continue;
+            let cnt = base4;
+            for (let j = 0; j < m; j++) if (f4[j] && (G.blue[j] >> b & 1)) cnt++;
+            if (cnt < lo || cnt > hi) keepG &= ~(1 << b);
+          }
+        }
+        keep &= keepG;
+      }
+      keep &= bs;   /* 只在当前仍存活的蓝球位内保留，避免已排除的位被"复活" */
+      if (keep !== bs) { tempSurv[rc] = keep; tempRem -= PC16[bs] - PC16[keep]; }
+    }
+  };
+  runOp(engine, '筛选中奖行数');
+}
+
+/* ================= 导出 ================= */
+function doExport() {
+  if (!lines.length) { alert('请先输入数据并点击"确定"'); return; }
+  if (computing) { alert('正在计算中，请等待完成或先取消'); return; }
+  const rows = [];
+  let truncated = false;
+  outer:
+  for (let rc = 0; rc < RC_TOTAL; rc++) {
+    const bs = blueSurv[rc];
+    if (!bs) continue;
+    const rs = maskToNums(redLo[rc], redHi[rc]).map(pad2).join(',');
+    for (let b = 0; b < 16; b++) {
+      if (bs >> b & 1) {
+        if (rows.length >= MAX_ROWS) { truncated = true; break outer; }
+        rows.push([rs + '-' + pad2(b + 1)]);
+      }
+    }
+  }
+  if (!rows.length) { alert('当前剩余 0 个组合，无可导出数据'); return; }
+  if (window.XLSX) {
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{ wch: 24 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '组合');
+    XLSX.writeFile(wb, '组合导出.xlsx');
+  } else {
+    const csv = '\uFEFF' + rows.map(r => r[0]).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '组合导出.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+  if (truncated) alert('剩余组合超过 Excel 上限，仅导出前 ' + MAX_ROWS.toLocaleString('en-US') + ' 行');
+}
+
+/* ================= 事件绑定与初始化 ================= */
+document.getElementById('btnParse').addEventListener('click', () => {
+  const text = document.getElementById('inputArea').value;
+  if (!text.trim()) { alert('请输入数据'); return; }
+  const res = parseAll(text);
+  document.getElementById('parseErr').textContent = res.errs.length ? '以下行未能解析：\n' + res.errs.join('\n') : '';
+  if (!res.lines.length) { alert('没有解析到有效数据行'); return; }
+  lines = res.lines;
+  lines.forEach((L, i) => { L.idx = i; });
+  buildRedMasks();
+  initState();
+  renderParseResult();
+  document.getElementById('opStatus').textContent = '已载入 ' + lines.length + ' 行，可开始筛选';
+});
+document.getElementById('btnExclude').addEventListener('click', opExclude);
+document.getElementById('btnResetExcl').addEventListener('click', () => {
+  document.querySelectorAll('input[name="exclType"]').forEach(el => el.checked = true);
+});
+document.getElementById('btnPrizeRatio').addEventListener('click', opPrizeRatio);
+document.getElementById('btnPrizeLines').addEventListener('click', opPrizeLines);
+document.getElementById('btnWinLines').addEventListener('click', opWinCount);
+document.getElementById('btnExport').addEventListener('click', doExport);
+document.getElementById('btnCancel').addEventListener('click', () => { cancelFlag = true; });
+
+buildHitChecks('exclHits', 'exclHit');
+buildHitChecks('wcHits', 'wcHit');
+initState();
+</script>
+</body>
+</html>
