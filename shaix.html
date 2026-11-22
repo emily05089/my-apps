@@ -9,7 +9,7 @@
 body{
   margin:0;padding:14px;
   font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
-  background:#0b1220;color:#dbe4f0;font-size:14px;line-height:1.5;
+  background:#f1f5f9;color:#1e293b;font-size:14px;line-height:1.5;
 }
 .wrap{max-width:1180px;margin:0 auto;}
 .topbar{
@@ -17,135 +17,137 @@ body{
   flex-wrap:wrap;gap:10px;margin-bottom:14px;
 }
 .brand{font-size:20px;font-weight:700;
-  background:linear-gradient(90deg,#38bdf8,#a78bfa);-webkit-background-clip:text;
+  background:linear-gradient(90deg,#0284c7,#7c3aed);-webkit-background-clip:text;
   background-clip:text;color:transparent;}
 .total-badge{
-  background:#111c30;border:1px solid #1e3352;border-radius:8px;
-  padding:6px 14px;font-size:13px;color:#8fa8c8;
+  background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;
+  padding:6px 14px;font-size:13px;color:#64748b;
+  box-shadow:0 1px 3px rgba(15,23,42,.05);
 }
-.total-badge strong{color:#38bdf8;font-size:15px;}
+.total-badge strong{color:#0284c7;font-size:15px;}
 .card{
-  background:#0f1a2b;border:1px solid #1b2c46;border-radius:12px;
+  background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;
   padding:14px 16px;margin-bottom:14px;
+  box-shadow:0 1px 4px rgba(15,23,42,.05);
 }
 .card h2{
-  font-size:14px;margin:0 0 10px;color:#7dd3fc;font-weight:600;
+  font-size:14px;margin:0 0 10px;color:#0369a1;font-weight:600;
   display:flex;align-items:center;gap:6px;
 }
-.card h2::before{content:'';width:4px;height:14px;background:#38bdf8;border-radius:2px;}
+.card h2::before{content:'';width:4px;height:14px;background:#0284c7;border-radius:2px;}
 textarea{
-  width:100%;height:130px;background:#0a1423;border:1px solid #1e3352;
-  border-radius:8px;color:#dbe4f0;padding:10px;font-family:ui-monospace,Consolas,monospace;
+  width:100%;height:130px;background:#f8fafc;border:1px solid #cbd5e1;
+  border-radius:8px;color:#1e293b;padding:10px;font-family:ui-monospace,Consolas,monospace;
   font-size:13px;resize:vertical;line-height:1.7;
 }
-textarea:focus{outline:none;border-color:#38bdf8;}
+textarea:focus{outline:none;border-color:#0284c7;box-shadow:0 0 0 3px rgba(2,132,199,.12);}
+textarea::placeholder{color:#94a3b8;}
 .row-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
 .btn{
-  background:#16263f;border:1px solid #24405f;color:#cfe1f5;
+  background:#f1f5f9;border:1px solid #cbd5e1;color:#334155;
   padding:7px 16px;border-radius:8px;cursor:pointer;font-size:13px;
   transition:.15s;font-family:inherit;
 }
-.btn:hover:not(:disabled){background:#1d3355;border-color:#38bdf8;color:#fff;}
-.btn:disabled{opacity:.35;cursor:not-allowed;}
-.btn.primary{background:#0369a1;border-color:#0284c7;color:#fff;}
-.btn.primary:hover:not(:disabled){background:#0284c7;}
-.btn.danger{background:#7f1d1d;border-color:#991b1b;color:#fecaca;}
-.btn.danger:hover:not(:disabled){background:#991b1b;}
-.btn.ok{background:#065f46;border-color:#047857;color:#d1fae5;}
-.btn.ok:hover:not(:disabled){background:#047857;}
+.btn:hover:not(:disabled){background:#e2e8f0;border-color:#94a3b8;color:#0f172a;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn.primary{background:#0284c7;border-color:#0284c7;color:#fff;}
+.btn.primary:hover:not(:disabled){background:#0369a1;border-color:#0369a1;}
+.btn.danger{background:#fee2e2;border-color:#fca5a5;color:#b91c1c;}
+.btn.danger:hover:not(:disabled){background:#fecaca;border-color:#f87171;}
+.btn.ok{background:#d1fae5;border-color:#6ee7b7;color:#047857;}
+.btn.ok:hover:not(:disabled){background:#a7f3d0;border-color:#34d399;}
 .stats{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;}
 .stat{
-  background:#0a1423;border:1px solid #1b2c46;border-radius:8px;
+  background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;
   padding:8px 16px;min-width:120px;
 }
-.stat span{display:block;font-size:11px;color:#7a93b3;}
-.stat b{font-size:17px;color:#38bdf8;}
+.stat span{display:block;font-size:11px;color:#64748b;}
+.stat b{font-size:17px;color:#0284c7;}
 .type-list{
   display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
   gap:6px;max-height:280px;overflow-y:auto;padding:4px;
-  border:1px solid #16263f;border-radius:8px;background:#0a1423;
+  border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;
 }
 .type-item{
   display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;
-  cursor:pointer;background:#101d31;border:1px solid transparent;font-size:13px;
+  cursor:pointer;background:#ffffff;border:1px solid transparent;font-size:13px;
 }
-.type-item:hover{background:#16263f;border-color:#24405f;}
-.type-item input{accent-color:#38bdf8;cursor:pointer;margin:0;}
-.type-name{color:#cfe1f5;font-family:ui-monospace,monospace;}
-.type-count{color:#5b7architecture;color:#6b85a8;font-size:12px;margin-left:auto;}
+.type-item:hover{background:#f1f5f9;border-color:#cbd5e1;}
+.type-item input{accent-color:#0284c7;cursor:pointer;margin:0;}
+.type-name{color:#334155;font-family:ui-monospace,monospace;}
+.type-count{color:#64748b;font-size:12px;margin-left:auto;}
 .hit-grid{
   display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;
 }
 .hit-item{
   display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:6px;
-  cursor:pointer;background:#101d31;font-size:13px;border:1px solid transparent;
+  cursor:pointer;background:#ffffff;font-size:13px;border:1px solid #e2e8f0;
 }
-.hit-item:hover{background:#16263f;border-color:#24405f;}
-.hit-item input{accent-color:#f472b6;cursor:pointer;margin:0;}
+.hit-item:hover{background:#f1f5f9;border-color:#cbd5e1;}
+.hit-item input{accent-color:#db2777;cursor:pointer;margin:0;}
 .info-box{
-  margin-top:10px;padding:10px 12px;background:#0a1423;border:1px solid #1b2c46;
-  border-radius:8px;font-size:13px;color:#93b4d8;min-height:20px;
+  margin-top:10px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;
+  border-radius:8px;font-size:13px;color:#334155;min-height:20px;
   font-family:ui-monospace,monospace;white-space:pre-wrap;
 }
 .log{
-  margin-top:10px;padding:8px 12px;background:#0a1423;border:1px solid #1b2c46;
-  border-radius:8px;font-size:12px;color:#7a93b3;max-height:130px;overflow-y:auto;
+  margin-top:10px;padding:8px 12px;background:#ffffff;border:1px solid #e2e8f0;
+  border-radius:8px;font-size:12px;color:#64748b;max-height:130px;overflow-y:auto;
 }
 .log div{padding:2px 0;}
-.log .err{color:#f87171;}
-.log .ok{color:#34d399;}
+.log .err{color:#dc2626;}
+.log .ok{color:#059669;}
 
 /* 弹窗 */
 .mask{
-  position:fixed;inset:0;background:rgba(3,8,16,.78);display:none;
+  position:fixed;inset:0;background:rgba(15,23,42,.35);display:none;
   align-items:center;justify-content:center;z-index:100;padding:16px;
 }
 .mask.show{display:flex;}
 .modal{
-  background:#0f1a2b;border:1px solid #24405f;border-radius:14px;
+  background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;
   padding:18px 20px;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;
-  box-shadow:0 20px 60px rgba(0,0,0,.6);
+  box-shadow:0 20px 60px rgba(15,23,42,.25);
 }
-.modal h3{margin:0 0 14px;font-size:16px;color:#7dd3fc;font-weight:600;}
+.modal h3{margin:0 0 14px;font-size:16px;color:#0369a1;font-weight:600;}
 .modal .field{margin-bottom:12px;}
-.modal .field label{display:block;font-size:12px;color:#8fa8c8;margin-bottom:5px;}
+.modal .field label{display:block;font-size:12px;color:#64748b;margin-bottom:5px;}
 .modal input[type=number],.modal input[type=text]{
-  width:100%;background:#0a1423;border:1px solid #1e3352;border-radius:7px;
-  color:#dbe4f0;padding:8px 10px;font-size:14px;font-family:inherit;
+  width:100%;background:#f8fafc;border:1px solid #cbd5e1;border-radius:7px;
+  color:#1e293b;padding:8px 10px;font-size:14px;font-family:inherit;
 }
-.modal input:focus{outline:none;border-color:#38bdf8;}
+.modal input:focus{outline:none;border-color:#0284c7;box-shadow:0 0 0 3px rgba(2,132,199,.12);}
 .picker{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-top:4px;}
 .picker.blue{grid-template-columns:repeat(8,1fr);}
 .num-btn{
-  background:#101d31;border:1px solid #1e3352;color:#a9c2dd;border-radius:6px;
+  background:#f8fafc;border:1px solid #cbd5e1;color:#334155;border-radius:6px;
   padding:7px 0;cursor:pointer;font-size:13px;font-family:ui-monospace,monospace;
   transition:.12s;
 }
-.num-btn:hover{background:#16263f;border-color:#38bdf8;}
-.num-btn.on{background:#dc2626;border-color:#ef4444;color:#fff;font-weight:700;}
-.picker.blue .num-btn.on{background:#2563eb;border-color:#3b82f6;}
+.num-btn:hover{background:#e2e8f0;border-color:#94a3b8;}
+.num-btn.on{background:#dc2626;border-color:#dc2626;color:#fff;font-weight:700;}
+.picker.blue .num-btn.on{background:#2563eb;border-color:#2563eb;}
 .range-row{display:flex;align-items:center;gap:8px;}
 .range-row input{flex:1;}
-.range-row span{color:#7a93b3;font-size:13px;}
+.range-row span{color:#64748b;font-size:13px;}
 .modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
 .dup-result{
-  background:#0a1423;border:1px solid #1b2c46;border-radius:8px;padding:12px;
+  background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;
   font-family:ui-monospace,monospace;font-size:13px;white-space:pre-wrap;
-  max-height:300px;overflow-y:auto;color:#a9c2dd;line-height:1.8;
+  max-height:300px;overflow-y:auto;color:#334155;line-height:1.8;
 }
-.dup-result .top{color:#fbbf24;}
-.hint{font-size:12px;color:#6b85a8;margin-top:6px;}
+.hint{font-size:12px;color:#94a3b8;margin-top:6px;}
 .chk-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
 .chk-row label{
-  display:flex;align-items:center;gap:4px;background:#101d31;padding:4px 9px;
-  border-radius:6px;font-size:12.5px;cursor:pointer;border:1px solid transparent;
+  display:flex;align-items:center;gap:4px;background:#ffffff;padding:4px 9px;
+  border-radius:6px;font-size:12.5px;cursor:pointer;border:1px solid #e2e8f0;color:#334155;
 }
-.chk-row label:hover{border-color:#24405f;}
-.chk-row input{accent-color:#f472b6;margin:0;cursor:pointer;}
+.chk-row label:hover{border-color:#cbd5e1;background:#f8fafc;}
+.chk-row input{accent-color:#db2777;margin:0;cursor:pointer;}
 ::-webkit-scrollbar{width:9px;height:9px;}
-::-webkit-scrollbar-track{background:#0a1423;}
-::-webkit-scrollbar-thumb{background:#1e3352;border-radius:5px;}
-::-webkit-scrollbar-thumb:hover{background:#2b4a6f;}
+::-webkit-scrollbar-track{background:#f1f5f9;}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:5px;}
+::-webkit-scrollbar-thumb:hover{background:#94a3b8;}
 </style>
 </head>
 <body>
@@ -216,11 +218,11 @@ textarea:focus{outline:none;border-color:#38bdf8;}
   <div class="modal">
     <h3>选择开奖号码</h3>
     <div class="field">
-      <label>红球（选 6 个）<span id="drawRedCnt" style="color:#38bdf8">0/6</span></label>
+      <label>红球（选 6 个）<span id="drawRedCnt" style="color:#0284c7">0/6</span></label>
       <div class="picker" id="pickRed"></div>
     </div>
     <div class="field">
-      <label>蓝球（选 1 个）<span id="drawBlueCnt" style="color:#3b82f6">0/1</span></label>
+      <label>蓝球（选 1 个）<span id="drawBlueCnt" style="color:#2563eb">0/1</span></label>
       <div class="picker blue" id="pickBlue"></div>
     </div>
     <div class="modal-foot">
@@ -277,7 +279,7 @@ textarea:focus{outline:none;border-color:#38bdf8;}
   <div class="modal">
     <h3>筛选中奖行数</h3>
     <div class="field">
-      <label>勾选的行类型 <span style="color:#6b85a8">(不勾选则等于全部)</span></label>
+      <label>勾选的行类型 <span style="color:#94a3b8">(不勾选则等于全部)</span></label>
       <div class="chk-row" id="hcTypes"></div>
     </div>
     <div class="field">
@@ -305,11 +307,11 @@ textarea:focus{outline:none;border-color:#38bdf8;}
   <div class="modal">
     <h3>重复情况查询</h3>
     <div class="field">
-      <label>选择开奖号码 — 红球（6 个）<span id="dupRedCnt" style="color:#38bdf8">0/6</span></label>
+      <label>选择开奖号码 — 红球（6 个）<span id="dupRedCnt" style="color:#0284c7">0/6</span></label>
       <div class="picker" id="dupRed"></div>
     </div>
     <div class="field">
-      <label>蓝球（1 个）<span id="dupBlueCnt" style="color:#3b82f6">0/1</span></label>
+      <label>蓝球（1 个）<span id="dupBlueCnt" style="color:#2563eb">0/1</span></label>
       <div class="picker blue" id="dupBlue"></div>
     </div>
     <div class="field">
@@ -1173,10 +1175,10 @@ function updateSmDrawInfo() {
   const b = $('smBlue')._sel.slice();
   if (r.length === 6 && b.length === 1) {
     $('smDrawInfo').textContent = '开奖号码：' + r.map(pad2).join(',') + ' - ' + pad2(b[0]);
-    $('smDrawInfo').style.color = '#34d399';
+    $('smDrawInfo').style.color = '#059669';
   } else {
     $('smDrawInfo').textContent = '未选择（需 6 红 1 蓝）';
-    $('smDrawInfo').style.color = '#6b85a8';
+    $('smDrawInfo').style.color = '#94a3b8';
   }
 }
 
