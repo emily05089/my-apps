@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>组合合并工具（双模式 + 奖金统计 + 倍数行）</title>
+<title>组合合并工具（模式1/2/3 + 累加轮次 + 范围汇总）</title>
 <style>
   * { box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
     background: #f5f6fa; margin: 0; padding: 20px; color: #222;
   }
-  .wrap { max-width: 1000px; margin: 0 auto; }
+  .wrap { max-width: 1100px; margin: 0 auto; }
   h1 { font-size: 20px; margin: 0 0 12px; }
   .label { font-size: 14px; font-weight: 600; margin: 14px 0 6px; color: #333; }
   textarea {
@@ -20,11 +20,11 @@
     line-height: 1.6; background: #fff; outline: none;
   }
   textarea:focus { border-color: #2d7ef7; box-shadow: 0 0 0 3px rgba(45,126,247,.15); }
-  .bar { margin: 12px 0; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .bar { margin: 12px 0; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   button {
-    padding: 9px 20px; border-radius: 8px; border: none;
-    background: #2d7ef7; color: #fff; font-size: 14px; cursor: pointer;
-    transition: .15s;
+    padding: 8px 16px; border-radius: 8px; border: none;
+    background: #2d7ef7; color: #fff; font-size: 13.5px; cursor: pointer;
+    transition: .15s; white-space: nowrap;
   }
   button:hover { background: #1a68db; }
   button.gray { background: #6b7280; }
@@ -39,6 +39,8 @@
   button.teal.on:hover { background: #dc2626; }
   button.green { background: #10b981; }
   button.green:hover { background: #059669; }
+  button.dark { background: #374151; }
+  button.dark:hover { background: #1f2937; }
   button.mini {
     padding: 4px 10px; font-size: 12px; background: #10b981; flex: 0 0 auto;
     min-width: 58px;
@@ -46,7 +48,7 @@
   button.mini:hover { background: #059669; }
   button.copy-mode { padding: 6px 14px; font-size: 13px; background: #2d7ef7; }
   button.copy-mode:hover { background: #1a68db; }
-  button:disabled { opacity: .4; cursor: not-allowed; }
+  button:disabled { opacity: .35; cursor: not-allowed; }
 
   #output { min-height: 90px; }
   .empty { color: #aaa; font-size: 14px; padding: 16px 0; }
@@ -56,14 +58,14 @@
     background: #fff; overflow: hidden;
   }
   .mode-section.multiplier { border-color: #f59e0b; }
+  .mode-section.range { border-color: #8b5cf6; }
   .mode-title {
     background: #eef4ff; padding: 9px 14px; font-weight: 600;
     font-size: 15px; color: #1d4ed8; border-bottom: 1px solid #ddd;
   }
-  .mode-section.multiplier .mode-title {
-    background: #fef3c7; color: #b45309;
-  }
-  .mode-bar { padding: 10px 14px 4px; }
+  .mode-section.multiplier .mode-title { background: #fef3c7; color: #b45309; }
+  .mode-section.range .mode-title { background: #f3e8ff; color: #6b21a8; }
+  .mode-bar { padding: 10px 14px 4px; display: flex; gap: 8px; flex-wrap: wrap; }
   .stat-line {
     padding: 6px 14px 10px; font-size: 13px; color: #333;
     border-bottom: 1px dashed #e5e7eb; margin-bottom: 4px; line-height: 1.9;
@@ -104,11 +106,17 @@
   .flat-count b { color: #e11d48; }
   .flat-list { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 10px 12px; }
   .hint { font-size: 12px; color: #777; margin-top: 8px; line-height: 1.7; }
+
+  .m3-line { padding: 8px 14px; line-height: 2; border-bottom: 1px dashed #f0f0f0; font-size: 14px; }
+  .m3-line:last-child { border-bottom: none; }
+  .m3-cat { font-weight: 700; color: #1d4ed8; margin-right: 4px; }
+  .m3-item { display: inline-block; margin-right: 12px; color: #333; }
+  .m3-item b { color: #e11d48; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>组合合并工具（双模式 + 奖金统计 + 倍数行）</h1>
+  <h1>组合合并工具（模式1/2/3 + 累加轮次 + 范围汇总）</h1>
 
   <div class="label">① 输入原数据（每行一条）</div>
   <textarea id="input" placeholder="01,10,15,20,22,27,30,31-01
@@ -120,8 +128,10 @@
     <button id="copyFlatBtn" class="green" disabled>复制合并结果</button>
     <button id="winBtn" class="orange">输入中奖号码</button>
     <button id="prize30Btn" class="teal">中3+0：0元（点击改为5元）</button>
-    <button id="toggleBtn" class="purple" disabled>切换模式</button>
+    <button id="toggleBtn" class="purple" disabled>切换到模式2</button>
     <button id="copyModeBtn" class="gray" disabled>复制当前模式全部</button>
+    <button id="addRoundBtn" class="dark" disabled>新增一轮</button>
+    <button id="endRangeBtn" class="dark" disabled>结束并查看范围</button>
     <button id="clearAll" class="gray">清空</button>
   </div>
 
@@ -131,8 +141,8 @@
   <div class="hint">
     只有<b>连续相邻</b>且 “-” 前面完全相同的行才会合并；后区去重升序；后区覆盖 01~16 显示 <b>-全部</b>；重复组合用 <b>✖️次数</b> 表示。
     每注 2 元；奖金按单注固定奖级逐注累加：6+1（500万）、6+0（50万）、5+1（3000）、5+0/4+1（200）、4+0/3+1（10）、2+1/1+1/0+1（5）、其余 0。
-    中3+0 默认为 0 元，可通过按钮切换为 5 元，所有统计会同步更新。
-    倍数行模块按“前区-单个后区”精确拆分统计，只有该后区累计次数 ≥2 才显示，按奖金由多到少排序。
+    中3+0 默认为 0 元，可通过按钮切换为 5 元，所有统计同步更新。
+    点击“新增一轮”保存当前轮并清空输入，粘贴新组合点“确定”后自动提示输入中奖号码；可反复多轮，最后点“结束并查看范围”汇总所有轮次。
   </div>
 </div>
 
@@ -144,8 +154,10 @@
   const copyModeBtn = document.getElementById('copyModeBtn');
   const copyFlatBtn = document.getElementById('copyFlatBtn');
   const prize30Btn = document.getElementById('prize30Btn');
+  const addRoundBtn = document.getElementById('addRoundBtn');
+  const endRangeBtn = document.getElementById('endRangeBtn');
 
-  const STORAGE_KEY = 'combo_tool_state_v11';
+  const STORAGE_KEY = 'combo_tool_state_v12';
 
   let currentRows = [];
   let totalBets   = 0;
@@ -156,6 +168,12 @@
   let currentMode = 1;
   let collapsedState = {};
   let prize3_0 = 0;
+
+  // 累加轮次
+  let rounds = [];            // [{ stats: {...}, winRaw: '...' }]
+  let awaitingNewRound = false;
+  let rangeView = false;
+  let currentRoundSaved = false;
 
   const ORDER_HIT = ['6+1','6+0','5+1','5+0','4+1','4+0','3+1','2+1','1+1','0+1','3+0','2+0','1+0','0+0'];
 
@@ -171,6 +189,16 @@
     '1+1': 5,
     '0+1': 5
   };
+
+  // 模式3：命中类别定义（顺序固定）
+  const MODE3_CATS = [
+    { key: '5+1', label: '中5➕1' },
+    { key: '5+0', label: '中5➕0' },
+    { key: '4+1', label: '中4➕1' },
+    { key: '3+1', label: '中3➕1' },
+    { key: 'mix', label: '中2➕1和1➕1和0➕1' },
+    { key: '4+0', label: '中4➕0' }
+  ];
 
   function getPrize(hitKey) {
     if (hitKey === '3+0') return prize3_0;
@@ -286,6 +314,7 @@
       totalPrize = 0;
       prizeRowCount = 0;
       winInfo = null;
+      awaitingNewRound = false;
       saveState();
       render();
       return;
@@ -386,8 +415,32 @@
 
     totalMoney = currentRows.reduce(function (a, r) { return a + r.money; }, 0);
 
-    saveState();
-    render();
+    // 如果处于“新增一轮”的等待状态，自动提示输入中奖号码
+    if (awaitingNewRound) {
+      awaitingNewRound = false;
+      currentRoundSaved = false;
+      saveState();
+      render();
+      setTimeout(function () {
+        const input = prompt('请输入本轮中奖号码（格式：1,2,3,4,5,6-1，支持中英文逗号）');
+        if (input !== null) {
+          const parsed = parseWin(input);
+          if (parsed) {
+            winInfo = parsed;
+            currentMode = 1;
+            currentRoundSaved = false;
+            saveState();
+            render();
+          } else {
+            alert('格式不正确，可稍后点击“输入中奖号码”重新输入。示例：1,2,3,4,5,6-1');
+          }
+        }
+      }, 80);
+    } else {
+      currentRoundSaved = false;
+      saveState();
+      render();
+    }
   }
 
   /* ---------- 真实奖金计算（整行） ---------- */
@@ -431,7 +484,6 @@
     return total;
   }
 
-  /* ---------- 单后区奖金 ---------- */
   function calcPrizeSingleBack(row, winInfo, backNum) {
     if (!winInfo) return 0;
     const winFrontSet = new Set(winInfo.fronts);
@@ -529,11 +581,12 @@
     return fi.danCount + '胆' + fi.tuoCount + '拖+' + bc;
   }
 
-  function bucketSortArrOf(row) {
-    const fi = row.frontInfo;
-    const bc = row.backCount;
-    if (!fi.isDanTuo) return [0, fi.frontCount, bc];
-    return [1, fi.danCount, fi.tuoCount, bc];
+  function bucketKeySortArr(bk) {
+    let m = bk.match(/^(\d+)胆(\d+)拖\+(\d+)$/);
+    if (m) return [1, +m[1], +m[2], +m[3]];
+    m = bk.match(/^(\d+)\+(\d+)$/);
+    if (m) return [0, +m[1], +m[2]];
+    return [9, 0, 0];
   }
 
   function compareSortArr(a, b) {
@@ -546,18 +599,69 @@
     return 0;
   }
 
-  function collectBucketGroups() {
-    const map = new Map();
-    currentRows.forEach(function (row) {
-      const key = bucketKeyOf(row);
-      if (!map.has(key)) {
-        map.set(key, { key: key, rows: [], sortArr: bucketSortArrOf(row) });
-      }
-      map.get(key).rows.push(row);
+  function sortBucketKeys(keys) {
+    return keys.slice().sort(function (a, b) {
+      return compareSortArr(bucketKeySortArr(a), bucketKeySortArr(b));
     });
-    const arr = Array.from(map.values());
-    arr.sort(function (a, b) { return compareSortArr(a.sortArr, b.sortArr); });
-    return arr;
+  }
+
+  function collectBucketKeysFromStatsList(statsList) {
+    const set = new Set();
+    statsList.forEach(function (stats) {
+      MODE3_CATS.forEach(function (cat) {
+        const obj = stats[cat.key];
+        if (obj) {
+          Object.keys(obj).forEach(function (bk) { set.add(bk); });
+        }
+      });
+    });
+    return sortBucketKeys(Array.from(set));
+  }
+
+  function collectBucketKeysFromRows(rows) {
+    const set = new Set();
+    rows.forEach(function (row) { set.add(bucketKeyOf(row)); });
+    return sortBucketKeys(Array.from(set));
+  }
+
+  function formatBucket(bk) {
+    return bk.replace('+', '➕');
+  }
+
+  /* ---------- 模式3统计 ---------- */
+  function computeMode3Stats() {
+    const stats = {};
+    MODE3_CATS.forEach(function (cat) { stats[cat.key] = {}; });
+    if (!winInfo) return stats;
+
+    const winFrontSet = new Set(winInfo.fronts);
+    const winBack = winInfo.back;
+
+    currentRows.forEach(function (row) {
+      const r = classifyRow(row, winFrontSet, winBack);
+      const hk = r.front + '+' + r.back;
+      let catKey = null;
+      if (hk === '5+1') catKey = '5+1';
+      else if (hk === '5+0') catKey = '5+0';
+      else if (hk === '4+1') catKey = '4+1';
+      else if (hk === '3+1') catKey = '3+1';
+      else if (hk === '2+1' || hk === '1+1' || hk === '0+1') catKey = 'mix';
+      else if (hk === '4+0') catKey = '4+0';
+      if (!catKey) return;
+      const bk = bucketKeyOf(row);
+      stats[catKey][bk] = (stats[catKey][bk] || 0) + 1;
+    });
+
+    return stats;
+  }
+
+  function saveCurrentRound() {
+    if (!winInfo || !currentRows.length) return;
+    if (currentRoundSaved) return;
+    const stats = computeMode3Stats();
+    rounds.push({ stats: stats, winRaw: winInfo.raw });
+    currentRoundSaved = true;
+    saveState();
   }
 
   function formatWin(winInfo) {
@@ -650,7 +754,7 @@
     return '有倍数的行（共 ' + totalN + ' 行）（有奖金的有' + prizeN + '行）（有奖金的行数占比是' + prizePct + '%）（最多中' + bestHit + '）';
   }
 
-  /* ---------- 按钮文字 ---------- */
+  /* ---------- 按钮文字与状态 ---------- */
   function updatePrize30Btn() {
     if (prize3_0 === 5) {
       prize30Btn.textContent = '中3+0：5元（点击改为0元）';
@@ -661,27 +765,48 @@
     }
   }
 
+  function updateToolbarState() {
+    const hasRows = currentRows.length > 0;
+    const hasWin = !!winInfo;
+
+    toggleBtn.disabled = !hasWin || rangeView;
+    copyModeBtn.disabled = !hasWin || rangeView;
+    copyFlatBtn.disabled = hasWin || !hasRows || rangeView;
+    addRoundBtn.disabled = !hasWin || rangeView || awaitingNewRound;
+    endRangeBtn.disabled = rangeView ? false : (!hasWin && rounds.length === 0);
+
+    if (rangeView) {
+      toggleBtn.textContent = '切换模式';
+      copyModeBtn.textContent = '复制当前模式全部';
+      addRoundBtn.textContent = '新增一轮';
+      endRangeBtn.textContent = '退出范围视图';
+    } else {
+      toggleBtn.textContent = currentMode === 1 ? '切换到模式2' : (currentMode === 2 ? '切换到模式3' : '切换到模式1');
+      copyModeBtn.textContent = currentMode === 3 ? '复制模式3全部' : '复制模式' + currentMode + '全部';
+      addRoundBtn.textContent = '新增一轮';
+      endRangeBtn.textContent = '结束并查看范围';
+    }
+  }
+
   /* ---------- 渲染 ---------- */
   function render() {
     outputEl.innerHTML = '';
     updatePrize30Btn();
+    updateToolbarState();
 
-    const hasGroups = !!winInfo;
-    toggleBtn.disabled = !hasGroups;
-    copyModeBtn.disabled = !hasGroups;
-    copyFlatBtn.disabled = hasGroups || !currentRows.length;
-    if (hasGroups) {
-      toggleBtn.textContent = currentMode === 1 ? '切换到模式2' : '切换到模式1';
-      copyModeBtn.textContent = '复制模式' + currentMode + '全部';
-    } else {
-      toggleBtn.textContent = '切换模式';
-      copyModeBtn.textContent = '复制当前模式全部';
+    if (rangeView) {
+      renderRange();
+      return;
     }
 
     if (!currentRows.length) {
       const d = document.createElement('div');
       d.className = 'empty';
-      d.textContent = '（还没有结果，请先输入数据并点“确定”）';
+      if (awaitingNewRound) {
+        d.textContent = '（已保存上一轮，请粘贴新组合到输入框，点“确定”后会提示输入中奖号码）';
+      } else {
+        d.textContent = '（还没有结果，请先输入数据并点“确定”）';
+      }
       outputEl.appendChild(d);
       return;
     }
@@ -691,7 +816,8 @@
     } else {
       computeAllPrizes();
       if (currentMode === 1) renderMode1();
-      else renderMode2();
+      else if (currentMode === 2) renderMode2();
+      else renderMode3();
       renderMultiplierSection();
     }
   }
@@ -912,45 +1038,181 @@
     outputEl.appendChild(sec);
   }
 
-  function renderMultiplierSection() {
-    const entries = collectMultiplierRows();
-    if (!entries.length) return;
+  /* ---------- 模式3 ---------- */
+  function renderMode3() {
+    const stats = computeMode3Stats();
+    const bucketKeys = collectBucketKeysFromRows(currentRows);
 
     const sec = document.createElement('div');
-    sec.className = 'mode-section multiplier';
+    sec.className = 'mode-section';
 
     const title = document.createElement('div');
     title.className = 'mode-title';
-    title.textContent = buildMultiplierSummary(entries);
+    title.textContent = '模式3：命中类别 × 结构分类行数统计';
     sec.appendChild(title);
 
     const bar = document.createElement('div');
     bar.className = 'mode-bar';
     const btn = document.createElement('button');
     btn.className = 'copy-mode';
-    btn.textContent = '复制倍数行全部';
-    btn.style.background = '#f59e0b';
+    btn.textContent = '复制模式3全部';
     btn.addEventListener('click', function () {
-      const text = buildTextMultiplier(entries);
+      const text = buildTextMode3();
       copyText(text).then(function () {
         btn.textContent = '已复制';
-        setTimeout(function () { btn.textContent = '复制倍数行全部'; }, 900);
+        setTimeout(function () { btn.textContent = '复制模式3全部'; }, 900);
       });
     });
     bar.appendChild(btn);
+
+    const info = document.createElement('span');
+    info.style.fontSize = '13px';
+    info.style.color = '#6b7280';
+    info.style.alignSelf = 'center';
+    info.textContent = '（当前轮次；结构分类按模式2顺序）';
+    bar.appendChild(info);
     sec.appendChild(bar);
 
-    const body = document.createElement('div');
-    body.style.padding = '4px 0 8px';
-    sec.appendChild(body);
+    const stat = document.createElement('div');
+    stat.className = 'stat-line';
+    stat.innerHTML = buildStatHtml();
+    sec.appendChild(stat);
 
-    entries.forEach(function (entry) {
-      const displayText = entry.front + '-' + entry.backText + ' ✖️' + entry.count +
-        '（' + entry.catText + '）（中' + entry.hitText + '）（奖金有' + fmtNum(entry.prize) + '元）';
-      appendDisplayRow(body, entry.front + '-' + entry.backText + ' ✖️' + entry.count, displayText);
+    MODE3_CATS.forEach(function (cat) {
+      const div = document.createElement('div');
+      div.className = 'm3-line';
+      const catSpan = document.createElement('span');
+      catSpan.className = 'm3-cat';
+      catSpan.textContent = cat.label + '：';
+      div.appendChild(catSpan);
+
+      if (!bucketKeys.length) {
+        const empty = document.createElement('span');
+        empty.style.color = '#9ca3af';
+        empty.textContent = '（无结构分类）';
+        div.appendChild(empty);
+      } else {
+        bucketKeys.forEach(function (bk) {
+          const cnt = (stats[cat.key] && stats[cat.key][bk]) || 0;
+          const item = document.createElement('span');
+          item.className = 'm3-item';
+          item.innerHTML = formatBucket(bk) + '有<b>' + cnt + '</b>行';
+          div.appendChild(item);
+        });
+      }
+      sec.appendChild(div);
     });
 
     outputEl.appendChild(sec);
+  }
+
+  /* ---------- 范围视图 ---------- */
+  function renderRange() {
+    // 当前轮如果未保存，也纳入范围
+    let allStats = rounds.map(function (r) { return r.stats; });
+    if (!currentRoundSaved && winInfo && currentRows.length) {
+      allStats = allStats.concat([computeMode3Stats()]);
+    }
+    const totalRounds = allStats.length;
+    const bucketKeys = collectBucketKeysFromStatsList(allStats);
+
+    const sec = document.createElement('div');
+    sec.className = 'mode-section range';
+
+    const title = document.createElement('div');
+    title.className = 'mode-title';
+    title.textContent = '模式3 范围结果（共 ' + totalRounds + ' 轮）';
+    sec.appendChild(title);
+
+    const bar = document.createElement('div');
+    bar.className = 'mode-bar';
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'copy-mode';
+    copyBtn.textContent = '复制范围结果';
+    copyBtn.style.background = '#8b5cf6';
+    copyBtn.addEventListener('click', function () {
+      const text = buildRangeText(allStats, bucketKeys);
+      copyText(text).then(function () {
+        copyBtn.textContent = '已复制';
+        setTimeout(function () { copyBtn.textContent = '复制范围结果'; }, 900);
+      });
+    });
+    bar.appendChild(copyBtn);
+
+    const exitBtn = document.createElement('button');
+    exitBtn.className = 'gray';
+    exitBtn.textContent = '退出范围视图';
+    exitBtn.addEventListener('click', function () {
+      rangeView = false;
+      render();
+    });
+    bar.appendChild(exitBtn);
+    sec.appendChild(bar);
+
+    MODE3_CATS.forEach(function (cat) {
+      const div = document.createElement('div');
+      div.className = 'm3-line';
+      const catSpan = document.createElement('span');
+      catSpan.className = 'm3-cat';
+      catSpan.textContent = cat.label + '：';
+      div.appendChild(catSpan);
+
+      if (!bucketKeys.length) {
+        const empty = document.createElement('span');
+        empty.style.color = '#9ca3af';
+        empty.textContent = '（无结构分类）';
+        div.appendChild(empty);
+      } else {
+        bucketKeys.forEach(function (bk) {
+          const values = allStats.map(function (st) {
+            return (st[cat.key] && st[cat.key][bk]) || 0;
+          });
+          const min = Math.min.apply(null, values);
+          const max = Math.max.apply(null, values);
+          const item = document.createElement('span');
+          item.className = 'm3-item';
+          item.innerHTML = formatBucket(bk) + '有<b>' + min + '</b>到<b>' + max + '</b>行';
+          div.appendChild(item);
+        });
+      }
+      sec.appendChild(div);
+    });
+
+    outputEl.appendChild(sec);
+  }
+
+  function buildRangeText(allStats, bucketKeys) {
+    const lines = ['模式3 范围结果（共 ' + allStats.length + ' 轮）', ''];
+    MODE3_CATS.forEach(function (cat) {
+      const parts = [];
+      bucketKeys.forEach(function (bk) {
+        const values = allStats.map(function (st) {
+          return (st[cat.key] && st[cat.key][bk]) || 0;
+        });
+        const min = Math.min.apply(null, values);
+        const max = Math.max.apply(null, values);
+        parts.push(formatBucket(bk) + '有' + min + '到' + max + '行');
+      });
+      lines.push(cat.label + '：' + (parts.length ? parts.join('，') : '（无结构分类）'));
+      lines.push('');
+    });
+    while (lines.length && lines[lines.length - 1] === '') lines.pop();
+    return lines.join('\n');
+  }
+
+  function buildTextMode3() {
+    const stats = computeMode3Stats();
+    const bucketKeys = collectBucketKeysFromRows(currentRows);
+    const lines = [];
+    MODE3_CATS.forEach(function (cat) {
+      const parts = [];
+      bucketKeys.forEach(function (bk) {
+        const cnt = (stats[cat.key] && stats[cat.key][bk]) || 0;
+        parts.push(formatBucket(bk) + '有' + cnt + '行');
+      });
+      lines.push(cat.label + '：' + (parts.length ? parts.join('，') : '（无结构分类）'));
+    });
+    return lines.join('\n');
   }
 
   function appendDisplayRow(parent, copyValue, displayText) {
@@ -978,7 +1240,6 @@
 
   /* ---------- 构建复制文本 ---------- */
   function buildFlatText() {
-    // 普通合并结果：逐行输出所有合并行
     return currentRows.map(function (r) { return r.display; }).join('\n');
   }
 
@@ -1057,12 +1318,16 @@
         if (groups[key]) groups[key].push(row);
       });
       text = buildTextMode1(statText, groups);
-    } else {
+    } else if (currentMode === 2) {
       text = buildTextMode2(statText, collectBucketGroups());
+    } else {
+      text = buildTextMode3();
     }
-    const entries = collectMultiplierRows();
-    if (entries.length) {
-      text += '\n\n' + buildTextMultiplier(entries);
+    if (currentMode !== 3) {
+      const entries = collectMultiplierRows();
+      if (entries.length) {
+        text += '\n\n' + buildTextMultiplier(entries);
+      }
     }
     return text;
   }
@@ -1109,7 +1374,11 @@
         winRaw: winInfo ? winInfo.raw : '',
         mode: currentMode,
         collapsed: collapsedState,
-        prize30: prize3_0
+        prize30: prize3_0,
+        rounds: rounds,
+        rangeView: rangeView,
+        awaitingNewRound: awaitingNewRound,
+        currentRoundSaved: currentRoundSaved
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (e) {}
@@ -1125,18 +1394,23 @@
         const p = parseWin(state.winRaw);
         if (p) winInfo = p;
       }
-      if (state.mode === 1 || state.mode === 2) currentMode = state.mode;
+      if (state.mode === 1 || state.mode === 2 || state.mode === 3) currentMode = state.mode;
       if (state.collapsed && typeof state.collapsed === 'object') collapsedState = state.collapsed;
       if (state.prize30 === 5) prize3_0 = 5; else prize3_0 = 0;
+      if (Array.isArray(state.rounds)) {
+        rounds = state.rounds.filter(function (r) { return r && r.stats; });
+      }
+      if (state.rangeView) rangeView = true;
+      if (state.awaitingNewRound) awaitingNewRound = true;
+      if (state.currentRoundSaved) currentRoundSaved = true;
     } catch (e) {}
   }
 
   /* ---------- 事件 ---------- */
   document.getElementById('run').addEventListener('click', run);
 
-  // 新增：复制合并结果（普通模式下）
   copyFlatBtn.addEventListener('click', function () {
-    if (winInfo) { alert('当前为分组模式，请使用"复制当前模式全部"'); return; }
+    if (winInfo || rangeView) { alert('当前为分组/范围模式，请使用对应复制按钮'); return; }
     if (!currentRows.length) { alert('没有可复制的结果'); return; }
     const text = buildFlatText();
     const self = this;
@@ -1156,6 +1430,8 @@
     if (!parsed) { alert('格式不正确，请重新输入。示例：1,2,3,4,5,6-1'); return; }
     winInfo = parsed;
     currentMode = 1;
+    rangeView = false;
+    currentRoundSaved = false;
     saveState();
     render();
   });
@@ -1168,15 +1444,15 @@
   });
 
   toggleBtn.addEventListener('click', function () {
-    if (!winInfo) return;
-    currentMode = currentMode === 1 ? 2 : 1;
+    if (!winInfo || rangeView) return;
+    currentMode = currentMode === 1 ? 2 : (currentMode === 2 ? 3 : 1);
     saveState();
     render();
     document.querySelector('.bar').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   copyModeBtn.addEventListener('click', function () {
-    if (!winInfo) return;
+    if (!winInfo || rangeView) return;
     const text = buildCurrentModeText();
     const self = this;
     copyText(text).then(function () {
@@ -1184,6 +1460,43 @@
       self.textContent = '已复制';
       setTimeout(function () { self.textContent = old; }, 900);
     });
+  });
+
+  addRoundBtn.addEventListener('click', function () {
+    if (!winInfo) return;
+    saveCurrentRound();
+    inputEl.value = '';
+    currentRows = [];
+    totalBets = 0;
+    totalMoney = 0;
+    totalPrize = 0;
+    prizeRowCount = 0;
+    winInfo = null;
+    currentMode = 1;
+    collapsedState = {};
+    awaitingNewRound = true;
+    rangeView = false;
+    saveState();
+    render();
+    inputEl.focus();
+  });
+
+  endRangeBtn.addEventListener('click', function () {
+    if (rangeView) {
+      rangeView = false;
+      saveState();
+      render();
+      return;
+    }
+    saveCurrentRound();
+    if (!rounds.length) {
+      alert('还没有可汇总的轮次，请先输入组合并点“确定”，再输入中奖号码。');
+      return;
+    }
+    rangeView = true;
+    awaitingNewRound = false;
+    saveState();
+    render();
   });
 
   document.getElementById('clearAll').addEventListener('click', function () {
@@ -1197,6 +1510,10 @@
     currentMode = 1;
     collapsedState = {};
     prize3_0 = 0;
+    rounds = [];
+    awaitingNewRound = false;
+    rangeView = false;
+    currentRoundSaved = false;
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
     render();
     inputEl.focus();
