@@ -2,704 +2,1291 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>号码组合分析筛选器</title>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>号码组合分析器</title>
 <style>
-*{box-sizing:border-box}
-body{font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif;background:#eef1f6;margin:0;padding:16px;color:#26303e;font-size:14px}
-.wrap{max-width:1080px;margin:0 auto}
-.card{background:#fff;border-radius:10px;padding:16px 20px;margin-bottom:14px;box-shadow:0 1px 5px rgba(20,40,80,.08)}
-h2{margin:0 0 10px;font-size:17px;color:#1a2b4a}
-h2 .sub{font-weight:normal;font-size:12px;color:#8894a8;margin-left:8px}
-.banner{background:linear-gradient(135deg,#1a2b4a,#2d4a7e);color:#fff;border-radius:10px;padding:16px 20px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px 28px;align-items:baseline}
-.banner .big{font-size:24px;font-weight:bold;font-family:Consolas,monospace}
-.banner .small{font-size:13px;opacity:.85}
-textarea{width:100%;height:120px;font-family:Consolas,Menlo,monospace;font-size:14px;padding:8px;border:1px solid #c3cddd;border-radius:6px;resize:vertical;line-height:1.5}
-textarea:focus{outline:none;border-color:#3a6bc7}
-button{background:#2d5db8;color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:14px;cursor:pointer;margin-right:8px;margin-top:8px}
-button:hover{background:#244c9c}
-button:disabled{background:#a8b4c8;cursor:not-allowed}
-button.gray{background:#5b6b84}
-button.gray:hover{background:#48566c}
-button.green{background:#2e8b57}
-button.green:hover{background:#256f45}
-button.op:disabled{opacity:.55}
-table{border-collapse:collapse;width:100%;margin-top:8px}
-th,td{border:1px solid #dde3ee;padding:5px 10px;text-align:left}
-th{background:#f2f5fb;font-weight:600}
-td.num{font-family:Consolas,monospace;text-align:right}
-.chkrow{display:flex;flex-wrap:wrap;gap:6px 14px;margin:6px 0}
-.chkrow label{display:inline-flex;align-items:center;gap:4px;background:#f2f5fb;border:1px solid #dde3ee;border-radius:5px;padding:3px 9px;cursor:pointer;user-select:none}
-.chkrow label:hover{background:#e6ecf7}
-.range{display:inline-flex;align-items:center;gap:6px;margin-right:18px}
-.range input{width:110px;padding:6px 8px;border:1px solid #c3cddd;border-radius:6px;font-size:14px}
-.hint{color:#8894a8;font-size:12px;line-height:1.7;margin-top:6px}
-.err{color:#c0392b;font-size:13px;white-space:pre-wrap}
-.stat{font-size:14px;margin-top:8px}
-.stat b{color:#c0392b}
-#progressWrap{display:none;margin-top:10px;position:fixed;left:50%;transform:translateX(-50%);bottom:18px;width:min(820px,94vw);z-index:50;border:1px solid #d5deec;box-shadow:0 8px 28px rgba(10,25,60,.22)}
-#progressBarOuter{background:#e2e8f2;border-radius:6px;height:18px;overflow:hidden;position:relative}
-#progressBar{background:linear-gradient(90deg,#2d5db8,#4a8ae0);height:100%;width:0%;transition:width .15s}
-#progressText{font-size:12px;color:#5b6b84;margin-top:4px}
+*{box-sizing:border-box;}
+body{
+  margin:0;padding:14px;
+  font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+  background:#0b1220;color:#dbe4f0;font-size:14px;line-height:1.5;
+}
+.wrap{max-width:1180px;margin:0 auto;}
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:10px;margin-bottom:14px;
+}
+.brand{font-size:20px;font-weight:700;
+  background:linear-gradient(90deg,#38bdf8,#a78bfa);-webkit-background-clip:text;
+  background-clip:text;color:transparent;}
+.total-badge{
+  background:#111c30;border:1px solid #1e3352;border-radius:8px;
+  padding:6px 14px;font-size:13px;color:#8fa8c8;
+}
+.total-badge strong{color:#38bdf8;font-size:15px;}
+.card{
+  background:#0f1a2b;border:1px solid #1b2c46;border-radius:12px;
+  padding:14px 16px;margin-bottom:14px;
+}
+.card h2{
+  font-size:14px;margin:0 0 10px;color:#7dd3fc;font-weight:600;
+  display:flex;align-items:center;gap:6px;
+}
+.card h2::before{content:'';width:4px;height:14px;background:#38bdf8;border-radius:2px;}
+textarea{
+  width:100%;height:130px;background:#0a1423;border:1px solid #1e3352;
+  border-radius:8px;color:#dbe4f0;padding:10px;font-family:ui-monospace,Consolas,monospace;
+  font-size:13px;resize:vertical;line-height:1.7;
+}
+textarea:focus{outline:none;border-color:#38bdf8;}
+.row-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.btn{
+  background:#16263f;border:1px solid #24405f;color:#cfe1f5;
+  padding:7px 16px;border-radius:8px;cursor:pointer;font-size:13px;
+  transition:.15s;font-family:inherit;
+}
+.btn:hover:not(:disabled){background:#1d3355;border-color:#38bdf8;color:#fff;}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.btn.primary{background:#0369a1;border-color:#0284c7;color:#fff;}
+.btn.primary:hover:not(:disabled){background:#0284c7;}
+.btn.danger{background:#7f1d1d;border-color:#991b1b;color:#fecaca;}
+.btn.danger:hover:not(:disabled){background:#991b1b;}
+.btn.ok{background:#065f46;border-color:#047857;color:#d1fae5;}
+.btn.ok:hover:not(:disabled){background:#047857;}
+.stats{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;}
+.stat{
+  background:#0a1423;border:1px solid #1b2c46;border-radius:8px;
+  padding:8px 16px;min-width:120px;
+}
+.stat span{display:block;font-size:11px;color:#7a93b3;}
+.stat b{font-size:17px;color:#38bdf8;}
+.type-list{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  gap:6px;max-height:280px;overflow-y:auto;padding:4px;
+  border:1px solid #16263f;border-radius:8px;background:#0a1423;
+}
+.type-item{
+  display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;
+  cursor:pointer;background:#101d31;border:1px solid transparent;font-size:13px;
+}
+.type-item:hover{background:#16263f;border-color:#24405f;}
+.type-item input{accent-color:#38bdf8;cursor:pointer;margin:0;}
+.type-name{color:#cfe1f5;font-family:ui-monospace,monospace;}
+.type-count{color:#5b7architecture;color:#6b85a8;font-size:12px;margin-left:auto;}
+.hit-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;
+}
+.hit-item{
+  display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:6px;
+  cursor:pointer;background:#101d31;font-size:13px;border:1px solid transparent;
+}
+.hit-item:hover{background:#16263f;border-color:#24405f;}
+.hit-item input{accent-color:#f472b6;cursor:pointer;margin:0;}
+.info-box{
+  margin-top:10px;padding:10px 12px;background:#0a1423;border:1px solid #1b2c46;
+  border-radius:8px;font-size:13px;color:#93b4d8;min-height:20px;
+  font-family:ui-monospace,monospace;white-space:pre-wrap;
+}
+.log{
+  margin-top:10px;padding:8px 12px;background:#0a1423;border:1px solid #1b2c46;
+  border-radius:8px;font-size:12px;color:#7a93b3;max-height:130px;overflow-y:auto;
+}
+.log div{padding:2px 0;}
+.log .err{color:#f87171;}
+.log .ok{color:#34d399;}
+
+/* 弹窗 */
+.mask{
+  position:fixed;inset:0;background:rgba(3,8,16,.78);display:none;
+  align-items:center;justify-content:center;z-index:100;padding:16px;
+}
+.mask.show{display:flex;}
+.modal{
+  background:#0f1a2b;border:1px solid #24405f;border-radius:14px;
+  padding:18px 20px;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);
+}
+.modal h3{margin:0 0 14px;font-size:16px;color:#7dd3fc;font-weight:600;}
+.modal .field{margin-bottom:12px;}
+.modal .field label{display:block;font-size:12px;color:#8fa8c8;margin-bottom:5px;}
+.modal input[type=number],.modal input[type=text]{
+  width:100%;background:#0a1423;border:1px solid #1e3352;border-radius:7px;
+  color:#dbe4f0;padding:8px 10px;font-size:14px;font-family:inherit;
+}
+.modal input:focus{outline:none;border-color:#38bdf8;}
+.picker{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-top:4px;}
+.picker.blue{grid-template-columns:repeat(8,1fr);}
+.num-btn{
+  background:#101d31;border:1px solid #1e3352;color:#a9c2dd;border-radius:6px;
+  padding:7px 0;cursor:pointer;font-size:13px;font-family:ui-monospace,monospace;
+  transition:.12s;
+}
+.num-btn:hover{background:#16263f;border-color:#38bdf8;}
+.num-btn.on{background:#dc2626;border-color:#ef4444;color:#fff;font-weight:700;}
+.picker.blue .num-btn.on{background:#2563eb;border-color:#3b82f6;}
+.range-row{display:flex;align-items:center;gap:8px;}
+.range-row input{flex:1;}
+.range-row span{color:#7a93b3;font-size:13px;}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+.dup-result{
+  background:#0a1423;border:1px solid #1b2c46;border-radius:8px;padding:12px;
+  font-family:ui-monospace,monospace;font-size:13px;white-space:pre-wrap;
+  max-height:300px;overflow-y:auto;color:#a9c2dd;line-height:1.8;
+}
+.dup-result .top{color:#fbbf24;}
+.hint{font-size:12px;color:#6b85a8;margin-top:6px;}
+.chk-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.chk-row label{
+  display:flex;align-items:center;gap:4px;background:#101d31;padding:4px 9px;
+  border-radius:6px;font-size:12.5px;cursor:pointer;border:1px solid transparent;
+}
+.chk-row label:hover{border-color:#24405f;}
+.chk-row input{accent-color:#f472b6;margin:0;cursor:pointer;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-track{background:#0a1423;}
+::-webkit-scrollbar-thumb{background:#1e3352;border-radius:5px;}
+::-webkit-scrollbar-thumb:hover{background:#2b4a6f;}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-<div class="banner">
-  <span>组合池总数：</span><span class="big" id="poolTotal">17,721,088</span>
-  <span class="small">（33选6 × 16 = 1,107,568 × 16）</span>
-  <span>当前剩余：</span><span class="big" id="remainTotal" style="color:#ffd76e">17,721,088</span>
-  <span class="small" id="opStatus" style="flex-basis:100%;color:#bcd3ff"></span>
-</div>
-
-<div class="card">
-  <h2>输入数据<span class="sub">每行一条，格式：红球-蓝球[ 倍数]</span></h2>
-  <textarea id="inputArea" placeholder="每行一条，例如：
-03,09,11,13,18,22,23,29-01,02,03,06,09,15        8红6蓝复式 = 168注
-03,04,07,12,18,20,30,32-全部                     蓝球全包 = 448注
-03,04,07,12,18,20,30,32-2 ✖️51                  51倍 = 1428注
-01胆02,03,04,05,06,07,08,09-05                  1胆7拖（也支持 01|02,03,04,05,06,07,08,09-05 写法，| 前为胆码）"></textarea>
-  <div>
-    <button class="op" id="btnParse">确定</button>
-    <span class="hint">支持中文逗号、全角符号、"全部"蓝球、倍数可用 ✖️ / × / x / * 表示</span>
+  <div class="topbar">
+    <div class="brand">号码组合分析器</div>
+    <div class="total-badge">全部可能组合 <strong id="totalAll">17,721,088</strong></div>
   </div>
-  <div class="err" id="parseErr"></div>
-  <div id="parseResult"></div>
+
+  <!-- 输入 -->
+  <section class="card">
+    <h2>输入数据</h2>
+    <textarea id="inputBox" spellcheck="false" placeholder="每行一条，例如：
+03,09,11,13,18,22,23,29-01,02,03,06,09,15
+03,04,07,12,18,20,30,32-全部
+03,04,07,12,18,20,30,32-2 ✖️51
+胆:15,29,拖:4,5,7,11,12,16,23,25,27,32-3"></textarea>
+    <div class="row-btns">
+      <button class="btn primary" id="btnParse">确定</button>
+      <button class="btn" id="btnClear">清空</button>
+      <button class="btn" id="btnUndo">← 撤退</button>
+      <button class="btn" id="btnRedo">前进 →</button>
+    </div>
+  </section>
+
+  <!-- 统计 -->
+  <section class="card" id="statsCard" style="display:none">
+    <h2>数据统计</h2>
+    <div class="stats" id="statsBox"></div>
+    <div class="type-list" id="typeList"></div>
+  </section>
+
+  <!-- 操作 -->
+  <section class="card" id="opCard" style="display:none">
+    <h2>命中类型</h2>
+    <div class="hit-grid" id="hitGrid"></div>
+    <div class="row-btns">
+      <button class="btn danger" id="btnExcludeHit">排除所选命中类型</button>
+    </div>
+
+    <h2 style="margin-top:18px">筛选</h2>
+    <div class="row-btns">
+      <button class="btn" id="btnPrizeRatio">保留奖金比例</button>
+      <button class="btn" id="btnHasPrizeRatio">有奖金行数比例</button>
+      <button class="btn" id="btnHitCount">筛选中奖行数</button>
+    </div>
+    <div class="row-btns">
+      <button class="btn" id="btnDupQuery">重复情况查询</button>
+      <button class="btn" id="btnSmartDup">智能重复排除</button>
+      <button class="btn" id="btnSetDraw">设置开奖号码</button>
+    </div>
+
+    <div class="info-box" id="infoBox">开奖号码：未设置</div>
+
+    <h2 style="margin-top:18px">当前结果</h2>
+    <div class="stats" id="remainBox"></div>
+    <div class="row-btns">
+      <button class="btn primary" id="btnExport">导出 Excel</button>
+    </div>
+  </section>
+
+  <div class="log" id="log"></div>
 </div>
 
-<div class="card">
-  <h2>按命中类型排除<span class="sub">勾选上面表格中的行类型与下方命中类型后点排除</span></h2>
-  <div class="chkrow" id="exclHits"></div>
-  <div>
-    <button class="op" id="btnExclude">排除</button>
-    <button class="op gray" id="btnResetExcl">恢复全部勾选</button>
+<!-- ============ 弹窗：选择开奖号码 ============ -->
+<div class="mask" id="maskDraw">
+  <div class="modal">
+    <h3>选择开奖号码</h3>
+    <div class="field">
+      <label>红球（选 6 个）<span id="drawRedCnt" style="color:#38bdf8">0/6</span></label>
+      <div class="picker" id="pickRed"></div>
+    </div>
+    <div class="field">
+      <label>蓝球（选 1 个）<span id="drawBlueCnt" style="color:#3b82f6">0/1</span></label>
+      <div class="picker blue" id="pickBlue"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" data-close>取消</button>
+      <button class="btn primary" id="drawOk">确定</button>
+    </div>
   </div>
-  <div class="hint">规则：若某条【被勾选类型】的行，其命中结果属于【被勾选的命中类型】，则该中奖组合从当前剩余组合中排除。行类型不勾选视为对所有行生效。</div>
 </div>
 
-<div class="card">
-  <h2>保留奖金比例<span class="sub">应用于所有行</span></h2>
-  <div>
-    <span class="range">奖金比例区间 <input type="number" id="betLo" step="0.01" placeholder="如10.08"> % 至 <input type="number" id="betHi" step="0.01" placeholder="如30.25"> %</span>
-    <button class="op" id="btnPrizeRatio">保留奖金比例</button>
+<!-- ============ 弹窗：奖金比例 ============ -->
+<div class="mask" id="maskPrize">
+  <div class="modal">
+    <h3>保留奖金比例</h3>
+    <div class="field">
+      <label>奖金占投注金额比例（%）</label>
+      <div class="range-row">
+        <input type="number" id="prizeMin" value="10" step="0.01">
+        <span>到</span>
+        <input type="number" id="prizeMax" value="30" step="0.01">
+        <span>%</span>
+      </div>
+    </div>
+    <div class="hint">按行计算：该行所有注的中奖总额 ÷ 该行投注金额 × 100%</div>
+    <div class="modal-foot">
+      <button class="btn" data-close>取消</button>
+      <button class="btn primary" id="prizeOk">确定</button>
+    </div>
   </div>
-  <div class="hint" id="betHint">奖金：中6+1=500万，中6+0=50万，中5+1=3000，中5+0/4+1=200，中4+0/3+1=10，中2+1/1+1/0+1=5；投注2元/注。复式/胆拖/倍投按实际中奖注数逐档计算总奖金，保留 奖金÷投注金额 在区间内的组合。</div>
 </div>
 
-<div class="card">
-  <h2>保留有奖金的行数比例<span class="sub">默认应用于所有行，可勾选类型只统计勾选类型的行</span></h2>
-  <div class="chkrow" id="plTypes"></div>
-  <div>
-    <span class="range">比例区间 <input type="number" id="plLo" step="0.01" placeholder="如10"> % 至 <input type="number" id="plHi" step="0.01" placeholder="如30"> %</span>
-    <button class="op" id="btnPrizeLines">保留有奖金行数比例</button>
+<!-- ============ 弹窗：有奖金行数比例 ============ -->
+<div class="mask" id="maskHasPrize">
+  <div class="modal">
+    <h3>有奖金行数比例</h3>
+    <div class="field">
+      <label>有奖金注数占该行总注数的比例（%）</label>
+      <div class="range-row">
+        <input type="number" id="hpMin" value="0" step="0.01">
+        <span>到</span>
+        <input type="number" id="hpMax" value="100" step="0.01">
+        <span>%</span>
+      </div>
+    </div>
+    <div class="hint">未勾选任何行类型时默认应用于所有行</div>
+    <div class="modal-foot">
+      <button class="btn" data-close>取消</button>
+      <button class="btn primary" id="hpOk">确定</button>
+    </div>
   </div>
-  <div class="hint">分子 = 有奖金的行数（勾选类型时只统计勾选类型的行），分母 = 全部总行数。不勾选类型 = 统计所有行。有奖金的行 = 该行中奖注数中存在奖金大于0的注（蓝球命中必有5元奖；红球命中≥4个时蓝球未中也有奖）。</div>
 </div>
 
-<div class="card">
-  <h2>筛选中奖行数<span class="sub">同时满足每个勾选类型的行数条件</span></h2>
-  <div style="font-size:13px;margin:4px 0 2px">行类型（不勾选 = 所有行）：</div>
-  <div class="chkrow" id="wcTypes"></div>
-  <div style="font-size:13px;margin:4px 0 2px">命中类型（不勾选 = 按"有奖金的行"统计）：</div>
-  <div class="chkrow" id="wcHits"></div>
-  <div>
-    <span class="range">行数区间 <input type="number" id="wcLo" step="1" placeholder="如0"> 至 <input type="number" id="wcHi" step="1" placeholder="如3"> 行</span>
-    <button class="op" id="btnWinLines">筛选中奖行数</button>
+<!-- ============ 弹窗：筛选中奖行数 ============ -->
+<div class="mask" id="maskHitCount">
+  <div class="modal">
+    <h3>筛选中奖行数</h3>
+    <div class="field">
+      <label>勾选的行类型 <span style="color:#6b85a8">(不勾选则等于全部)</span></label>
+      <div class="chk-row" id="hcTypes"></div>
+    </div>
+    <div class="field">
+      <label>勾选的命中类型</label>
+      <div class="chk-row" id="hcHits"></div>
+    </div>
+    <div class="field">
+      <label>该行内命中此类型的注数区间</label>
+      <div class="range-row">
+        <input type="number" id="hcMin" value="0" step="1">
+        <span>到</span>
+        <input type="number" id="hcMax" value="3" step="1">
+      </div>
+    </div>
+    <div class="info-box" id="hcInfo">请勾选行类型与命中类型以查看奖金</div>
+    <div class="modal-foot">
+      <button class="btn" data-close>取消</button>
+      <button class="btn primary" id="hcOk">确定</button>
+    </div>
   </div>
-  <div class="hint">勾选多个行类型时，要求每个类型的行数都同时落在区间内（例如勾选8+2和11+2、勾选中5+1、输入0至3：则8+2中5+1的行数和11+2中5+1的行数都必须是0~3行）。</div>
 </div>
 
-<div class="card">
-  <h2>导出<span class="sub">导出当前剩余组合</span></h2>
-  <button class="op green" id="btnExport">导出Excel</button>
-  <span class="hint">格式：01,02,03,04,05,06-01，一个组合一行。剩余超过 1,048,575 行时仅导出 Excel 上限内的部分。</span>
+<!-- ============ 弹窗：重复情况查询 ============ -->
+<div class="mask" id="maskDup">
+  <div class="modal">
+    <h3>重复情况查询</h3>
+    <div class="field">
+      <label>选择开奖号码 — 红球（6 个）<span id="dupRedCnt" style="color:#38bdf8">0/6</span></label>
+      <div class="picker" id="dupRed"></div>
+    </div>
+    <div class="field">
+      <label>蓝球（1 个）<span id="dupBlueCnt" style="color:#3b82f6">0/1</span></label>
+      <div class="picker blue" id="dupBlue"></div>
+    </div>
+    <div class="field">
+      <label>查询结果</label>
+      <div class="dup-result" id="dupResult">请选择号码后点击「开始查询」</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" data-close>关闭</button>
+      <button class="btn primary" id="dupRun">开始查询</button>
+    </div>
+  </div>
 </div>
 
-<div class="card" id="progressWrap">
-  <div id="progressBarOuter"><div id="progressBar"></div></div>
-  <div id="progressText"></div>
-  <button class="gray" id="btnCancel">取消计算</button>
-</div>
-
+<!-- ============ 弹窗：智能重复排除 ============ -->
+<div class="mask" id="maskSmart">
+  <div class="modal">
+    <h3>智能重复排除</h3>
+    <div class="field">
+      <label>重复次数区间</label>
+      <div class="range-row">
+        <input type="number" id="smMin" value="1" step="1" min="1">
+        <span>到</span>
+        <input type="number" id="smMax" value="22" step="1" min="1">
+      </div>
+    </div>
+    <div class="field">
+      <label>命中类型（将排除命中的注所在的行）</label>
+      <div class="chk-row" id="smHits"></div>
+    </div>
+    <div class="field">
+      <label>开奖号码</label>
+      <div class="picker" id="smRed"></div>
+      <div class="picker blue" id="smBlue" style="margin-top:5px"></div>
+      <div class="hint" id="smDrawInfo">未选择</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" data-close>取消</button>
+      <button class="btn danger" id="smOk">开始排除</button>
+    </div>
+  </div>
 </div>
 
 <script>
-'use strict';
-/* ================= 常量与基础数据 ================= */
-const TOTAL = 17721088, RC_TOTAL = 1107568, MAX_ROWS = 1048575;
-const HIT_LIST = [[6,1],[6,0],[5,1],[5,0],[4,1],[4,0],[3,1],[2,1],[1,1],[0,1],[3,0],[2,0],[1,0],[0,0]];
-
-/* 组合数表 C[n][k] */
-const C = (() => {
-  const t = [new Int32Array(34)]; t[0][0] = 1;
-  for (let n = 1; n <= 33; n++) {
-    const r = new Int32Array(34), p = t[n - 1]; r[0] = 1;
-    for (let k = 1; k <= n; k++) r[k] = p[k - 1] + p[k];
-    t.push(r);
+/* =========================================================
+   基础工具
+   ========================================================= */
+const CT = (() => {
+  const t = [];
+  for (let n = 0; n <= 40; n++) {
+    t[n] = new Array(n + 1).fill(0);
+    t[n][0] = 1;
+    for (let k = 1; k <= n; k++) t[n][k] = (k === n) ? 1 : t[n - 1][k - 1] + t[n - 1][k];
   }
   return t;
 })();
-const PC16 = new Uint8Array(65536);
-for (let i = 1; i < 65536; i++) PC16[i] = PC16[i >> 1] + (i & 1);
-const PC4 = [0, 1, 1, 2];   /* 号码32/33的高位字节弹出计数 */
+function C(n, k) {
+  if (n < 0 || k < 0 || k > n) return 0;
+  return CT[n][k];
+}
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+function fmt(n) { return n.toLocaleString('en-US'); }
+function $(id) { return document.getElementById(id); }
 
-/* 32位弹出计数（输入须为非负或按位与结果，lo掩码仅用0~30位，恒非负） */
-function popcnt(v) {
-  v = v - ((v >>> 1) & 0x55555555);
-  v = (v & 0x33333333) + ((v >>> 2) & 0x33333333);
-  v = (v + (v >>> 4)) & 0x0F0F0F0F;
-  return (v * 0x01010101) >>> 24;
+/* 命中类型 */
+const HIT_TYPES = ['6+1','6+0','5+1','5+0','4+1','4+0','3+1','2+1','1+1','0+1','3+0','2+0','1+0','0+0'];
+const HIT_LABEL = {};
+HIT_TYPES.forEach(h => HIT_LABEL[h] = '中' + h);
+
+/* 单注奖金 */
+const PRIZE = {
+  '6+1': 5000000,
+  '6+0': 500000,
+  '5+1': 3000,
+  '5+0': 200,
+  '4+1': 200,
+  '4+0': 10,
+  '3+1': 10,
+  '2+1': 5,
+  '1+1': 5,
+  '0+1': 5,
+};
+/* 命中等级（用于“最多中几+几”） */
+const HIT_RANK = {
+  '6+1': 100, '6+0': 90, '5+1': 80, '5+0': 70, '4+1': 70, '4+0': 60,
+  '3+1': 60, '2+1': 50, '1+1': 50, '0+1': 50, '3+0': 40, '2+0': 30,
+  '1+0': 20, '0+0': 10
+};
+
+/* 全局状态 */
+let rows = [];            // 当前剩余行
+let historyStack = [];
+let historyIndex = -1;
+let drawNumber = null;    // {reds:[], blue:int}
+
+/* =========================================================
+   日志
+   ========================================================= */
+function log(msg, type) {
+  const box = $('log');
+  const d = document.createElement('div');
+  if (type) d.className = type;
+  const t = new Date();
+  d.textContent = `[${pad2(t.getHours())}:${pad2(t.getMinutes())}:${pad2(t.getSeconds())}] ${msg}`;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
 }
 
-/* ================= 状态 ================= */
-/* 红球掩码拆分存储：lo 低31位=号码1~31；hi 2位=号码32(bit0)、33(bit1) */
-let redLo = null, redHi = null;
-let blueSurv = null, tempSurv = null, tempRem = 0, remaining = TOTAL;
-let lines = [];
-let typeGroups = new Map();
-let totalBets = 0, totalLines = 0;
-let computing = false, cancelFlag = false;
-
-function initState() {
-  blueSurv = new Uint16Array(RC_TOTAL);
-  blueSurv.fill(0xFFFF);
-  remaining = TOTAL;
-  updateRemain();
-}
-function updateRemain() {
-  document.getElementById('remainTotal').textContent = remaining.toLocaleString('en-US');
-}
-/* 生成全部 C(33,6) 个红球组合掩码（lo + hi 拆分） */
-function buildRedMasks() {
-  if (redLo) return;
-  redLo = new Int32Array(RC_TOTAL);
-  redHi = new Uint8Array(RC_TOTAL);
-  const c = [0, 1, 2, 3, 4, 5];
-  let idx = 0;
-  for (;;) {
-    let lo = 0, hi = 0;
-    for (let j = 0; j < 6; j++) {
-      if (c[j] <= 30) lo |= 1 << c[j];
-      else hi |= (c[j] === 31) ? 1 : 2;
-    }
-    redLo[idx] = lo; redHi[idx] = hi; idx++;
-    let i = 5;
-    while (i >= 0 && c[i] === 33 - 6 + i) i--;
-    if (i < 0) break;
-    c[i]++;
-    for (let j = i + 1; j < 6; j++) c[j] = c[j - 1] + 1;
+/* =========================================================
+   解析
+   ========================================================= */
+function parseBlues(str) {
+  if (!str) return [1];
+  if (str.indexOf('全') >= 0) {
+    const a = [];
+    for (let i = 1; i <= 16; i++) a.push(i);
+    return a;
   }
-}
-/* 号码 → 掩码 */
-function numToMask(n) {
-  return n <= 31 ? { lo: 1 << (n - 1), hi: 0 } : { lo: 0, hi: n === 32 ? 1 : 2 };
-}
-function maskToNums(lo, hi) {
-  const a = [];
-  for (let b = 0; b <= 30; b++) if (lo >> b & 1) a.push(b + 1);
-  if (hi & 1) a.push(32);
-  if (hi & 2) a.push(33);
-  return a;
+  const arr = str.split(',').filter(Boolean).map(Number).filter(n => n >= 1 && n <= 16);
+  return arr.length ? arr : [1];
 }
 
-/* ================= 解析输入 ================= */
-function parseNums(str, maxv, name) {
-  const out = [], seen = new Set();
-  if (!str) return out;
-  for (const tok of str.split(',')) {
-    const t = tok.trim();
-    if (!t) continue;
-    if (!/^\d{1,2}$/.test(t)) throw new Error(name + ' "' + tok + '" 不是有效号码');
-    const n = parseInt(t, 10);
-    if (n < 1 || n > maxv) throw new Error(name + ' ' + n + ' 超出范围 1-' + maxv);
-    if (seen.has(n)) continue;
-    seen.add(n); out.push(n);
+function parseLine(raw) {
+  let s = String(raw).trim();
+  if (!s) return null;
+
+  s = s.replace(/\uFE0F/g, '');
+  s = s.replace(/[✖×xX*]/g, '×');
+  s = s.replace(/[，、；;]/g, ',');
+  s = s.replace(/\s+/g, '');
+
+  let multiple = 1;
+  const mMul = s.match(/×(\d+)$/);
+  if (mMul) {
+    multiple = parseInt(mMul[1], 10) || 1;
+    s = s.slice(0, mMul.index);
   }
-  return out;
-}
 
-function parseAll(text) {
-  const errs = [], out = [];
-  const rows = text.split(/\r?\n/);
-  rows.forEach((raw, ri) => {
-    let s = raw.trim();
-    if (!s) return;
-    const showRaw = s.length > 24 ? s.slice(0, 24) + '…' : s;
-    try {
-      s = s.replace(/\uFE0F/g, '').trim();
-      let mult = 1;
-      const mm = s.match(/(?:✖|×|[xX*])\s*(\d+)\s*$/);
-      if (mm) {
-        mult = parseInt(mm[1], 10);
-        if (!(mult >= 1)) throw new Error('倍数无效');
-        s = s.slice(0, mm.index).trim();
-      }
-      s = s.replace(/[，、]/g, ',').replace(/\s+/g, '');
-      const dash = s.indexOf('-');
-      if (dash < 0) throw new Error('缺少 "-" 分隔');
-      const left = s.slice(0, dash), right = s.slice(dash + 1);
-      let dan = [], tuo = [];
-      const sep = left.includes('胆') ? '胆' : (left.includes('|') ? '|' : (left.includes('｜') ? '｜' : null));
-      if (sep) {
-        const p = left.split(sep);
-        dan = parseNums(p[0], 33, '胆码');
-        tuo = parseNums(p[1], 33, '拖码');
-        if (dan.length === 0) throw new Error('胆码为空');
-        const need = 6 - dan.length;
-        if (need < 0) throw new Error('胆码不能超过6个');
-        if (tuo.length < need) throw new Error('拖码至少需要 ' + need + ' 个');
-      } else {
-        tuo = parseNums(left, 33, '红球');
-        if (tuo.length < 6) throw new Error('红球至少6个');
-      }
-      if (dan.length && dan.some(n => tuo.includes(n))) throw new Error('胆码与拖码重复');
-      let blues;
-      const mm2 = right.match(/^(\d{1,2})\s*,\s*(\d+)\s*$/);
-      if (/^(全部|全包|全|all)$/i.test(right)) {
-        blues = Array.from({ length: 16 }, (_, i) => i + 1);
-      } else if (mm2 && parseInt(mm2[1], 10) <= 16 && parseInt(mm2[2], 10) > 16) {
-        /* 兼容 "-2，51" 这类把倍数写在全角逗号后的情况 */
-        blues = [parseInt(mm2[1], 10)];
-        mult = parseInt(mm2[2], 10);
-        if (!(mult >= 1)) throw new Error('倍数无效');
-      } else {
-        blues = parseNums(right, 16, '蓝球');
-        if (blues.length < 1) throw new Error('蓝球为空');
-      }
-      const mk = arr => {
-        let lo = 0, hi = 0;
-        arr.forEach(n => { if (n <= 31) lo |= 1 << (n - 1); else hi |= (n === 32 ? 1 : 2); });
-        return [lo, hi];
-      };
-      const [danLo, danHi] = mk(dan), [tuoLo, tuoHi] = mk(tuo);
-      let bm = 0;
-      blues.forEach(n => bm |= 1 << (n - 1));
-      const d = dan.length, t = tuo.length, B = blues.length;
-      const need = Math.max(6 - d, 0);
-      if (t < need) throw new Error('号码个数不足以组成6个红球');
-      const bets = C[t][need] * B * mult;
-      const base = d > 0 ? (d + '胆' + t + '拖+' + B) : (t + '+' + B);
-      const key = base + (mult > 1 ? '×' + mult : '');
-      out.push({
-        danLo, danHi, tuoLo, tuoHi,
-        poolLo: danLo | tuoLo, poolHi: danHi | tuoHi,
-        blueMask: bm, bluesArr: blues, d, t, B, mult, bets, key,
-        label: base + (mult > 1 ? ' ×' + mult : '')
-      });
-    } catch (e) {
-      errs.push('第' + (ri + 1) + '行（' + showRaw + '）：' + e.message);
-    }
-  });
-  return { lines: out, errs };
-}
+  const isDanTuo = /胆/.test(s) && /拖/.test(s);
 
-/* ================= 界面渲染 ================= */
-function pad2(n) { return String(n).padStart(2, '0'); }
+  const di = s.lastIndexOf('-');
+  const mainPart = di >= 0 ? s.slice(0, di) : s;
+  const bluePart = di >= 0 ? s.slice(di + 1) : '';
 
-function renderParseResult() {
-  typeGroups = new Map();
-  lines.forEach(L => {
-    let g = typeGroups.get(L.key);
-    if (!g) { g = { label: L.label, lineIdxs: [], bets: 0 }; typeGroups.set(L.key, g); }
-    g.lineIdxs.push(L); g.bets += L.bets;
-  });
-  totalLines = lines.length;
-  totalBets = lines.reduce((a, L) => a + L.bets, 0);
+  let dan = [], tuo = [], reds = [];
 
-  let html = '<table><tr><th>勾选</th><th>类型</th><th>行数</th><th>注数</th></tr>';
-  typeGroups.forEach((g, key) => {
-    html += '<tr><td><input type="checkbox" name="exclType" value="' + key + '" checked></td>'
-          + '<td>' + g.label + '</td>'
-          + '<td class="num">' + g.lineIdxs.length.toLocaleString('en-US') + '</td>'
-          + '<td class="num">' + g.bets.toLocaleString('en-US') + '</td></tr>';
-  });
-  html += '</table>';
-  html += '<div class="stat">共 <b>' + totalLines.toLocaleString('en-US') + '</b> 行，'
-        + '<b>' + totalBets.toLocaleString('en-US') + '</b> 注，投注金额 <b>'
-        + (totalBets * 2).toLocaleString('en-US') + '</b> 元</div>';
-  document.getElementById('parseResult').innerHTML = html;
-  document.getElementById('betHint').innerHTML =
-    '当前投注金额 = <b>' + (totalBets * 2).toLocaleString('en-US') + '</b> 元（' +
-    totalBets.toLocaleString('en-US') + ' 注 × 2元）。奖金：中6+1=500万，中6+0=50万，中5+1=3000，中5+0/4+1=200，中4+0/3+1=10，中2+1/1+1/0+1=5。' +
-    '复式/胆拖/倍投按实际中奖注数逐档计算总奖金，保留 奖金÷投注金额 在区间内的组合。';
-
-  buildTypeChecks('plTypes', 'plType', false);
-  buildTypeChecks('wcTypes', 'wcType', false);
-}
-
-function buildTypeChecks(elId, name, checked) {
-  const el = document.getElementById(elId);
-  let html = '';
-  typeGroups.forEach((g, key) => {
-    html += '<label><input type="checkbox" name="' + name + '" value="' + key + '"' + (checked ? ' checked' : '') + '>' + g.label + '</label>';
-  });
-  el.innerHTML = html || '<span class="hint">（暂无类型）</span>';
-}
-function buildHitChecks(elId, name) {
-  const el = document.getElementById(elId);
-  el.innerHTML = HIT_LIST.map(p =>
-    '<label><input type="checkbox" name="' + name + '" value="' + p[0] + '-' + p[1] + '">中' + p[0] + '+' + p[1] + '</label>'
-  ).join('');
-}
-function getChecked(name) {
-  return Array.from(document.querySelectorAll('input[name="' + name + '"]:checked')).map(el => el.value);
-}
-function hitArrFrom(sel) {
-  const a = new Uint8Array(68);
-  sel.forEach(v => { const p = v.split('-'); a[(+p[0]) * 2 + (+p[1])] = 1; });
-  return a;
-}
-function getRange(loId, hiId, isInt) {
-  let lo = parseFloat(document.getElementById(loId).value);
-  let hi = parseFloat(document.getElementById(hiId).value);
-  if (isNaN(lo) || isNaN(hi)) { alert('请输入有效的区间数值'); return null; }
-  if (lo > hi) { const t = lo; lo = hi; hi = t; }
-  if (isInt) { lo = Math.round(lo); hi = Math.round(hi); }
-  return [lo, hi];
-}
-function collectTypeLines(selTypes) {
-  const idxs = [];
-  if (selTypes.length) {
-    typeGroups.forEach((g, key) => { if (selTypes.includes(key)) g.lineIdxs.forEach(L => idxs.push(L)); });
+  if (isDanTuo) {
+    const danM = mainPart.match(/胆[:：]?([\d,]+)/);
+    const tuoM = mainPart.match(/拖[:：]?([\d,]+)/);
+    if (danM) dan = danM[1].split(',').filter(Boolean).map(Number);
+    if (tuoM) tuo = tuoM[1].split(',').filter(Boolean).map(Number);
+    reds = dan.concat(tuo);
   } else {
-    lines.forEach(L => idxs.push(L));
+    reds = mainPart.split(',').filter(Boolean).map(Number);
   }
-  return idxs;
+
+  reds = reds.filter(n => n >= 1 && n <= 33);
+  const uniq = [...new Set(reds)];
+  reds = uniq;
+
+  if (isDanTuo) {
+    dan = dan.filter(n => n >= 1 && n <= 33);
+    tuo = tuo.filter(n => n >= 1 && n <= 33);
+    tuo = tuo.filter(n => dan.indexOf(n) < 0);
+    if (dan.length + tuo.length < 6) return null;
+  } else {
+    if (reds.length < 6) return null;
+  }
+
+  const blues = parseBlues(bluePart);
+  if (!blues.length) return null;
+
+  const isDT = isDanTuo && dan.length > 0;
+  let baseBets;
+  if (isDT) {
+    baseBets = C(tuo.length, 6 - dan.length);
+  } else {
+    baseBets = C(reds.length, 6);
+  }
+  if (!baseBets) return null;
+
+  const bets = baseBets * blues.length * multiple;
+
+  const typeName = isDT
+    ? `${dan.length}胆${tuo.length}拖➕${blues.length}`
+    : `${reds.length}➕${blues.length}`;
+
+  return {
+    raw: raw,
+    isDanTuo: isDT,
+    dan: isDT ? dan.slice().sort((a, b) => a - b) : [],
+    tuo: isDT ? tuo.slice().sort((a, b) => a - b) : [],
+    reds: isDT ? (dan.concat(tuo)).sort((a, b) => a - b) : reds.slice().sort((a, b) => a - b),
+    blues: blues.slice().sort((a, b) => a - b),
+    multiple: multiple,
+    baseBets: baseBets,
+    bets: bets,
+    typeName: typeName
+  };
 }
 
-/* ================= 通用分块计算框架（可取消） ================= */
-function setBtns(dis) {
-  document.querySelectorAll('button.op').forEach(b => b.disabled = dis);
-  document.getElementById('progressWrap').style.display = dis ? 'block' : 'none';
-}
-/* 分块让出：用 MessageChannel 宏任务，避免后台标签下 setTimeout 被节流 */
-const _yield = (() => {
-  if (typeof MessageChannel === 'undefined') {
-    return () => new Promise(r => setTimeout(r, 0));
+/* =========================================================
+   行统计计算
+   ========================================================= */
+function computeRowStats(row, wrSet, wb) {
+  const B = row.blues;
+  let blueHit = 0;
+  for (let i = 0; i < B.length; i++) if (B[i] === wb) { blueHit = 1; break; }
+  const blueMiss = B.length - blueHit;
+
+  const redCnt = new Array(7).fill(0);
+
+  if (row.isDanTuo) {
+    const d = row.dan, t = row.tuo;
+    let a = 0;
+    for (let i = 0; i < d.length; i++) if (wrSet.has(d[i])) a++;
+    let b = 0;
+    for (let i = 0; i < t.length; i++) if (wrSet.has(t[i])) b++;
+    const need = 6 - d.length;
+    const tn = t.length;
+    const jStart = Math.max(0, need - (tn - b));
+    const jEnd = Math.min(need, b);
+    for (let j = jStart; j <= jEnd; j++) {
+      const k = a + j;
+      if (k > 6) continue;
+      redCnt[k] += C(b, j) * C(tn - b, need - j);
+    }
+  } else {
+    const R = row.reds;
+    let h = 0;
+    for (let i = 0; i < R.length; i++) if (wrSet.has(R[i])) h++;
+    const n = R.length;
+    for (let k = 0; k <= 6; k++) redCnt[k] = C(h, k) * C(n - h, 6 - k);
   }
-  const ch = new MessageChannel();
-  let pending = null;
-  ch.port1.onmessage = () => { const r = pending; pending = null; if (r) r(); };
-  return () => new Promise(r => { pending = r; ch.port2.postMessage(0); });
+
+  const hits = {};
+  let prizeBase = 0;
+  for (let k = 0; k <= 6; k++) {
+    const c = redCnt[k];
+    if (!c) continue;
+    if (blueHit) {
+      const key = k + '+1';
+      const cnt = c * blueHit;
+      hits[key] = (hits[key] || 0) + cnt;
+      prizeBase += cnt * (PRIZE[key] || 0);
+    }
+    if (blueMiss) {
+      const key = k + '+0';
+      const cnt = c * blueMiss;
+      hits[key] = (hits[key] || 0) + cnt;
+      prizeBase += cnt * (PRIZE[key] || 0);
+    }
+  }
+
+  return {
+    hits: hits,
+    prize: prizeBase * row.multiple,
+    betAmount: row.bets * 2,
+    prizeBets: (() => {
+      let n = 0;
+      for (const k in hits) if (PRIZE[k]) n += hits[k];
+      return n * row.multiple;
+    })()
+  };
+}
+
+/* =========================================================
+   历史记录
+   ========================================================= */
+function snapshot() {
+  historyStack = historyStack.slice(0, historyIndex + 1);
+  historyStack.push(rows.slice());
+  if (historyStack.length > 60) {
+    historyStack.shift();
+  }
+  historyIndex = historyStack.length - 1;
+  updateUndoRedo();
+}
+function updateUndoRedo() {
+  $('btnUndo').disabled = historyIndex <= 0;
+  $('btnRedo').disabled = historyIndex >= historyStack.length - 1;
+}
+function doUndo() {
+  if (historyIndex <= 0) return;
+  historyIndex--;
+  rows = historyStack[historyIndex].slice();
+  render();
+  updateUndoRedo();
+  log('撤退一步，当前 ' + fmt(rows.length) + ' 行');
+}
+function doRedo() {
+  if (historyIndex >= historyStack.length - 1) return;
+  historyIndex++;
+  rows = historyStack[historyIndex].slice();
+  render();
+  updateUndoRedo();
+  log('前进一步，当前 ' + fmt(rows.length) + ' 行');
+}
+
+/* =========================================================
+   渲染
+   ========================================================= */
+function sortKeyOf(row) {
+  if (row.isDanTuo) return [1, row.dan.length, row.tuo.length, row.blues.length];
+  return [0, row.reds.length, 0, row.blues.length];
+}
+function cmpKey(a, b) {
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return a[i] - b[i];
+  }
+  return 0;
+}
+
+function render() {
+  const totalRows = rows.length;
+  let totalBets = 0;
+  for (let i = 0; i < rows.length; i++) totalBets += rows[i].bets;
+
+  $('statsBox').innerHTML = `
+    <div class="stat"><span>行数</span><b>${fmt(totalRows)}</b></div>
+    <div class="stat"><span>注数</span><b>${fmt(totalBets)}</b></div>
+    <div class="stat"><span>投注金额</span><b>${fmt(totalBets * 2)} 元</b></div>
+  `;
+
+  $('remainBox').innerHTML = `
+    <div class="stat"><span>剩余行数</span><b>${fmt(totalRows)}</b></div>
+    <div class="stat"><span>剩余注数</span><b>${fmt(totalBets)}</b></div>
+    <div class="stat"><span>剩余金额</span><b>${fmt(totalBets * 2)} 元</b></div>
+  `;
+
+  /* 类型分组 */
+  const map = new Map();
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    let e = map.get(r.typeName);
+    if (!e) {
+      e = { name: r.typeName, count: 0, bets: 0, sort: sortKeyOf(r) };
+      map.set(r.typeName, e);
+    }
+    e.count++;
+    e.bets += r.bets;
+  }
+  const arr = [...map.values()].sort((a, b) => cmpKey(a.sort, b.sort));
+
+  let html = '';
+  for (const e of arr) {
+    html += `<label class="type-item">
+      <input type="checkbox" data-type="${e.name}">
+      <span class="type-name">${e.name}</span>
+      <span class="type-count">（${fmt(e.count)}行）</span>
+    </label>`;
+  }
+  $('typeList').innerHTML = html;
+
+  $('statsCard').style.display = rows.length ? '' : 'none';
+  $('opCard').style.display = rows.length ? '' : 'none';
+
+  updateInfoBox();
+}
+
+function updateInfoBox() {
+  const box = $('infoBox');
+  if (!drawNumber) {
+    box.textContent = '开奖号码：未设置（点击「设置开奖号码」）';
+  } else {
+    const reds = drawNumber.reds.map(pad2).join(',');
+    box.textContent = `开奖号码：${reds} - ${pad2(drawNumber.blue)}`;
+  }
+}
+
+/* =========================================================
+   读取勾选
+   ========================================================= */
+function getCheckedTypes() {
+  return [...document.querySelectorAll('#typeList input:checked')].map(x => x.dataset.type);
+}
+function getCheckedHits() {
+  return [...document.querySelectorAll('#hitGrid input:checked')].map(x => x.dataset.hit);
+}
+function getCheckedHitsFrom(container) {
+  return [...container.querySelectorAll('input:checked')].map(x => x.dataset.hit);
+}
+function getCheckedTypesFrom(container) {
+  return [...container.querySelectorAll('input:checked')].map(x => x.dataset.type);
+}
+
+/* =========================================================
+   确认按钮
+   ========================================================= */
+$('btnParse').addEventListener('click', () => {
+  const text = $('inputBox').value;
+  const lines = text.split(/\r?\n/);
+  const parsed = [];
+  let errCount = 0;
+
+  const t0 = performance.now();
+
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i].trim();
+    if (!raw) continue;
+    const r = parseLine(raw);
+    if (r) parsed.push(r);
+    else { errCount++; log('第 ' + (i + 1) + ' 行解析失败：' + raw, 'err'); }
+  }
+
+  const t1 = performance.now();
+
+  if (!parsed.length) {
+    log('没有有效数据', 'err');
+    return;
+  }
+
+  rows = parsed;
+  historyStack = [];
+  historyIndex = -1;
+  snapshot();
+
+  let totalBets = 0;
+  for (const r of rows) totalBets += r.bets;
+
+  log(`解析完成：${fmt(rows.length)} 行，${fmt(totalBets)} 注，耗时 ${(t1 - t0).toFixed(1)} ms` + (errCount ? `，${errCount} 行失败` : ''), 'ok');
+  render();
+});
+
+$('btnClear').addEventListener('click', () => {
+  $('inputBox').value = '';
+});
+
+$('btnUndo').addEventListener('click', doUndo);
+$('btnRedo').addEventListener('click', doRedo);
+
+/* =========================================================
+   命中类型勾选渲染
+   ========================================================= */
+(function buildHitGrid() {
+  let html = '';
+  for (const h of HIT_TYPES) {
+    html += `<label class="hit-item">
+      <input type="checkbox" data-hit="${h}">
+      <span>中${h}</span>
+    </label>`;
+  }
+  $('hitGrid').innerHTML = html;
 })();
 
-async function runOp(engine, opName) {
-  if (!lines.length) { alert('请先输入数据并点击"确定"'); return; }
-  if (computing) return;
-  const beforeCount = remaining;
-  tempSurv = blueSurv.slice();
-  tempRem = remaining;
-  computing = true; cancelFlag = false;
-  setBtns(true);
-  const t0 = performance.now();
-  const CH = 30000;
-  let cancelled = false;
-  for (let s = 0; s < RC_TOTAL; s += CH) {
-    if (cancelFlag) { cancelled = true; break; }
-    engine(s, Math.min(s + CH, RC_TOTAL));
-    const pct = Math.min(100, (s + CH) / RC_TOTAL * 100);
-    document.getElementById('progressBar').style.width = pct + '%';
-    document.getElementById('progressText').textContent =
-      opName + '：' + pct.toFixed(1) + '%　已用 ' + ((performance.now() - t0) / 1000).toFixed(1) + ' 秒　（点击"取消计算"可中止，数据保持操作前状态）';
-    await _yield();
-  }
-  computing = false;
-  setBtns(false);
-  document.getElementById('progressBar').style.width = '0%';
-  const secs = ((performance.now() - t0) / 1000).toFixed(2);
-  const st = document.getElementById('opStatus');
-  if (cancelled) {
-    tempSurv = null;
-    updateRemain();
-    st.textContent = '已取消「' + opName + '」，数据保持操作前状态，当前剩余 ' + remaining.toLocaleString('en-US') + ' 个组合';
-  } else {
-    blueSurv = tempSurv; tempSurv = null;
-    remaining = tempRem;
-    updateRemain();
-    st.textContent = opName + ' 完成：原有 ' + beforeCount.toLocaleString('en-US')
-      + ' 个 → 剩余 ' + remaining.toLocaleString('en-US') + ' 个（本次排除 '
-      + (beforeCount - remaining).toLocaleString('en-US') + ' 个），耗时 ' + secs + ' 秒';
-    if (remaining === 0) alert('当前剩余 0 个组合');
-    else document.getElementById('progressText').textContent = '';
-  }
-}
+/* =========================================================
+   排除所选命中类型
+   ========================================================= */
+$('btnExcludeHit').addEventListener('click', () => {
+  if (!rows.length) return;
+  const types = getCheckedTypes();
+  const hits = getCheckedHits();
 
-/* ================= 各操作 ================= */
-/* 排除：勾选类型 + 命中类型 */
-function opExclude() {
-  const selHits = getChecked('exclHit');
-  if (!selHits.length) { alert('请先勾选要排除的命中类型'); return; }
-  const idxs = collectTypeLines(getChecked('exclType'));
-  if (!idxs.length) { alert('没有可用的行'); return; }
-  const hitA = hitArrFrom(selHits);
-  const n = idxs.length;
-  const pLo = new Int32Array(n), pHi = new Uint8Array(n), bm = new Int32Array(n);
-  idxs.forEach((L, j) => { pLo[j] = L.poolLo; pHi[j] = L.poolHi; bm[j] = L.blueMask; });
-  const engine = (start, end) => {
-    for (let rc = start; rc < end; rc++) {
-      const bs = tempSurv[rc];
-      if (!bs) continue;
-      const rl = redLo[rc], rh = redHi[rc];
-      let forbid = 0;
-      for (let i = 0; i < n; i++) {
-        const r2 = (popcnt(rl & pLo[i]) + PC4[rh & pHi[i]]) << 1;
-        if (hitA[r2 + 1]) forbid |= bm[i];
-        if (hitA[r2]) forbid |= (~bm[i]) & 0xFFFF;
-        if (forbid === 0xFFFF) break;
-      }
-      if (forbid) {
-        const nv = bs & ~forbid;
-        if (nv !== bs) { tempSurv[rc] = nv; tempRem -= PC16[bs] - PC16[nv]; }
-      }
+  if (!hits.length) { log('请先勾选命中类型', 'err'); return; }
+  if (!drawNumber) { openDrawPicker(() => executeExclude(types, hits)); return; }
+
+  executeExclude(types, hits);
+});
+
+function executeExclude(types, hits) {
+  const wrSet = new Set(drawNumber.reds);
+  const wb = drawNumber.blue;
+  const typeFilter = types.length ? new Set(types) : null;
+
+  let removed = 0;
+  const keep = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (typeFilter && !typeFilter.has(row.typeName)) { keep.push(row); continue; }
+    const st = computeRowStats(row, wrSet, wb);
+    let matched = false;
+    for (let j = 0; j < hits.length; j++) {
+      if (st.hits[hits[j]] > 0) { matched = true; break; }
     }
-  };
-  runOp(engine, '排除命中类型');
-}
-
-/* 单行奖金（写入全局 gP0/gP1）：给定该行 胆命中数 rd、拖命中数 rt */
-let gP0 = 0, gP1 = 0;
-function linePrize(L, rd, rt) {
-  const need = 6 - L.d, t = L.t, B = L.B, m = L.mult;
-  let a = 0, b0 = 0;
-  const jMax = Math.min(rt, need);
-  let jLo = need - (t - rt);
-  if (jLo < 0) jLo = 0;
-  for (let j = jLo; j <= jMax; j++) {
-    const cnt = C[rt][j] * C[t - rt][need - j];
-    const k = rd + j;
-    if (k >= 6) { a += cnt * 5000000; b0 += cnt * 500000; }
-    else if (k === 5) { a += cnt * 3000; b0 += cnt * 200; }
-    else if (k === 4) { a += cnt * 200; b0 += cnt * 10; }
-    else if (k === 3) { a += cnt * 10; }
-    else { a += cnt * 5; }          /* 2+1 / 1+1 / 0+1 各 5 元 */
+    if (matched) removed++;
+    else keep.push(row);
   }
-  gP0 = m * B * b0;                 /* 蓝球未中时的总奖金 */
-  gP1 = m * (a + (B - 1) * b0);     /* 蓝球命中时的总奖金 */
+
+  rows = keep;
+  snapshot();
+  render();
+  log(`排除完成：移除 ${fmt(removed)} 行，剩余 ${fmt(rows.length)} 行`, 'ok');
 }
 
-/* 保留奖金比例 */
-function opPrizeRatio() {
-  const rg = getRange('betLo', 'betHi', false);
-  if (!rg) return;
-  const betAmt = totalBets * 2;
-  const loV = betAmt * rg[0] / 100 - 1e-6;
-  const hiV = betAmt * rg[1] / 100 + 1e-6;
-  const n = lines.length;
-  const blueLines = Array.from({ length: 16 }, () => []);
-  lines.forEach((L, i) => L.bluesArr.forEach(b => blueLines[b - 1].push(i)));
-  const dA = new Float64Array(n);
-  const engine = (start, end) => {
-    for (let rc = start; rc < end; rc++) {
-      const bs = tempSurv[rc];
-      if (!bs) continue;
-      const rl = redLo[rc], rh = redHi[rc];
-      let base = 0;
-      for (let i = 0; i < n; i++) {
-        const L = lines[i];
-        linePrize(L,
-          popcnt(rl & L.danLo) + PC4[rh & L.danHi],
-          popcnt(rl & L.tuoLo) + PC4[rh & L.tuoHi]);
-        base += gP0;
-        dA[i] = gP1 - gP0;
-      }
-      let keep = 0;
-      for (let b = 0; b < 16; b++) {
-        if (!(bs >> b & 1)) continue;
-        let tot = base;
-        const bl = blueLines[b];
-        for (let q = 0; q < bl.length; q++) tot += dA[bl[q]];
-        if (tot >= loV && tot <= hiV) keep |= 1 << b;
-      }
-      if (keep !== bs) { tempSurv[rc] = keep; tempRem -= PC16[bs] - PC16[keep]; }
-    }
-  };
-  runOp(engine, '保留奖金比例');
-}
+/* =========================================================
+   弹窗控制
+   ========================================================= */
+function openMask(id) { $(id).classList.add('show'); }
+function closeMask(id) { $(id).classList.remove('show'); }
 
-/* 保留有奖金的行数比例（可勾选类型） */
-function opPrizeLines() {
-  const rg = getRange('plLo', 'plHi', false);
-  if (!rg) return;
-  const idxs = collectTypeLines(getChecked('plType'));
-  if (!idxs.length) { alert('没有可用的行'); return; }
-  const loV = totalLines * rg[0] / 100 - 1e-6;
-  const hiV = totalLines * rg[1] / 100 + 1e-6;
-  const blueLines = Array.from({ length: 16 }, () => []);
-  idxs.forEach(L => L.bluesArr.forEach(b => blueLines[b - 1].push(L)));
-  const f4 = new Uint8Array(lines.length);
-  const engine = (start, end) => {
-    for (let rc = start; rc < end; rc++) {
-      const bs = tempSurv[rc];
-      if (!bs) continue;
-      const rl = redLo[rc], rh = redHi[rc];
-      let base4 = 0;
-      for (let q = 0; q < idxs.length; q++) {
-        const L = idxs[q];
-        const maxK = (popcnt(rl & L.danLo) + PC4[rh & L.danHi])
-                   + Math.min(popcnt(rl & L.tuoLo) + PC4[rh & L.tuoHi], 6 - L.d);
-        if (maxK >= 4) { base4++; f4[L.idx] = 0; } else { f4[L.idx] = 1; }
-      }
-      let keep = 0;
-      for (let b = 0; b < 16; b++) {
-        if (!(bs >> b & 1)) continue;
-        let cnt = base4;
-        const bl = blueLines[b];
-        for (let q = 0; q < bl.length; q++) if (f4[bl[q].idx]) cnt++;
-        if (cnt >= loV && cnt <= hiV) keep |= 1 << b;
-      }
-      if (keep !== bs) { tempSurv[rc] = keep; tempRem -= PC16[bs] - PC16[keep]; }
-    }
-  };
-  runOp(engine, '保留有奖金行数比例');
-}
-
-/* 筛选中奖行数（可勾选类型 + 命中类型） */
-function opWinCount() {
-  const selHits = getChecked('wcHit');
-  const rg = getRange('wcLo', 'wcHi', true);
-  if (!rg) return;
-  const lo = rg[0], hi = rg[1];
-  const hitA = hitArrFrom(selHits);
-  const hasHit = selHits.length > 0;
-  const selTypes = getChecked('wcType');
-  let groupIdxs;
-  if (selTypes.length) {
-    groupIdxs = [];
-    typeGroups.forEach((g, key) => { if (selTypes.includes(key)) groupIdxs.push(g.lineIdxs); });
-  } else {
-    groupIdxs = [lines];
-  }
-  if (!groupIdxs.length || groupIdxs.some(g => !g.length)) { alert('没有可用的行'); return; }
-  const groups = groupIdxs.map(idxs => {
-    const m = idxs.length;
-    const dLo = new Int32Array(m), dHi = new Uint8Array(m),
-          tLo = new Int32Array(m), tHi = new Uint8Array(m),
-          pLo = new Int32Array(m), pHi = new Uint8Array(m),
-          blue = new Int32Array(m), need = new Int32Array(m);
-    const blueArr = new Array(m);
-    idxs.forEach((L, j) => {
-      dLo[j] = L.danLo; dHi[j] = L.danHi; tLo[j] = L.tuoLo; tHi[j] = L.tuoHi;
-      pLo[j] = L.poolLo; pHi[j] = L.poolHi;
-      blue[j] = L.blueMask; need[j] = 6 - L.d; blueArr[j] = L.bluesArr;
-    });
-    return { m, dLo, dHi, tLo, tHi, pLo, pHi, blue, need, blueArr };
+document.querySelectorAll('[data-close]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    btn.closest('.mask').classList.remove('show');
   });
-  const delta = new Int32Array(16);
-  const f4 = new Int32Array(Math.max(...groups.map(g => g.m)));
-  const engine = (start, end) => {
-    for (let rc = start; rc < end; rc++) {
-      const bs = tempSurv[rc];
-      if (!bs) continue;
-      const rl = redLo[rc], rh = redHi[rc];
-      let keep = 0xFFFF;
-      for (let gi = 0; gi < groups.length && keep; gi++) {
-        const G = groups[gi], m = G.m;
-        let keepG = 0xFFFF;
-        if (hasHit) {
-          delta.fill(0);
-          let base0 = 0;
-          for (let j = 0; j < m; j++) {
-            const r2 = (popcnt(rl & G.pLo[j]) + PC4[rh & G.pHi[j]]) << 1;
-            const inA = hitA[r2 + 1], inB = hitA[r2];
-            if (inB) base0++;
-            const ba = G.blueArr[j];
-            if (inA) for (let q = 0; q < ba.length; q++) delta[ba[q] - 1]++;
-            if (inB) for (let q = 0; q < ba.length; q++) delta[ba[q] - 1]--;
-          }
-          for (let b = 0; b < 16; b++) {
-            if (!(bs >> b & 1)) continue;
-            const cnt = base0 + delta[b];
-            if (cnt < lo || cnt > hi) keepG &= ~(1 << b);
-          }
-        } else {
-          let base4 = 0;
-          for (let j = 0; j < m; j++) {
-            const maxK = (popcnt(rl & G.dLo[j]) + PC4[rh & G.dHi[j]])
-                       + Math.min(popcnt(rl & G.tLo[j]) + PC4[rh & G.tHi[j]], G.need[j]);
-            if (maxK >= 4) { base4++; f4[j] = 0; } else { f4[j] = 1; }
-          }
-          for (let b = 0; b < 16; b++) {
-            if (!(bs >> b & 1)) continue;
-            let cnt = base4;
-            for (let j = 0; j < m; j++) if (f4[j] && (G.blue[j] >> b & 1)) cnt++;
-            if (cnt < lo || cnt > hi) keepG &= ~(1 << b);
-          }
-        }
-        keep &= keepG;
+});
+
+/* =========================================================
+   号码选择器
+   ========================================================= */
+function buildPicker(el, max, need, onChange) {
+  el.innerHTML = '';
+  el._sel = [];
+  for (let i = 1; i <= max; i++) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'num-btn';
+    b.textContent = pad2(i);
+    b.dataset.v = i;
+    b.addEventListener('click', () => {
+      const idx = el._sel.indexOf(i);
+      if (idx >= 0) {
+        el._sel.splice(idx, 1);
+        b.classList.remove('on');
+      } else {
+        if (el._sel.length >= need) return;
+        el._sel.push(i);
+        b.classList.add('on');
       }
-      keep &= bs;   /* 只在当前仍存活的蓝球位内保留，避免已排除的位被"复活" */
-      if (keep !== bs) { tempSurv[rc] = keep; tempRem -= PC16[bs] - PC16[keep]; }
-    }
-  };
-  runOp(engine, '筛选中奖行数');
+      if (onChange) onChange(el._sel);
+    });
+    el.appendChild(b);
+  }
+}
+function pickerReset(el) {
+  el._sel = [];
+  el.querySelectorAll('.num-btn').forEach(b => b.classList.remove('on'));
 }
 
-/* ================= 导出 ================= */
-function doExport() {
-  if (!lines.length) { alert('请先输入数据并点击"确定"'); return; }
-  if (computing) { alert('正在计算中，请等待完成或先取消'); return; }
-  const rows = [];
-  let truncated = false;
-  outer:
-  for (let rc = 0; rc < RC_TOTAL; rc++) {
-    const bs = blueSurv[rc];
-    if (!bs) continue;
-    const rs = maskToNums(redLo[rc], redHi[rc]).map(pad2).join(',');
-    for (let b = 0; b < 16; b++) {
-      if (bs >> b & 1) {
-        if (rows.length >= MAX_ROWS) { truncated = true; break outer; }
-        rows.push([rs + '-' + pad2(b + 1)]);
-      }
+/* ---- 开奖号码弹窗 ---- */
+let drawCb = null;
+function openDrawPicker(cb) {
+  drawCb = cb || null;
+  pickerReset($('pickRed'));
+  pickerReset($('pickBlue'));
+  $('drawRedCnt').textContent = '0/6';
+  $('drawBlueCnt').textContent = '0/1';
+  openMask('maskDraw');
+}
+buildPicker($('pickRed'), 33, 6, sel => {
+  $('drawRedCnt').textContent = sel.length + '/6';
+});
+buildPicker($('pickBlue'), 16, 1, sel => {
+  $('drawBlueCnt').textContent = sel.length + '/1';
+});
+
+$('btnSetDraw').addEventListener('click', () => openDrawPicker(null));
+
+$('drawOk').addEventListener('click', () => {
+  const reds = $('pickRed')._sel.slice().sort((a, b) => a - b);
+  const blues = $('pickBlue')._sel.slice();
+  if (reds.length !== 6 || blues.length !== 1) {
+    alert('请选择 6 个红球和 1 个蓝球');
+    return;
+  }
+  drawNumber = { reds: reds, blue: blues[0] };
+  closeMask('maskDraw');
+  updateInfoBox();
+  log('开奖号码已设置：' + reds.map(pad2).join(',') + ' - ' + pad2(blues[0]), 'ok');
+  if (drawCb) { const f = drawCb; drawCb = null; f(); }
+});
+
+/* =========================================================
+   保留奖金比例
+   ========================================================= */
+$('btnPrizeRatio').addEventListener('click', () => {
+  if (!rows.length) return;
+  openMask('maskPrize');
+});
+
+$('prizeOk').addEventListener('click', () => {
+  const p1 = parseFloat($('prizeMin').value);
+  const p2 = parseFloat($('prizeMax').value);
+  if (isNaN(p1) || isNaN(p2) || p1 > p2) { alert('区间无效'); return; }
+  closeMask('maskPrize');
+
+  if (!drawNumber) { openDrawPicker(() => execPrizeRatio(p1, p2)); return; }
+  execPrizeRatio(p1, p2);
+});
+
+function execPrizeRatio(p1, p2) {
+  const wrSet = new Set(drawNumber.reds);
+  const wb = drawNumber.blue;
+  let removed = 0;
+  const keep = [];
+  for (const row of rows) {
+    const st = computeRowStats(row, wrSet, wb);
+    const ratio = st.betAmount > 0 ? (st.prize / st.betAmount) * 100 : 0;
+    if (ratio >= p1 && ratio <= p2) keep.push(row);
+    else removed++;
+  }
+  rows = keep;
+  snapshot();
+  render();
+  log(`奖金比例筛选（${p1}% ~ ${p2}%）：移除 ${fmt(removed)} 行，剩余 ${fmt(rows.length)} 行`, 'ok');
+}
+
+/* =========================================================
+   有奖金行数比例
+   ========================================================= */
+$('btnHasPrizeRatio').addEventListener('click', () => {
+  if (!rows.length) return;
+  openMask('maskHasPrize');
+});
+
+$('hpOk').addEventListener('click', () => {
+  const p1 = parseFloat($('hpMin').value);
+  const p2 = parseFloat($('hpMax').value);
+  if (isNaN(p1) || isNaN(p2) || p1 > p2) { alert('区间无效'); return; }
+  closeMask('maskHasPrize');
+  if (!drawNumber) { openDrawPicker(() => execHasPrize(p1, p2)); return; }
+  execHasPrize(p1, p2);
+});
+
+function execHasPrize(p1, p2) {
+  const wrSet = new Set(drawNumber.reds);
+  const wb = drawNumber.blue;
+  const types = getCheckedTypes();
+  const typeFilter = types.length ? new Set(types) : null;
+
+  let removed = 0;
+  const keep = [];
+  for (const row of rows) {
+    if (typeFilter && !typeFilter.has(row.typeName)) { keep.push(row); continue; }
+    const st = computeRowStats(row, wrSet, wb);
+    const ratio = row.bets > 0 ? (st.prizeBets / row.bets) * 100 : 0;
+    if (ratio >= p1 && ratio <= p2) keep.push(row);
+    else removed++;
+  }
+  rows = keep;
+  snapshot();
+  render();
+  log(`有奖金注数比例筛选（${p1}% ~ ${p2}%）：移除 ${fmt(removed)} 行，剩余 ${fmt(rows.length)} 行`, 'ok');
+}
+
+/* =========================================================
+   筛选中奖行数
+   ========================================================= */
+function buildHitCountModal() {
+  /* 行类型 */
+  const map = new Map();
+  for (const r of rows) {
+    if (!map.has(r.typeName)) map.set(r.typeName, { name: r.typeName, sort: sortKeyOf(r), row: r });
+  }
+  const arr = [...map.values()].sort((a, b) => cmpKey(a.sort, b.sort));
+  let html = '';
+  for (const e of arr) {
+    html += `<label><input type="checkbox" data-type="${e.name}">${e.name}</label>`;
+  }
+  $('hcTypes').innerHTML = html;
+
+  /* 命中类型 */
+  let h = '';
+  for (const t of HIT_TYPES) {
+    h += `<label><input type="checkbox" data-hit="${t}">中${t}</label>`;
+  }
+  $('hcHits').innerHTML = h;
+
+  $('hcInfo').textContent = '请勾选行类型与命中类型以查看奖金';
+
+  const upd = () => updateHitCountInfo();
+  $('hcTypes').querySelectorAll('input').forEach(x => x.addEventListener('change', upd));
+  $('hcHits').querySelectorAll('input').forEach(x => x.addEventListener('change', upd));
+}
+
+function updateHitCountInfo() {
+  const types = getCheckedTypesFrom($('hcTypes'));
+  const hits = getCheckedHitsFrom($('hcHits'));
+  if (!types.length || !hits.length) {
+    $('hcInfo').textContent = '请勾选行类型与命中类型以查看奖金';
+    return;
+  }
+  const lines = [];
+  for (const t of types) {
+    /* 找一行该类型用于解析参数 */
+    const sample = rows.find(r => r.typeName === t);
+    if (!sample) continue;
+    let redN, blueN;
+    if (sample.isDanTuo) {
+      redN = sample.dan.length + sample.tuo.length;
+      blueN = sample.blues.length;
+    } else {
+      redN = sample.reds.length;
+      blueN = sample.blues.length;
+    }
+    for (const ht of hits) {
+      const parts = ht.split('+');
+      const hr = parseInt(parts[0], 10);
+      const hb = parseInt(parts[1], 10);
+      /* 假设该行恰好命中 hr 个红球、hb 个蓝球 */
+      const cntRedCombo = C(hr, hr) * C(redN - hr, 6 - hr);
+      let cntBlue;
+      if (hb === 1) cntBlue = 1;
+      else cntBlue = blueN;
+      const betCnt = cntRedCombo * cntBlue;
+      const per = PRIZE[ht] || 0;
+      const money = betCnt * per;
+      lines.push(`${t} 中${ht}：约 ${fmt(betCnt)} 注 × ${fmt(per)}元 = ${fmt(money)} 元`);
     }
   }
-  if (!rows.length) { alert('当前剩余 0 个组合，无可导出数据'); return; }
-  if (window.XLSX) {
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [{ wch: 24 }];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, '组合');
-    XLSX.writeFile(wb, '组合导出.xlsx');
+  $('hcInfo').textContent = lines.length ? lines.join('\n') : '无可用信息';
+}
+
+$('btnHitCount').addEventListener('click', () => {
+  if (!rows.length) return;
+  buildHitCountModal();
+  openMask('maskHitCount');
+});
+
+$('hcOk').addEventListener('click', () => {
+  const types = getCheckedTypesFrom($('hcTypes'));
+  const hits = getCheckedHitsFrom($('hcHits'));
+  const min = parseInt($('hcMin').value, 10) || 0;
+  const max = parseInt($('hcMax').value, 10);
+  if (isNaN(max)) { alert('请输入有效区间'); return; }
+  if (!hits.length) { alert('请勾选命中类型'); return; }
+  closeMask('maskHitCount');
+
+  const go = () => execHitCount(types, hits, min, max);
+  if (!drawNumber) { openDrawPicker(go); return; }
+  go();
+});
+
+function execHitCount(types, hits, min, max) {
+  const wrSet = new Set(drawNumber.reds);
+  const wb = drawNumber.blue;
+  const typeFilter = types.length ? new Set(types) : null;
+
+  let removed = 0;
+  const keep = [];
+
+  for (const row of rows) {
+    if (typeFilter && !typeFilter.has(row.typeName)) { keep.push(row); continue; }
+    const st = computeRowStats(row, wrSet, wb);
+    let totalHit = 0;
+    for (const h of hits) totalHit += (st.hits[h] || 0);
+    if (totalHit >= min && totalHit <= max) keep.push(row);
+    else removed++;
+  }
+
+  rows = keep;
+  snapshot();
+  render();
+  log(`中奖行数筛选：移除 ${fmt(removed)} 行，剩余 ${fmt(rows.length)} 行`, 'ok');
+}
+
+/* =========================================================
+   展开单注
+   ========================================================= */
+function kCombinations(arr, k) {
+  const res = [];
+  const n = arr.length;
+  if (k > n || k <= 0) return res;
+  const idx = [];
+  for (let i = 0; i < k; i++) idx.push(i);
+  while (true) {
+    const c = new Array(k);
+    for (let i = 0; i < k; i++) c[i] = arr[idx[i]];
+    res.push(c);
+    let i = k - 1;
+    while (i >= 0 && idx[i] === n - k + i) i--;
+    if (i < 0) break;
+    idx[i]++;
+    for (let j = i + 1; j < k; j++) idx[j] = idx[j - 1] + 1;
+  }
+  return res;
+}
+
+function expandRow(row, cb) {
+  if (row.isDanTuo) {
+    const need = 6 - row.dan.length;
+    const combos = kCombinations(row.tuo, need);
+    for (const c of combos) {
+      const reds = row.dan.concat(c).sort((a, b) => a - b);
+      for (const b of row.blues) cb(reds, b);
+    }
   } else {
-    const csv = '\uFEFF' + rows.map(r => r[0]).join('\r\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = '组合导出.csv';
-    a.click();
-    URL.revokeObjectURL(a.href);
+    const combos = kCombinations(row.reds, 6);
+    for (const c of combos) {
+      for (const b of row.blues) cb(c, b);
+    }
   }
-  if (truncated) alert('剩余组合超过 Excel 上限，仅导出前 ' + MAX_ROWS.toLocaleString('en-US') + ' 行');
 }
 
-/* ================= 事件绑定与初始化 ================= */
-document.getElementById('btnParse').addEventListener('click', () => {
-  const text = document.getElementById('inputArea').value;
-  if (!text.trim()) { alert('请输入数据'); return; }
-  const res = parseAll(text);
-  document.getElementById('parseErr').textContent = res.errs.length ? '以下行未能解析：\n' + res.errs.join('\n') : '';
-  if (!res.lines.length) { alert('没有解析到有效数据行'); return; }
-  lines = res.lines;
-  lines.forEach((L, i) => { L.idx = i; });
-  buildRedMasks();
-  initState();
-  renderParseResult();
-  document.getElementById('opStatus').textContent = '已载入 ' + lines.length + ' 行，可开始筛选';
+/* =========================================================
+   重复情况查询
+   ========================================================= */
+buildPicker($('dupRed'), 33, 6, sel => {
+  $('dupRedCnt').textContent = sel.length + '/6';
 });
-document.getElementById('btnExclude').addEventListener('click', opExclude);
-document.getElementById('btnResetExcl').addEventListener('click', () => {
-  document.querySelectorAll('input[name="exclType"]').forEach(el => el.checked = true);
+buildPicker($('dupBlue'), 16, 1, sel => {
+  $('dupBlueCnt').textContent = sel.length + '/1';
 });
-document.getElementById('btnPrizeRatio').addEventListener('click', opPrizeRatio);
-document.getElementById('btnPrizeLines').addEventListener('click', opPrizeLines);
-document.getElementById('btnWinLines').addEventListener('click', opWinCount);
-document.getElementById('btnExport').addEventListener('click', doExport);
-document.getElementById('btnCancel').addEventListener('click', () => { cancelFlag = true; });
 
-buildHitChecks('exclHits', 'exclHit');
-buildHitChecks('wcHits', 'wcHit');
-initState();
+$('btnDupQuery').addEventListener('click', () => {
+  if (!rows.length) return;
+  pickerReset($('dupRed'));
+  pickerReset($('dupBlue'));
+  $('dupRedCnt').textContent = '0/6';
+  $('dupBlueCnt').textContent = '0/1';
+  $('dupResult').textContent = '请选择号码后点击「开始查询」';
+  openMask('maskDup');
+});
+
+$('dupRun').addEventListener('click', () => {
+  const dr = $('dupRed')._sel.slice().sort((a, b) => a - b);
+  const db = $('dupBlue')._sel.slice();
+  if (dr.length !== 6 || db.length !== 1) { alert('请选择 6 个红球和 1 个蓝球'); return; }
+
+  const wrSet = new Set(dr);
+  const wb = db[0];
+
+  const t0 = performance.now();
+
+  const map = new Map();
+  for (const row of rows) {
+    expandRow(row, (reds, blue) => {
+      const key = reds.join(',') + '|' + blue;
+      let e = map.get(key);
+      if (!e) { e = { count: 0, reds: reds, blue: blue }; map.set(key, e); }
+      e.count++;
+    });
+  }
+
+  /* 按重复次数分组，取最高命中 */
+  const groups = new Map(); // count -> bestHit
+  for (const e of map.values()) {
+    if (e.count < 2) continue;
+    let hit = 0, blueHit = 0;
+    for (const r of e.reds) if (wrSet.has(r)) hit++;
+    if (e.blue === wb) blueHit = 1;
+    const key = hit + '+' + blueHit;
+    const rank = HIT_RANK[key] || 0;
+    const cur = groups.get(e.count);
+    if (!cur || rank > cur.rank) groups.set(e.count, { rank: rank, hit: key });
+  }
+
+  const t1 = performance.now();
+
+  const list = [...groups.entries()].sort((a, b) => b[0] - a[0]);
+  if (!list.length) {
+    $('dupResult').textContent = '没有重复的注（重复 2 次及以上）';
+    return;
+  }
+
+  let out = '';
+  for (const [cnt, info] of list) {
+    out += `重复${cnt}次最多中${info.hit}\n`;
+  }
+  $('dupResult').textContent = out;
+  log(`重复查询完成，耗时 ${(t1 - t0).toFixed(0)} ms`, 'ok');
+});
+
+/* =========================================================
+   智能重复排除
+   ========================================================= */
+buildPicker($('smRed'), 33, 6, () => updateSmDrawInfo());
+buildPicker($('smBlue'), 16, 1, () => updateSmDrawInfo());
+
+function updateSmDrawInfo() {
+  const r = $('smRed')._sel.slice().sort((a, b) => a - b);
+  const b = $('smBlue')._sel.slice();
+  if (r.length === 6 && b.length === 1) {
+    $('smDrawInfo').textContent = '开奖号码：' + r.map(pad2).join(',') + ' - ' + pad2(b[0]);
+    $('smDrawInfo').style.color = '#34d399';
+  } else {
+    $('smDrawInfo').textContent = '未选择（需 6 红 1 蓝）';
+    $('smDrawInfo').style.color = '#6b85a8';
+  }
+}
+
+$('btnSmartDup').addEventListener('click', () => {
+  if (!rows.length) return;
+  let h = '';
+  for (const t of HIT_TYPES) {
+    h += `<label><input type="checkbox" data-hit="${t}">中${t}</label>`;
+  }
+  $('smHits').innerHTML = h;
+  pickerReset($('smRed'));
+  pickerReset($('smBlue'));
+  updateSmDrawInfo();
+  openMask('maskSmart');
+});
+
+$('smOk').addEventListener('click', () => {
+  const minR = parseInt($('smMin').value, 10);
+  const maxR = parseInt($('smMax').value, 10);
+  if (isNaN(minR) || isNaN(maxR) || minR > maxR) { alert('重复次数区间无效'); return; }
+
+  const hits = getCheckedHitsFrom($('smHits'));
+  if (!hits.length) { alert('请勾选命中类型'); return; }
+
+  const dr = $('smRed')._sel.slice().sort((a, b) => a - b);
+  const db = $('smBlue')._sel.slice();
+  if (dr.length !== 6 || db.length !== 1) { alert('请选择开奖号码（6红1蓝）'); return; }
+
+  closeMask('maskSmart');
+
+  const wrSet = new Set(dr);
+  const wb = db[0];
+
+  /* 1. 统计所有注的重复次数 */
+  const map = new Map();
+  for (const row of rows) {
+    expandRow(row, (reds, blue) => {
+      const key = reds.join(',') + '|' + blue;
+      map.set(key, (map.get(key) || 0) + 1);
+    });
+  }
+
+  /* 2. 收集重复次数在区间内的注 */
+  const targetSet = new Set();
+  for (const [key, cnt] of map.entries()) {
+    if (cnt >= minR && cnt <= maxR) targetSet.add(key);
+  }
+
+  /* 3. 逐行判断：若该行中任一注命中勾选命中类型 → 排除 */
+  let removed = 0;
+  const keep = [];
+  const hitSet = new Set(hits);
+
+  for (const row of rows) {
+    const st = computeRowStats(row, wrSet, wb);
+    let matched = false;
+    for (const h of hitSet) {
+      if (st.hits[h] > 0) { matched = true; break; }
+    }
+    if (matched) removed++;
+    else keep.push(row);
+  }
+
+  rows = keep;
+  snapshot();
+  render();
+  log(`智能重复排除完成：移除 ${fmt(removed)} 行，剩余 ${fmt(rows.length)} 行`, 'ok');
+});
+
+/* =========================================================
+   导出
+   ========================================================= */
+$('btnExport').addEventListener('click', () => {
+  if (!rows.length) { alert('没有可导出的数据'); return; }
+
+  const lines = [];
+  for (const row of rows) {
+    let redStr, blueStr;
+    if (row.isDanTuo) {
+      redStr = '胆:' + row.dan.map(pad2).join(',') + ',拖:' + row.tuo.map(pad2).join(',');
+    } else {
+      redStr = row.reds.map(pad2).join(',');
+    }
+    blueStr = row.blues.map(pad2).join(',');
+    let line = redStr + '-' + blueStr;
+    if (row.multiple > 1) line += ' ✖️' + row.multiple;
+    lines.push(line);
+  }
+
+  const csv = '\uFEFF' + lines.join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const t = new Date();
+  const stamp = `${t.getFullYear()}${pad2(t.getMonth() + 1)}${pad2(t.getDate())}_${pad2(t.getHours())}${pad2(t.getMinutes())}${pad2(t.getSeconds())}`;
+  a.href = url;
+  a.download = `组合结果_${stamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+  log(`已导出 ${fmt(rows.length)} 行`, 'ok');
+});
+
+/* =========================================================
+   初始化
+   ========================================================= */
+updateInfoBox();
+updateUndoRedo();
+log('系统就绪。全部可能组合 17,721,088 个。');
 </script>
 </body>
 </html>
